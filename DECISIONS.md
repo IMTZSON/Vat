@@ -107,3 +107,44 @@ zoom lontano. La mappa passa automaticamente a satellite/ibrida sotto ~30 km di 
 **D-032 — Clustering.** Con migliaia di aerei si usa `MKMapView` (UIViewRepresentable) invece della
 `Map` SwiftUI: annotazioni riciclate, `clusteringIdentifier` a zoom basso, aggiornamento differenziale
 delle coordinate (KVO `coordinate` animato) → 60 fps. La `Map` SwiftUI è usata nelle viste secondarie.
+
+## Core dati/rete (modulo 1)
+
+**D-040 — Cache offline.** Ogni client è cache-first entro la propria finestra di freschezza, poi rete.
+Su errore di connettività, 5xx o 429 restituisce l'ultima risposta in cache marcata `staleCache`
+(`isStale`). Errori 4xx e di decodifica non vengono mai mascherati dalla cache.
+
+**D-041 — FeedService.** Minimo 15 s tra richieste di rete (chiamate più ravvicinate restituiscono
+l'ultimo aggiornamento con `isFresh = false`); `If-None-Match`/`If-Modified-Since` (304 = non fresco);
+un mirror in ritardo con `update_timestamp` più vecchio di quello mostrato viene ignorato; un errore
+non-offline invalida la discovery per scegliere un altro mirror; backoff 15→30→60→120 s.
+Un pilota è "aggiornato" nel diff solo se cambiano posizione, quota, prua, GS o piano di volo.
+
+**D-042 — StatusDiscovery.** Mirror casuale per refresh, mantenuto 6 h; discovery fallita ritentata al
+massimo ogni 5 min; l'URL METAR di status.json è ignorato in favore di `metar.vatsim.net/{ICAO}`.
+
+**D-043 — ID settori.** `FIR:<id>` (con `:OCEANIC` se lo stesso id ha parti oceaniche), `UIR:<id>`,
+`TRACON:<id>` (disambiguato con i prefissi se SimAware ripete un id), `APT:<ICAO>:<POS>` per i cerchi.
+
+**D-044 — Abbinamento callsign → settore.** CTR/FSS: prefisso VATSpy con parti intermedie, poi più
+corto; poi ICAO della FIR (`_` provato anche come `-`); poi UIR; poi SimAware con suffisso CTR/FSS.
+`_CTR` preferisce il confine domestico, `_FSS` quello oceanico. APP/DEP: SimAware per prefisso più
+lungo e suffisso esatto; senza TRACON → cerchio 40 NM. TWR usa un poligono SimAware solo se esiste con
+suffisso `TWR`, altrimenti cerchio 12 NM. Aeroporto da callsign: ICAO reale → pseudo-aeroporto VATSpy →
+alias IATA/LID (nota: nei dati reali la colonna IATA/LID di LIRF vale "LIRR").
+`firContaining` preferisce i confini top-level e il più piccolo (es. l'area FIS "EDXX" non vince mai).
+
+**D-045 — Settori attivi.** Ignorati controllori su 199.998 e posizioni OBS/SUP. Un booking conta se
+attivo ora o se inizia entro 60 min: si aggancia al settore online o crea un settore "prenotato" (ambra).
+
+**D-046 — METAR.** Categoria di volo con soglie FAA (6000 m ≈ 3,7 SM = MVFR). Vento in MPS/KMH
+convertito in nodi. Separatore delle migliaia fisso per lingua nel descrittore ("3,000" / "3.000").
+Venti FD: `9900` = calmo/variabile, direzioni 51–86 codificano velocità ≥ 100 kt, temperature sopra
+24 000 ft senza segno sono negative.
+
+**D-047 — Aggiornamento confini.** Controllo al massimo ogni 24 h; i file VATSpy vengono riscaricati solo
+se cambia il commit di `map_data`; ogni download è validato prima della scrittura atomica; qualsiasi
+errore → fallback silenzioso ai file del bundle. I nuovi file si applicano al lancio successivo.
+
+**D-048 — SimBrief.** HTTP 400 o `fetch.status` contenente "Unknown" → `userNotFound`; l'ultimo OFP resta
+in cache per l'uso offline.
