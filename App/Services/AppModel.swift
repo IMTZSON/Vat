@@ -264,6 +264,28 @@ final class AppModel {
     }
 }
 
+// MARK: - Previews
+
+extension AppModel {
+    /// A model with sample traffic and no network access, for SwiftUI previews.
+    static func preview() -> AppModel {
+        let model = AppModel(services: .preview(), settings: UserSettings(shared: UserDefaults(suiteName: "preview") ?? .standard,
+                                                                         local: UserDefaults(suiteName: "preview") ?? .standard))
+        model.injectPreview(snapshot: NetworkSnapshot(feed: PreviewData.feed))
+        return model
+    }
+
+    /// Replaces the live snapshot (previews and UI tests only).
+    func injectPreview(snapshot: NetworkSnapshot) {
+        liveSnapshot = snapshot
+        snapshotVersion &+= 1
+        feedState = .live(updatedAt: .now)
+        tracks.record(snapshot: snapshot)
+        events = PreviewData.events
+        bookings = PreviewData.bookings
+    }
+}
+
 /// Modal sheets presented from anywhere (settings, tools…).
 enum AppSheet: String, Identifiable {
     case onboarding, assistant, timeMachine, info, simBrief, tonight, bookings, settings
