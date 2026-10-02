@@ -1,0 +1,31 @@
+# Static file server for the recorder's snapshot directory (read-only), with CORS for the app.
+{
+	admin off
+}
+
+:8080 {
+	root * /srv/snapshots
+	encode zstd gzip
+
+	header {
+		Access-Control-Allow-Origin "*"
+		Access-Control-Allow-Methods "GET, HEAD, OPTIONS"
+		Access-Control-Allow-Headers "*"
+		X-Content-Type-Options "nosniff"
+		-Server
+	}
+
+	# Indexes change every 15 s; snapshots never change once written.
+	@index path /index.json */index.json
+	header @index Cache-Control "no-cache"
+	@snapshot path *.ctrl
+	header @snapshot {
+		Cache-Control "public, max-age=31536000, immutable"
+		Content-Type "application/octet-stream"
+	}
+
+	@preflight method OPTIONS
+	respond @preflight 204
+
+	file_server browse
+}
