@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core-linux:
+    name: VatCore tests (Linux, Swift 6.2)
+    runs-on: ubuntu-latest
+    container: swift:6.2
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test
+        working-directory: ContrailKit
+        env:
+          CONTRAIL_DATA_DIR: ${{ github.workspace }}/App/Resources/Data
+        run: swift test
+
+  app-macos:
+    name: App build (Xcode 26)
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: Xcode version
+        run: |
+          ls -d /Applications/Xcode*.app || true
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)" || true
+          xcodebuild -version
+          xcrun simctl list runtimes | head -20
+      - name: Core tests (macOS)
+        working-directory: ContrailKit
+        run: swift test
+      - name: Build iOS app + widgets + watch (simulator, unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild -project Contrail.xcodeproj -scheme Contrail \
+            -destination 'generic/platform=iOS Simulator' \
+            -skipPackagePluginValidation -skipMacroValidation \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            build 2>&1 | tee build.log | grep -E "error:|warning: .*(Swift|concurr)|BUILD (SUCCEEDED|FAILED)" | head -400
+      - name: Error summary
+        if: always()
+        run: |
+          grep -E "error:" build.log | sort -u | head -300 || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: xcodebuild-log
+          path: build.log
