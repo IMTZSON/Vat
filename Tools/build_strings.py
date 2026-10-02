@@ -6,7 +6,7 @@
 - Interpolations become format specifiers: `%lld` for integer-looking expressions, `%@` otherwise
   (Xcode re-validates and updates the catalog on the first build; mismatches simply fall back to
   English, they never crash).
-- Italian translations come from Tools/translations_it.json ({ "English key": "Traduzione" }).
+- Italian translations come from Tools/translations/*.json ({ "English key": "Traduzione" }).
 - Keys with no Italian translation are still listed (English is the development language).
 
 Usage: python3 Tools/build_strings.py [--report-missing]
@@ -59,8 +59,11 @@ def extract(folder):
 
 
 def main():
-    it = json.load(open(os.path.join(ROOT, "Tools", "translations_it.json"), encoding="utf-8")) \
-        if os.path.exists(os.path.join(ROOT, "Tools", "translations_it.json")) else {}
+    it = {}
+    tdir = os.path.join(ROOT, "Tools", "translations")
+    for name in sorted(os.listdir(tdir)) if os.path.isdir(tdir) else []:
+        if name.endswith(".json"):
+            it.update(json.load(open(os.path.join(tdir, name), encoding="utf-8")))
     missing_all = set()
     for folder, out in TARGETS.items():
         if not os.path.isdir(os.path.join(ROOT, folder)):

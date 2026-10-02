@@ -10,4 +10,10 @@ final class LiveActivityCoordinator {
     init(model: AppModel) { self.model = model }
 
     func handle(_ update: FeedUpdate) {}
+
+    /// Starts a Live Activity for a followed flight (if allowed and the flight is online).
+    func start(callsign: String) {}
+
+    /// Ends the Live Activity of a flight that is no longer followed.
+    func stop(callsign: String) {}
 }

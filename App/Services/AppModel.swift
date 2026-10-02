@@ -251,6 +251,22 @@ final class AppModel {
         mapCommand = MapCommand(target: target)
     }
 
+    // MARK: Following flights
+
+    /// Followed flights drive the Live Activity, widgets and the watch. Source of truth: `settings.followedCallsigns`.
+    func isFollowing(_ callsign: String) -> Bool { settings.followedCallsigns.contains(callsign) }
+
+    func toggleFollow(_ callsign: String) {
+        if let index = settings.followedCallsigns.firstIndex(of: callsign) {
+            settings.followedCallsigns.remove(at: index)
+            liveActivities.stop(callsign: callsign)
+        } else {
+            settings.followedCallsigns.append(callsign)
+            liveActivities.start(callsign: callsign)
+        }
+        widgets.refresh()
+    }
+
     // MARK: Convenience queries
 
     func pilot(callsign: String) -> Pilot? { displayedSnapshot?.pilot(callsign: callsign) }

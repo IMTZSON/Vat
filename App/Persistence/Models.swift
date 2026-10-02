@@ -43,25 +43,6 @@ final class Friend {
     var displayName: String { nickname.isEmpty ? "CID \(cid)" : nickname }
 }
 
-/// A flight the user follows (Live Activity, watch, widgets).
-@Model
-final class FollowedFlight {
-    var callsign: String = ""
-    var cid: Int = 0
-    var departure: String = ""
-    var arrival: String = ""
-    var addedAt: Date = Date.now
-    var liveActivityID: String?
-
-    init(callsign: String, cid: Int, departure: String, arrival: String) {
-        self.callsign = callsign
-        self.cid = cid
-        self.departure = departure
-        self.arrival = arrival
-        self.addedAt = .now
-    }
-}
-
 /// A flight of the user's own CID observed in the feed (badge input, D-016).
 /// The full `FlightRecord` is stored as JSON to keep the schema stable while the logic evolves.
 @Model
@@ -123,7 +104,7 @@ final class SavedFlightPlan {
 
 enum PersistenceController {
     static let schema = Schema([
-        FavoriteAirport.self, Friend.self, FollowedFlight.self, StoredFlightRecord.self, EarnedBadge.self,
+        FavoriteAirport.self, Friend.self, StoredFlightRecord.self, EarnedBadge.self,
         SavedFlightPlan.self,
     ])
 

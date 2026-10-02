@@ -10,4 +10,7 @@ final class WidgetCoordinator {
     init(model: AppModel) { self.model = model }
 
     func handle(_ update: FeedUpdate) {}
+
+    /// Rewrites the widget snapshot from the current model state and reloads timelines.
+    func refresh() {}
 }
