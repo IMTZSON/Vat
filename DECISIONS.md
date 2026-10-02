@@ -148,3 +148,39 @@ errore → fallback silenzioso ai file del bundle. I nuovi file si applicano al 
 
 **D-048 — SimBrief.** HTTP 400 o `fetch.status` contenente "Unknown" → `userNotFound`; l'ultimo OFP resta
 in cache per l'uso offline.
+
+## Core logica (modulo 2)
+
+**D-050 — Copertura ATC lungo la rotta.** Per ogni campione vince il volume con lo stato migliore
+(online > prenotato > offline), a parità il più piccolo (aeroporto < TRACON < FIR < UIR): un CTR online
+copre un APP vuoto (servizio top-down). Un controllore online ora conta come "online" solo se il
+passaggio avviene entro 2 h, o se una prenotazione per lo stesso callsign copre l'orario.
+
+**D-051 — Risoluzione rotta.** Un candidato è scartato se dista > 1500 NM dal punto precedente o se la
+deviazione supera max(2,5 × diretta, diretta + 150 NM). Coordinate sempre accettate; i punti del navlog
+SimBrief hanno priorità.
+
+**D-052 — Modello ETA.** Crociera a max(GS, 0,75 × TAS pianificata); ultimi 120 NM in discesa lineare da
+min(280, crociera) a min(180, 0,65 × crociera) kt; on-block = touchdown + 3 min; oltre 150 NM dalla rotta
+→ ortodromia dalla posizione; prima del decollo: deptime pianificato (mai prima di ora) + tempo di volo
+pianificato. Il `legIndex` viene riusato all'aggiornamento successivo: l'avanzamento non torna mai indietro.
+
+**D-053 — Fasi di volo.** Oltre alle regole al suolo, AGL < 50 ft vicino a un aeroporto conta come suolo
+(corse di decollo e atterraggio classificate correttamente).
+
+**D-054 — Registrazione voli.** ID deterministici da (cid, callsign, firstSeen) per evitare duplicati
+CloudKit tra dispositivi. Nuovo volo su cambio callsign, pausa > 30 min, nuovo piano dopo l'atterraggio o
+decollo dopo l'atterraggio; un re-filing in volo aggiorna solo l'arrivo (dirottamento).
+
+**D-055 — Badge e classifiche.** Distanze per i badge = ortodromia partenza→aeroporto di atterraggio se
+noti, altrimenti distanza volata. Badge "Atlantico": Americhe (−170°, −30°) vs Europa/Africa [−30°, 60°).
+Punteggio settimanale = 10 × voli completati + ⌊NM/50⌋ + 25 × badge ottenuti nella settimana ISO (UTC).
+
+**D-056 — Macchina del tempo.** Formato binario "CTRL" v1 (≈ 57 KB per 1500 piloti + 150 controllori),
+file in `yyyy/MM/dd/HH/<unix>.ctrl` UTC con `index.json` globale e per ora; retention 1…30 giorni. Nel
+replay gli aerei presenti solo nello snapshot precedente restano fino al successivo; salti > 300 NM non
+interpolati; buchi > 2 min segnalati.
+
+**D-057 — Server recorder.** Container come uid 10001 su volume nominato, snapshot serviti `immutable` con
+CORS `*` da Caddy. `RUNTIME_IMAGE` permette di cambiare l'immagine runtime (default `swift:6.2-slim`;
+in alternativa `ubuntu:24.04` + `libcurl4t64 ca-certificates`).
