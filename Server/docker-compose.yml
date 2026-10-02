@@ -1,0 +1,33 @@
+# Contrail recorder (opzionale): registra la rete VATSIM ogni 15 s e la serve via HTTP sulla porta 8080.
+# Avvio:  cd Server && docker compose up -d --build
+services:
+  recorder:
+    build:
+      context: ..
+      dockerfile: Server/Dockerfile
+    image: contrail-recorder:latest
+    restart: unless-stopped
+    command: ["--interval", "15", "--retention-days", "${RETENTION_DAYS:-7}"]
+    volumes:
+      - snapshots:/data
+    stop_grace_period: 20s
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  web:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on: [recorder]
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - snapshots:/srv/snapshots:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  snapshots:
+  caddy_data:
+  caddy_config:

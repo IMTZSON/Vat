@@ -1,0 +1,38 @@
+{
+  "general": {"version": 3, "reload": 1, "update": "20261002091500", "update_timestamp": "2026-10-02T09:15:00.1234567Z", "connected_clients": 6, "unique_users": 6},
+  "pilots": [
+    {"cid": 1234567, "name": "Mario Rossi LIRF", "callsign": "AZA123", "server": "GERMANY", "pilot_rating": 1, "military_rating": 0,
+     "latitude": 41.8003, "longitude": 12.2389, "altitude": 35012, "groundspeed": 452, "transponder": "2341", "heading": 312,
+     "qnh_i_hg": 29.92, "qnh_mb": 1013,
+     "flight_plan": {"flight_rules": "I", "aircraft": "A320/M-SDE2E3FGHIJ1RWXY/LB1", "aircraft_faa": "H/A320/L", "aircraft_short": "A320",
+       "departure": "LIRF", "arrival": "EGLL", "alternate": "EGKK", "cruise_tas": "450", "altitude": "36000", "deptime": "0830",
+       "enroute_time": "0230", "fuel_time": "0400", "remarks": "PBN/A1B1 /v/", "route": "RAVAL UM728 ELB", "revision_id": 2, "assigned_transponder": "2341"},
+     "logon_time": "2026-10-02T08:01:12.5Z", "last_updated": "2026-10-02T09:14:58.9999999Z"},
+    {"cid": "7654321", "name": "Missing Fields", "callsign": "dlh4ab", "latitude": "50.03", "longitude": 8.57, "altitude": 120.7, "groundspeed": null,
+     "heading": 725, "flight_plan": null},
+    {"cid": 1, "name": "No position", "callsign": "BROKEN1"},
+    {"cid": 2, "name": "Bad lat", "callsign": "BROKEN2", "latitude": 123.0, "longitude": 10.0},
+    "not even an object"
+  ],
+  "controllers": [
+    {"cid": 1111111, "name": "Luigi", "callsign": "LIRR_CTR", "frequency": "125.500", "facility": 6, "rating": 5, "server": "UK", "visual_range": 600,
+     "text_atis": ["Roma Control", "Charts at example.org"], "last_updated": "2026-10-02T09:14:00Z", "logon_time": "2026-10-02T07:00:00Z"},
+    {"cid": 2222222, "name": "Obs", "callsign": "LIRF_OBS", "frequency": "199.998", "facility": 0, "rating": 1, "server": "UK", "visual_range": 0, "text_atis": null,
+     "last_updated": "2026-10-02T09:14:00Z", "logon_time": "2026-10-02T07:00:00Z"},
+    {"cid": 3333333, "name": "App", "callsign": "LIRF_N_APP", "frequency": "119.200", "facility": 5, "rating": 4, "server": "UK", "visual_range": 150,
+     "text_atis": ["Roma Approach"], "last_updated": "2026-10-02T09:14:00Z", "logon_time": "2026-10-02T07:00:00Z", "unknown_new_field": {"a": 1}}
+  ],
+  "atis": [
+    {"cid": 4444444, "name": "Atis", "callsign": "LIRF_ATIS", "frequency": "121.700", "facility": 4, "rating": 3, "server": "UK", "visual_range": 0,
+     "atis_code": "K", "text_atis": ["ROMA FIUMICINO INFORMATION K", "RWY 16L FOR LDG"], "last_updated": "2026-10-02T09:14:00Z", "logon_time": "2026-10-02T07:00:00Z"}
+  ],
+  "servers": [{"ident": "GERMANY", "hostname_or_ip": "1.2.3.4", "location": "Germany", "name": "GERMANY", "client_connections_allowed": true, "is_sweatbox": false}],
+  "prefiles": [
+    {"cid": 5555555, "name": "Pre", "callsign": "ITY456", "flight_plan": {"flight_rules": "I", "aircraft_short": "A21N", "departure": "LIRF", "arrival": "LIML",
+      "altitude": "FL340", "cruise_tas": "N0450", "deptime": "1930", "enroute_time": "0105", "route": "DCT"}, "last_updated": "2026-10-02T09:00:00Z"}
+  ],
+  "facilities": [{"id": 0, "short": "OBS", "long": "Observer"}, {"id": 6, "short": "CTR", "long": "Enroute"}],
+  "ratings": [{"id": 5, "short": "C1", "long": "Enroute Controller"}],
+  "pilot_ratings": [{"id": 1, "short_name": "PPL", "long_name": "Private Pilot License"}],
+  "military_ratings": [{"id": 0, "short_name": "M0", "long_name": "No Military Rating"}]
+}

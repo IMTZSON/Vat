@@ -1,0 +1,24 @@
+{
+  "data": [
+    {
+      "id": 17002, "type": "Event", "name": "Milano Night Ops", "link": "https://my.vatsim.net/events/milano-night-ops",
+      "organisers": [{"region": "EMEA", "division": "EUD", "subdivision": "ITA", "organised_by_vatsim": false}],
+      "airports": [{"icao": "LIML"}, {"icao": "LIMC"}],
+      "routes": [{"departure": "LIML", "arrival": "LIRF", "route": "LAGEN Y550 ELB"}],
+      "start_time": "2026-10-03T18:00:00.000000Z", "end_time": "2026-10-03T21:00:00.000000Z",
+      "short_description": "Night operations", "description": "<p>Join us<br>for night ops &amp; more</p>",
+      "banner": "https://vatsim-my.nyc3.digitaloceanspaces.com/events/banner.png"
+    },
+    {
+      "id": 17001, "type": "Controller Examination", "name": "LIRF_TWR Exam", "link": null,
+      "organisers": [], "airports": ["lirf"], "routes": [],
+      "start_time": "2026-10-02T17:00:00.000000Z", "end_time": "2026-10-02T19:00:00.000000Z",
+      "short_description": null, "description": "Exam", "banner": null
+    },
+    {"id": 17003, "name": "Missing start time", "end_time": "2026-10-03T21:00:00.000000Z"},
+    {
+      "id": "17004", "name": "No end time", "start_time": "2026-10-01T12:00:00Z", "airports": [{"icao": "EGLL"}, 5]
+    },
+    "garbage"
+  ]
+}

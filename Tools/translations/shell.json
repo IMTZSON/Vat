@@ -1,0 +1,16 @@
+{
+  "Map": "Mappa",
+  "Airports": "Aeroporti",
+  "Events": "Eventi",
+  "Friends": "Amici",
+  "Profile": "Profilo",
+  "Online": "Online",
+  "Booked": "Prenotato",
+  "Offline": "Offline",
+  "Loading": "Caricamento",
+  "Something went wrong": "Qualcosa è andato storto",
+  "Try again": "Riprova",
+  "Showing cached data": "Dati in cache",
+  "From %@ to %@": "Da %@ a %@",
+  "%@ %@": "%@ %@"
+}

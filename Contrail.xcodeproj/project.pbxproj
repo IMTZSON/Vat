@@ -1,0 +1,865 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		5C8AD04FC1A9FCAC03C94FC1 /* VatCore in Frameworks */ = {isa = PBXBuildFile; productRef = 2D2270A2AF2841536D982750 /* VatCore */; };
+		456B65D5DC6FEE5E4090A5E4 /* ContrailShared in Frameworks */ = {isa = PBXBuildFile; productRef = A5D606DBEEA4E09E04802978 /* ContrailShared */; };
+		3797BF95142ADBF7E3827161 /* ContrailWidgets.appex in Embed */ = {isa = PBXBuildFile; fileRef = FBAFCDE3AF6B9B6BDB22B2B7 /* ContrailWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		C26A014375C0DF132AB35846 /* ContrailWatch.app in Embed */ = {isa = PBXBuildFile; fileRef = 858078DA2ED02FE3BEC6D3FA /* ContrailWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		16ADD79ABC8BB1411DA3EE12 /* VatCore in Frameworks */ = {isa = PBXBuildFile; productRef = E6F9E430D0C6CF04A6B6F26E /* VatCore */; };
+		140FD19BA388D7CAE77E4053 /* ContrailShared in Frameworks */ = {isa = PBXBuildFile; productRef = 8E29F48E17CEB12839188A78 /* ContrailShared */; };
+		ED8A21082624F55EC669FC7A /* VatCore in Frameworks */ = {isa = PBXBuildFile; productRef = 3D32E1F823898A1F8517A8AE /* VatCore */; };
+		52484C2A9851FF593D83401E /* ContrailShared in Frameworks */ = {isa = PBXBuildFile; productRef = 361CE602A1ACC58524E148C7 /* ContrailShared */; };
+		00F50ED5E57E48A2A4573C0E /* ContrailWatchWidgets.appex in Embed */ = {isa = PBXBuildFile; fileRef = 09A13FA89EFD69A44C0E2E4B /* ContrailWatchWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		028F845DA47096BDEA1B4F64 /* VatCore in Frameworks */ = {isa = PBXBuildFile; productRef = 14F4C7BB84127D9FE55F266E /* VatCore */; };
+		B9CFEF679284DEFF9028FB5E /* ContrailShared in Frameworks */ = {isa = PBXBuildFile; productRef = 99A54E1181E2DC0E623B457E /* ContrailShared */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		C54237C23C4829236B5C09C7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = ADB8F5B8F855B1CA79FFA198;
+			remoteInfo = ContrailWidgets;
+		};
+		32A3AC5232712271D4D1D46E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9CF9487A2620DB1434346163;
+			remoteInfo = ContrailWatch;
+		};
+		34C0AC950C649C4E4B337FD8 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D052983C24A4689B2212B0BC;
+			remoteInfo = ContrailWatchWidgets;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		99204734B15DAE302B259249 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				3797BF95142ADBF7E3827161 /* ContrailWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		634D7218FA8430B98B449324 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				C26A014375C0DF132AB35846 /* ContrailWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7503246576FB0E59974343C9 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				00F50ED5E57E48A2A4573C0E /* ContrailWatchWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		F612D4CAEBB431B21B0DD333 /* Contrail.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Contrail.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FBAFCDE3AF6B9B6BDB22B2B7 /* ContrailWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ContrailWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		858078DA2ED02FE3BEC6D3FA /* ContrailWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ContrailWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		09A13FA89EFD69A44C0E2E4B /* ContrailWatchWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ContrailWatchWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		9C302848A9D20D5A95758C15 /* ContrailKit */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = ContrailKit; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		D1D0524B025E57AFFF263442 /* App */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = App;
+			sourceTree = "<group>";
+		};
+		60068F95D7FA45275A90C0CB /* Widgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Widgets;
+			sourceTree = "<group>";
+		};
+		027E1B6F019159EB4AFFB6C5 /* Watch */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Watch;
+			sourceTree = "<group>";
+		};
+		D7EC644A56B4E8082219AF43 /* WatchWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = WatchWidgets;
+			sourceTree = "<group>";
+		};
+		BD13AA3ACFF3D0C2ED6E4720 /* Config */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Config;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		33BB15A12F8D60A9BC36826C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5C8AD04FC1A9FCAC03C94FC1 /* VatCore in Frameworks */,
+				456B65D5DC6FEE5E4090A5E4 /* ContrailShared in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		69CA2A34FCF5780612B591FE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				16ADD79ABC8BB1411DA3EE12 /* VatCore in Frameworks */,
+				140FD19BA388D7CAE77E4053 /* ContrailShared in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D03299D06BA52C935C3880CD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				ED8A21082624F55EC669FC7A /* VatCore in Frameworks */,
+				52484C2A9851FF593D83401E /* ContrailShared in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AE1328507027328CB89016B1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				028F845DA47096BDEA1B4F64 /* VatCore in Frameworks */,
+				B9CFEF679284DEFF9028FB5E /* ContrailShared in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		2B731CEFC6751AAE0EC69B98 = {
+			isa = PBXGroup;
+			children = (
+				D1D0524B025E57AFFF263442 /* App */,
+				60068F95D7FA45275A90C0CB /* Widgets */,
+				027E1B6F019159EB4AFFB6C5 /* Watch */,
+				D7EC644A56B4E8082219AF43 /* WatchWidgets */,
+				BD13AA3ACFF3D0C2ED6E4720 /* Config */,
+				9C302848A9D20D5A95758C15 /* ContrailKit */,
+				86024CAD1E83101D97359D73 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		86024CAD1E83101D97359D73 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F612D4CAEBB431B21B0DD333 /* Contrail.app */,
+				FBAFCDE3AF6B9B6BDB22B2B7 /* ContrailWidgets.appex */,
+				858078DA2ED02FE3BEC6D3FA /* ContrailWatch.app */,
+				09A13FA89EFD69A44C0E2E4B /* ContrailWatchWidgets.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		ABB284311088A62429994026 /* Contrail */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8C24AE6B24431D819655AEB2 /* Build configuration list for PBXNativeTarget "Contrail" */;
+			buildPhases = (
+				E9C58F88075849DE0391EDD4 /* Sources */,
+				33BB15A12F8D60A9BC36826C /* Frameworks */,
+				D590A8E792DCAAC944C591C3 /* Resources */,
+				99204734B15DAE302B259249 /* Embed Foundation Extensions */,
+				634D7218FA8430B98B449324 /* Embed Watch Content */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				6F5CCB147D61AACDF984F6CE /* PBXTargetDependency */,
+				00FAD0D10757E0B3B8379C5F /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				D1D0524B025E57AFFF263442 /* App */,
+			);
+			name = Contrail;
+			packageProductDependencies = (
+				2D2270A2AF2841536D982750 /* VatCore */,
+				A5D606DBEEA4E09E04802978 /* ContrailShared */,
+			);
+			productName = Contrail;
+			productReference = F612D4CAEBB431B21B0DD333 /* Contrail.app */;
+			productType = "com.apple.product-type.application";
+		};
+		ADB8F5B8F855B1CA79FFA198 /* ContrailWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6E347230E9F0ADDCBA8011B1 /* Build configuration list for PBXNativeTarget "ContrailWidgets" */;
+			buildPhases = (
+				B465D775648CC44BB7DD31BB /* Sources */,
+				69CA2A34FCF5780612B591FE /* Frameworks */,
+				6694BADD1B568F8782DF234F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				60068F95D7FA45275A90C0CB /* Widgets */,
+			);
+			name = ContrailWidgets;
+			packageProductDependencies = (
+				E6F9E430D0C6CF04A6B6F26E /* VatCore */,
+				8E29F48E17CEB12839188A78 /* ContrailShared */,
+			);
+			productName = ContrailWidgets;
+			productReference = FBAFCDE3AF6B9B6BDB22B2B7 /* ContrailWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		9CF9487A2620DB1434346163 /* ContrailWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 68E2CF5554AFE07E8F13F508 /* Build configuration list for PBXNativeTarget "ContrailWatch" */;
+			buildPhases = (
+				72677B14D3128956C8A3B104 /* Sources */,
+				D03299D06BA52C935C3880CD /* Frameworks */,
+				1EEBF3009584A0A71A8FA4C4 /* Resources */,
+				7503246576FB0E59974343C9 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				3EC73C4BA139C1D378DB3DF0 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				027E1B6F019159EB4AFFB6C5 /* Watch */,
+			);
+			name = ContrailWatch;
+			packageProductDependencies = (
+				3D32E1F823898A1F8517A8AE /* VatCore */,
+				361CE602A1ACC58524E148C7 /* ContrailShared */,
+			);
+			productName = ContrailWatch;
+			productReference = 858078DA2ED02FE3BEC6D3FA /* ContrailWatch.app */;
+			productType = "com.apple.product-type.application";
+		};
+		D052983C24A4689B2212B0BC /* ContrailWatchWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BB65C733ED378B475162CF8F /* Build configuration list for PBXNativeTarget "ContrailWatchWidgets" */;
+			buildPhases = (
+				F459371471459735BC790F6A /* Sources */,
+				AE1328507027328CB89016B1 /* Frameworks */,
+				3A016CF48F0FC1431EC4DC15 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				D7EC644A56B4E8082219AF43 /* WatchWidgets */,
+			);
+			name = ContrailWatchWidgets;
+			packageProductDependencies = (
+				14F4C7BB84127D9FE55F266E /* VatCore */,
+				99A54E1181E2DC0E623B457E /* ContrailShared */,
+			);
+			productName = ContrailWatchWidgets;
+			productReference = 09A13FA89EFD69A44C0E2E4B /* ContrailWatchWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		46F86FAA6BBF9AC94A7E4595 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2600;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					ABB284311088A62429994026 = {
+						CreatedOnToolsVersion = 26.0;
+					};
+					ADB8F5B8F855B1CA79FFA198 = {
+						CreatedOnToolsVersion = 26.0;
+					};
+					9CF9487A2620DB1434346163 = {
+						CreatedOnToolsVersion = 26.0;
+					};
+					D052983C24A4689B2212B0BC = {
+						CreatedOnToolsVersion = 26.0;
+					};
+				};
+			};
+			buildConfigurationList = 1F4E3D13C2320EDA50221924 /* Build configuration list for PBXProject "Contrail" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				it,
+				Base,
+			);
+			mainGroup = 2B731CEFC6751AAE0EC69B98;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				8274B685698BCA7CF9E8DD45 /* XCLocalSwiftPackageReference "ContrailKit" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 86024CAD1E83101D97359D73 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				ABB284311088A62429994026 /* Contrail */,
+				ADB8F5B8F855B1CA79FFA198 /* ContrailWidgets */,
+				9CF9487A2620DB1434346163 /* ContrailWatch */,
+				D052983C24A4689B2212B0BC /* ContrailWatchWidgets */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		D590A8E792DCAAC944C591C3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6694BADD1B568F8782DF234F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1EEBF3009584A0A71A8FA4C4 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3A016CF48F0FC1431EC4DC15 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		E9C58F88075849DE0391EDD4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B465D775648CC44BB7DD31BB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		72677B14D3128956C8A3B104 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F459371471459735BC790F6A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		6F5CCB147D61AACDF984F6CE /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = ADB8F5B8F855B1CA79FFA198 /* ContrailWidgets */;
+			targetProxy = C54237C23C4829236B5C09C7 /* PBXContainerItemProxy */;
+		};
+		00FAD0D10757E0B3B8379C5F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9CF9487A2620DB1434346163 /* ContrailWatch */;
+			targetProxy = 32A3AC5232712271D4D1D46E /* PBXContainerItemProxy */;
+		};
+		3EC73C4BA139C1D378DB3DF0 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D052983C24A4689B2212B0BC /* ContrailWatchWidgets */;
+			targetProxy = 34C0AC950C649C4E4B337FD8 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		39BC8AAFBE92A6D7E2AE4F52 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+				WATCHOS_DEPLOYMENT_TARGET = 11.0;
+			};
+			name = Debug;
+		};
+		29837912B2AE9906D87ACFED /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 6.0;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 11.0;
+			};
+			name = Release;
+		};
+		2261D553FCD8E6FBFC010EE5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Config/Contrail.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/Contrail-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Contrail;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.navigation";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Contrail shows your position on the map to find nearby airports and traffic.";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = info.everyapp.contrail;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		1A74A8D7C97491DBECB91327 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Config/Contrail.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/Contrail-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Contrail;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.navigation";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Contrail shows your position on the map to find nearby airports and traffic.";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = info.everyapp.contrail;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		ABDE4EBB7E058C760283070D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = Config/Widgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/Widgets-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Contrail;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = info.everyapp.contrail.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A63AEAF7805CCBE83813E46B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = Config/Widgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/Widgets-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Contrail;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = info.everyapp.contrail.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		CE4E5DDA64D7CB7EAFADD24A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Config/Watch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Contrail;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = info.everyapp.contrail;
+				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = NO;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = info.everyapp.contrail.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 11.0;
+			};
+			name = Debug;
+		};
+		216905A437F4CF22005B12D2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Config/Watch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Contrail;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = info.everyapp.contrail;
+				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = NO;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = info.everyapp.contrail.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 11.0;
+			};
+			name = Release;
+		};
+		E2D33643BB6119AEAB592CC0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = Config/WatchWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/WatchWidgets-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Contrail;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = info.everyapp.contrail.watchkitapp.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 11.0;
+			};
+			name = Debug;
+		};
+		FD5521FD6C89AF74D3FD53A3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = Config/WatchWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/WatchWidgets-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Contrail;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = info.everyapp.contrail.watchkitapp.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 11.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1F4E3D13C2320EDA50221924 /* Build configuration list for PBXProject "Contrail" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				39BC8AAFBE92A6D7E2AE4F52 /* Debug */,
+				29837912B2AE9906D87ACFED /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		8C24AE6B24431D819655AEB2 /* Build configuration list for PBXNativeTarget "Contrail" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2261D553FCD8E6FBFC010EE5 /* Debug */,
+				1A74A8D7C97491DBECB91327 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		6E347230E9F0ADDCBA8011B1 /* Build configuration list for PBXNativeTarget "ContrailWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				ABDE4EBB7E058C760283070D /* Debug */,
+				A63AEAF7805CCBE83813E46B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		68E2CF5554AFE07E8F13F508 /* Build configuration list for PBXNativeTarget "ContrailWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CE4E5DDA64D7CB7EAFADD24A /* Debug */,
+				216905A437F4CF22005B12D2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BB65C733ED378B475162CF8F /* Build configuration list for PBXNativeTarget "ContrailWatchWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E2D33643BB6119AEAB592CC0 /* Debug */,
+				FD5521FD6C89AF74D3FD53A3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		8274B685698BCA7CF9E8DD45 /* XCLocalSwiftPackageReference "ContrailKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ContrailKit;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		2D2270A2AF2841536D982750 /* VatCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8274B685698BCA7CF9E8DD45 /* XCLocalSwiftPackageReference "ContrailKit" */;
+			productName = VatCore;
+		};
+		A5D606DBEEA4E09E04802978 /* ContrailShared */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8274B685698BCA7CF9E8DD45 /* XCLocalSwiftPackageReference "ContrailKit" */;
+			productName = ContrailShared;
+		};
+		E6F9E430D0C6CF04A6B6F26E /* VatCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8274B685698BCA7CF9E8DD45 /* XCLocalSwiftPackageReference "ContrailKit" */;
+			productName = VatCore;
+		};
+		8E29F48E17CEB12839188A78 /* ContrailShared */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8274B685698BCA7CF9E8DD45 /* XCLocalSwiftPackageReference "ContrailKit" */;
+			productName = ContrailShared;
+		};
+		3D32E1F823898A1F8517A8AE /* VatCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8274B685698BCA7CF9E8DD45 /* XCLocalSwiftPackageReference "ContrailKit" */;
+			productName = VatCore;
+		};
+		361CE602A1ACC58524E148C7 /* ContrailShared */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8274B685698BCA7CF9E8DD45 /* XCLocalSwiftPackageReference "ContrailKit" */;
+			productName = ContrailShared;
+		};
+		14F4C7BB84127D9FE55F266E /* VatCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8274B685698BCA7CF9E8DD45 /* XCLocalSwiftPackageReference "ContrailKit" */;
+			productName = VatCore;
+		};
+		99A54E1181E2DC0E623B457E /* ContrailShared */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8274B685698BCA7CF9E8DD45 /* XCLocalSwiftPackageReference "ContrailKit" */;
+			productName = ContrailShared;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+}

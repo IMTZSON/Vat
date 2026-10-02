@@ -1,0 +1,9 @@
+.build/
+.build-linux/
+.swiftpm/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+.DS_Store
+Server/data/
+.claude/worktrees/

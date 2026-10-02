@@ -1,0 +1,7 @@
+{"type":"FeatureCollection","features":[
+{"type":"Feature","properties":{"data":"ISIGMET","icaoId":"LIIB","firId":"LIRR","firName":"LIRR ROMA","seriesId":"3","hazard":"TS","qualifier":"EMBD","validTimeFrom":"2026-10-02T12:00:00Z","validTimeTo":"2026-10-02T16:00:00Z","base":0,"top":"38000","geom":"AREA","dir":"NE","spd":"10","chng":"NC","rawSigmet":"LIRR SIGMET 3 VALID 021200/021600 LIIB- LIRR ROMA FIR EMBD TS OBS WI N4200 E01100 - N4300 E01300 - N4100 E01300 - N4200 E01100 TOP FL380 MOV NE 10KT NC="},"geometry":{"type":"Polygon","coordinates":[[[11.0,42.0],[13.0,43.0],[13.0,41.0],[11.0,42.0]]]}},
+{"type":"Feature","properties":{"icaoId":"KKCI","firId":"KZNY","firName":"KZNY NEW YORK OCEANIC","seriesId":"ALFA 2","hazard":"TURB","qualifier":"SEV","validTimeFrom":1790942400,"validTimeTo":"1790956800","base":"FL300","top":400,"rawSigmet":"KZNY SIGMET ALFA 2 VALID ..."},"geometry":{"type":"MultiPolygon","coordinates":[[[[-60,35],[-55,35],[-55,38],[-60,38],[-60,35]]],[[[-50,30],[-45,30],[-45,32],[-50,30]]]]}},
+{"type":"Feature","properties":{"icaoId":"RJJJ","firId":"RJJJ","hazard":"VA","qualifier":"","validTimeFrom":"2026-10-02T09:00:00Z","validTimeTo":"2026-10-02T15:00:00Z","rawSigmet":"RJJJ SIGMET V01 VA ERUPTION ..."},"geometry":null},
+{"type":"Feature","properties":{"icaoId":"XXXX","hazard":"TC"},"geometry":{"type":"Point","coordinates":[130,20]}},
+"garbage"
+]}

@@ -1,0 +1,43 @@
+; VATSpy.dat excerpt for tests (CRLF line endings on purpose)
+[Countries]
+Germany|ED|Radar
+Italy|LI|Radar
+United Kingdom|EG|Control
+Broken line without separators
+
+[Airports]
+;ICAO|Airport Name|Latitude Decimal|Longitude Decimal|IATA/LID|FIR|IsPseudo
+EDDF|Frankfurt|50.033333|8.570556||EDGG|0
+EGHI|Southampton|50.950261|-1.356803||EGTT|0
+EGHI|Solent|50.950261|-1.356803|SOLENT|EGTT|1
+EGLL|London Heathrow|51.4775|-0.461389|LHR|EGTT|0
+KATL|Hartsfield-Jackson Atlanta Intl GA|33.640444|-84.426944|ATL|KZTL|0
+KJFK|New York-John F. Kennedy Intl NY|40.63975|-73.778925|JFK|KZNY|0
+LIML|Milano-Linate|45.449344|9.278386||LIMM|0
+LIMM|Milano|45.52|9||LIMM|1
+LIRA|Roma-Ciampino|41.799289|12.594761||LIRR|0
+LIRF|Roma-Fiumicino|41.811786|12.252253|LIRR|LIRR|0|extra|columns
+XBAD|Bad latitude|123.0|10.0||XXXX|0
+XMIS|Missing columns
+LIRU|Roma-Urbe|41.951944|12.498889
+
+[FIRs]
+;ICAO|NAME|CALLSIGN PREFIX|FIR BOUNDARY
+EDGG|Langen||EDGG
+EDGG-N|Langen Radar (North) - Langen|EDGG_N|EDGG-N
+EDGG-N|Langen Radar (North) - Langen|EDGG_NH|EDGG-N
+EGTT|London|LON|EGTT
+KZNY|New York|NY|KZNY
+KZTL|Atlanta|ATL|KZTL
+LIMM|Milano||LIMM
+LIRR|Roma||LIRR
+LIRR-NE|Roma NE - Roma|LIRR_NE|LIRR-NE
+
+[UIRs]
+LIUP|Italy Radar|LIMM,LIBB,LIRR,LIPP
+EURM|Euro Middle|EDGG,LIMM
+
+[IDL]
+90.0|-180.0
+75.0|-180.0
+67.5|-169.0

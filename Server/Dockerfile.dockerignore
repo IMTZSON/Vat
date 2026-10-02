@@ -1,0 +1,6 @@
+# BuildKit reads this file for `docker build -f Server/Dockerfile .` (build context = repository root):
+# only the Swift package sources are sent to the daemon (no .build folders, no app/bundle data).
+**
+!ContrailKit/Package.swift
+!ContrailKit/Sources/**
+!ContrailKit/Tests/**

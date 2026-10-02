@@ -1,0 +1,115 @@
+# XcodeGen spec — alternative to the committed Contrail.xcodeproj (DECISIONS D-003).
+# Usage on a Mac:  brew install xcodegen && xcodegen generate
+name: Contrail
+options:
+  bundleIdPrefix: info.everyapp
+  deploymentTarget:
+    iOS: "18.0"
+    watchOS: "11.0"
+  developmentLanguage: en
+  xcodeVersion: "26.0"
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+    GENERATE_INFOPLIST_FILE: YES
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+    SWIFT_EMIT_LOC_STRINGS: YES
+    INFOPLIST_KEY_CFBundleDisplayName: Contrail
+packages:
+  ContrailKit:
+    path: ContrailKit
+targets:
+  Contrail:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+    dependencies:
+      - package: ContrailKit
+        product: VatCore
+      - package: ContrailKit
+        product: ContrailShared
+      - target: ContrailWidgets
+      - target: ContrailWatch
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: info.everyapp.contrail
+        INFOPLIST_FILE: Config/Contrail-Info.plist
+        CODE_SIGN_ENTITLEMENTS: Config/Contrail.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: YES
+        SUPPORTS_MACCATALYST: NO
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+        SWIFT_APPROACHABLE_CONCURRENCY: YES
+        INFOPLIST_KEY_NSSupportsLiveActivities: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: Contrail shows your position on the map to find nearby airports and traffic.
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.navigation
+  ContrailWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: Widgets
+    dependencies:
+      - package: ContrailKit
+        product: VatCore
+      - package: ContrailKit
+        product: ContrailShared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: info.everyapp.contrail.widgets
+        INFOPLIST_FILE: Config/Widgets-Info.plist
+        CODE_SIGN_ENTITLEMENTS: Config/Widgets.entitlements
+        ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME: WidgetBackground
+        TARGETED_DEVICE_FAMILY: "1,2"
+  ContrailWatch:
+    type: application
+    platform: watchOS
+    sources:
+      - path: Watch
+    dependencies:
+      - package: ContrailKit
+        product: VatCore
+      - package: ContrailKit
+        product: ContrailShared
+      - target: ContrailWatchWidgets
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: info.everyapp.contrail.watchkitapp
+        CODE_SIGN_ENTITLEMENTS: Config/Watch.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        INFOPLIST_KEY_WKCompanionAppBundleIdentifier: info.everyapp.contrail
+        INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp: NO
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+        SWIFT_APPROACHABLE_CONCURRENCY: YES
+  ContrailWatchWidgets:
+    type: app-extension
+    platform: watchOS
+    sources:
+      - path: WatchWidgets
+    dependencies:
+      - package: ContrailKit
+        product: VatCore
+      - package: ContrailKit
+        product: ContrailShared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: info.everyapp.contrail.watchkitapp.widgets
+        INFOPLIST_FILE: Config/WatchWidgets-Info.plist
+        CODE_SIGN_ENTITLEMENTS: Config/WatchWidgets.entitlements
+        ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME: WidgetBackground
+schemes:
+  Contrail:
+    build:
+      targets:
+        Contrail: all
+    test:
+      targets:
+        - package: ContrailKit/VatCoreTests

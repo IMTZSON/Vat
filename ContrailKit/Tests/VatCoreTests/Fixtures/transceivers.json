@@ -1,0 +1,15 @@
+[
+  {"callsign": "LIRF_TWR", "transceivers": [
+    {"id": 0, "frequency": 118700000, "latDeg": 41.8003, "lonDeg": 12.2389, "heightMslM": 20.0, "heightAglM": 10.0},
+    {"id": 1, "frequency": 118700000, "latDeg": 41.79, "lonDeg": 12.25, "heightMslM": 22.5, "heightAglM": 12.5}
+  ]},
+  {"callsign": "AZA123", "transceivers": [
+    {"id": 0, "frequency": 132835000, "latDeg": 44.1, "lonDeg": 10.2, "heightMslM": 10668.0, "heightAglM": 10500.0},
+    {"id": 1, "frequency": "121500000", "latDeg": "44.1", "lonDeg": 10.2},
+    {"id": 2, "latDeg": 44.1, "lonDeg": 10.2}
+  ]},
+  {"callsign": "", "transceivers": []},
+  {"transceivers": [{"id": 0, "frequency": 122800000}]},
+  42,
+  {"callsign": "dlh4ab", "transceivers": null}
+]
