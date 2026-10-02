@@ -15,7 +15,7 @@ enum FavoritesStore {
             context.insert(FavoriteAirport(icao: code, sortIndex: settings.favoriteAirports.count))
             if !settings.favoriteAirports.contains(code) { settings.favoriteAirports.append(code) }
         } else {
-            existing.forEach(context.delete)
+            for item in existing { context.delete(item) }
             settings.favoriteAirports.removeAll { $0 == code }
         }
         try? context.save()
@@ -34,7 +34,7 @@ enum FavoritesStore {
 
     static func removeFriend(cid: Int, context: ModelContext, settings: UserSettings) {
         let existing = (try? context.fetch(FetchDescriptor<Friend>(predicate: #Predicate { $0.cid == cid }))) ?? []
-        existing.forEach(context.delete)
+        for item in existing { context.delete(item) }
         settings.friendCIDs.removeAll { $0 == cid }
         try? context.save()
     }
