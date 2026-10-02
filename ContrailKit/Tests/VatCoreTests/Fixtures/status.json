@@ -1,0 +1,11 @@
+{
+  "data": {
+    "v3": ["https://data.vatsim.net/v3/vatsim-data.json", "https://mirror.example.net/v3/vatsim-data.json"],
+    "transceivers": ["https://data.vatsim.net/v3/transceivers-data.json"],
+    "servers": ["https://data.vatsim.net/v3/vatsim-servers.json"],
+    "servers_sweatbox": ["https://data.vatsim.net/v3/sweatbox-servers.json"],
+    "servers_all": ["https://data.vatsim.net/v3/all-servers.json"]
+  },
+  "user": ["https://stats.vatsim.net/search_id.php"],
+  "metar": ["https://metar.vatsim.net/metar.php"]
+}

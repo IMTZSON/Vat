@@ -1,0 +1,9 @@
+{
+  "count": 3,
+  "items": [
+    {"id": 9001, "connection_id": 5, "vatsim_id": "1234567", "flight_type": "I", "callsign": "AZA123", "aircraft": "H/B744/L", "cruisespeed": "490", "dep": "LIRF", "arr": "KJFK", "alt": "35000", "route": "...", "filed": "2026-09-30T10:00:00.000000Z"},
+    {"id": 9002, "callsign": "aza124", "departure": "KJFK", "arrival": "LIRF", "aircraft": "B744/H-SDE2E3FGHIJ2J3J4J5M1RWXY/LB1D1", "created_at": "2026-10-01T22:00:00Z"},
+    {"id": 9003},
+    "broken"
+  ]
+}

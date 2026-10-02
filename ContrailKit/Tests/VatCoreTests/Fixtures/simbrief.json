@@ -1,0 +1,33 @@
+{
+  "fetch": {"userid": "123456", "static_id": {}, "status": "Success", "time": "0.0123"},
+  "params": {"request_id": "143829104", "sequence_id": "abc", "static_id": {}, "user_id": "123456", "time_generated": "1790960000", "xml_file": "LIRFEGLL_XML_1790960000.xml", "ofp_layout": "LIDO", "airac": "2610", "units": "kgs"},
+  "general": {
+    "release": "1", "icao_airline": "AZA", "flight_number": "202", "is_etops": "0", "dx_rmk": "", "sys_rmk": {},
+    "is_detailed_profile": "1", "cruise_profile": "CI 30", "climb_profile": "250/300/78", "descent_profile": "78/280/250",
+    "alternate_profile": "LRC", "reserve_profile": "LRC", "costindex": "30", "cont_rule": "5PCT", "initial_altitude": "36000",
+    "stepclimb_string": "LIRF/0360", "avg_temp_dev": "3", "avg_tropopause": "36890", "avg_wind_comp": "-24", "avg_wind_dir": "268",
+    "avg_wind_spd": "31", "gc_distance": "781", "route_distance": "823", "air_distance": "865", "total_burn": "6012",
+    "cruise_tas": "452", "cruise_mach": "0.78", "passengers": "142",
+    "route": "RAVAL UM728 ELB UL50 BADEP UN852 RIGNA", "route_ifps": "N0452F360 RAVAL UM728 ELB", "route_navigraph": "RAVAL UM728 ELB"
+  },
+  "origin": {"icao_code": "LIRF", "iata_code": "FCO", "faa_code": {}, "icao_region": "LI", "elevation": "14", "pos_lat": "41.800278", "pos_long": "12.238889", "name": "ROME FIUMICINO", "timezone": "2", "plan_rwy": "25", "trans_alt": "6000", "trans_level": "7000", "metar": "LIRF 021350Z 25012KT CAVOK 24/14 Q1015 NOSIG"},
+  "destination": {"icao_code": "EGLL", "iata_code": "LHR", "faa_code": {}, "icao_region": "EG", "elevation": "83", "pos_lat": "51.4775", "pos_long": "-0.461389", "name": "LONDON HEATHROW", "timezone": "1", "plan_rwy": "27L", "trans_alt": "6000", "trans_level": "7000"},
+  "alternate": [
+    {"icao_code": "EGKK", "iata_code": "LGW", "elevation": "202", "pos_lat": "51.148056", "pos_long": "-0.190278", "name": "LONDON GATWICK", "plan_rwy": "26L"},
+    {"icao_code": "EGSS", "iata_code": "STN", "elevation": "348", "pos_lat": "51.885", "pos_long": "0.235", "name": "LONDON STANSTED", "plan_rwy": "22"}
+  ],
+  "navlog": {
+    "fix": [
+      {"ident": "RAVAL", "name": "RAVAL", "type": "wpt", "icao_region": "LI", "frequency": {}, "pos_lat": "42.112222", "pos_long": "11.818611", "stage": "CLB", "via_airway": "RAVA5A", "is_sid_star": "1", "distance": "33", "track_true": "310", "altitude_feet": "17500", "time_total": "540"},
+      {"ident": "TOC", "name": "TOP OF CLIMB", "type": "ltlg", "pos_lat": "42.5", "pos_long": "11.2", "stage": "CLB", "via_airway": "UM728", "altitude_feet": "36000", "time_total": "1180"},
+      {"ident": "ELB", "name": "ELBA", "type": "vor", "frequency": "114.700", "pos_lat": "42.725556", "pos_long": "10.395833", "stage": "CRZ", "via_airway": "UM728", "altitude_feet": "36000", "time_total": "1560"},
+      {"ident": "BADEP", "name": "BADEP", "type": "wpt", "pos_lat": "45.533333", "pos_long": "7.166667", "stage": "CRZ", "via_airway": "UL50", "altitude_feet": "36000", "time_total": "3010"},
+      {"ident": "BROKEN", "name": "No position", "type": "wpt"},
+      {"ident": "EGLL", "name": "HEATHROW", "type": "apt", "pos_lat": "51.4775", "pos_long": "-0.461389", "stage": "DSC", "via_airway": "BIG1E", "altitude_feet": "83", "time_total": "7020"}
+    ]
+  },
+  "atc": {"flightplan_text": "(FPL-AZA202-IS ...)", "route": "N0452F360 RAVAL UM728 ELB", "callsign": "AZA202", "flight_type": "S", "flight_rules": "I", "initial_spd": "0452", "initial_spd_unit": "N", "initial_alt": "360", "initial_alt_unit": "F", "section18": "PBN/A1B1C1D1", "fir_orig": "LIRR", "fir_dest": "EGTT"},
+  "aircraft": {"icaocode": "A21N", "iatacode": "32Q", "base_type": "A21N", "icao_code": "A21N", "iata_code": "32Q", "name": "A321NEO", "reg": "EI-XYZ", "fin": {}, "selcal": "ABCD", "equip": "SDE2E3FGHIJ1RWXY", "fuelfact": "P02"},
+  "times": {"est_time_enroute": "7020", "sched_time_enroute": "7200", "sched_out": "1790964000", "sched_off": "1790964900", "sched_on": "1790971920", "sched_in": "1790972400", "sched_block": "8400", "est_out": "1790964000", "orig_timezone": "2", "dest_timezone": "1"},
+  "fuel": {"taxi": "200", "enroute_burn": "6012", "plan_ramp": "9450"}
+}

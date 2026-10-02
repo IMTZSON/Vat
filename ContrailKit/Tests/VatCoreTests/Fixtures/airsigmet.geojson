@@ -1,0 +1,4 @@
+{"type":"FeatureCollection","features":[
+{"type":"Feature","properties":{"data":"AIRSIGMET","icaoId":"KKCI","airSigmetType":"SIGMET","alphaChar":"E","hazard":"CONVECTIVE","severity":1,"validTimeFrom":"2026-10-02T13:55:00Z","validTimeTo":"2026-10-02T15:55:00Z","altitudeHi1":45000,"altitudeHi2":45000,"altitudeLow1":0,"rawAirSigmet":"CONVECTIVE SIGMET 45E VALID UNTIL 1555Z ..."},"geometry":{"type":"Polygon","coordinates":[[[-85,33],[-83,33],[-83,35],[-85,35],[-85,33]]]}},
+{"type":"Feature","properties":{"icaoId":"KKCI","airSigmetType":"AIRMET","hazard":"IFR","severity":"0","validTimeFrom":"2026-10-02T15:00:00Z","validTimeTo":"2026-10-02T21:00:00Z","altitudeHi1":"12000","rawAirSigmet":"AIRMET SIERRA ..."},"geometry":{"type":"Polygon","coordinates":[[[-75,40],[-73,40],[-73,42],[-75,40]]]}}
+]}
