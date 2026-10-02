@@ -6,3 +6,4 @@ xcuserdata/
 *.xcuserstate
 .DS_Store
 Server/data/
+.claude/worktrees/
