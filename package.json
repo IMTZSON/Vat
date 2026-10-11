@@ -1,0 +1,9 @@
+{
+  "name": "readback-copilot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Ascolta l'ATC su VATSIM e mostra subito il readback corretto da ripetere.",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  }
+}

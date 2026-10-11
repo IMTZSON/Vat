@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Readback Copilot</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">🎧</span>
+      <div>
+        <h1>Readback Copilot</h1>
+        <p class="sub">Ascolta l'ATC e ti mostra cosa ripetere</p>
+      </div>
+    </div>
+    <span id="status" class="status idle">Fermo</span>
+  </header>
+
+  <main>
+    <section class="controls panel">
+      <label class="field">
+        <span>Il tuo nominativo</span>
+        <input id="callsign" placeholder="es. AZA123 o I-ABCD" autocomplete="off" spellcheck="false">
+      </label>
+      <label class="field">
+        <span>Nominativo radio <em>(opzionale)</em></span>
+        <input id="telephony" placeholder="es. Alitalia" autocomplete="off" spellcheck="false">
+      </label>
+      <label class="field">
+        <span>Modalità</span>
+        <select id="mode">
+          <option value="free">Gratis – riconoscimento vocale di Chrome</option>
+          <option value="groq">Groq – Whisper + AI (chiave gratuita)</option>
+        </select>
+      </label>
+      <button id="toggle" class="btn primary">▶ Avvia ascolto</button>
+      <p id="csHint" class="hint"></p>
+    </section>
+
+    <section class="panel readout" aria-live="polite">
+      <div class="badges">
+        <span id="forUs" class="badge muted">In attesa</span>
+        <span id="srcBadge" class="badge muted"></span>
+      </div>
+      <div class="label">Da dire</div>
+      <p id="readback" class="readback">—</p>
+      <div class="label">Come pronunciarlo</div>
+      <p id="spoken" class="spoken">Avvia l'ascolto o prova una frase qui sotto.</p>
+      <div id="chips" class="chips"></div>
+      <ul id="warnings" class="warnings"></ul>
+      <div class="heardRow">
+        <p class="heard"><span class="label inline">ATC</span> <span id="heard">—</span></p>
+        <button id="speak" class="btn small" title="Ascolta la pronuncia">🔊 Ascolta</button>
+      </div>
+      <p id="live" class="live"></p>
+      <div id="meterWrap" class="meterWrap" hidden>
+        <div class="meter"><div id="meterBar" class="meterBar"></div><div id="meterTh" class="meterTh"></div></div>
+        <label class="thLabel">Soglia <input id="threshold" type="range" min="0.002" max="0.15" step="0.001"></label>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Storico</h2>
+      <ol id="history" class="history"><li class="empty">Nessuna trasmissione ancora.</li></ol>
+    </section>
+
+    <details class="panel" id="tryPanel" open>
+      <summary>Prova una frase ATC (anche senza audio)</summary>
+      <textarea id="tryText" rows="3" placeholder="es. Alitalia 123, descend FL80, turn left heading 270, contact Roma 125.5"></textarea>
+      <div class="row">
+        <button id="tryBtn" class="btn">Genera readback</button>
+      </div>
+      <div id="examples" class="examples"></div>
+    </details>
+
+    <details class="panel" id="settingsPanel">
+      <summary>Impostazioni</summary>
+      <div class="grid">
+        <label class="field">
+          <span>Lingua riconoscimento (modalità Gratis)</span>
+          <select id="lang">
+            <option value="en-US">Inglese (USA)</option>
+            <option value="en-GB">Inglese (UK)</option>
+          </select>
+        </label>
+        <label class="field check">
+          <input id="hideOthers" type="checkbox">
+          <span>Mostra in grande solo le chiamate per me</span>
+        </label>
+      </div>
+      <h3>Groq (Whisper + AI)</h3>
+      <div class="grid">
+        <label class="field">
+          <span>Chiave API Groq</span>
+          <input id="groqKey" type="password" placeholder="gsk_..." autocomplete="off">
+        </label>
+        <label class="field check">
+          <input id="useAI" type="checkbox">
+          <span>Usa l'AI per il readback (più preciso)</span>
+        </label>
+        <label class="field">
+          <span>Sorgente audio</span>
+          <select id="audioSource">
+            <option value="device">Dispositivo (es. CABLE Output)</option>
+            <option value="system">Audio di sistema (condivisione schermo)</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Dispositivo di ingresso</span>
+          <div class="row tight">
+            <select id="device"><option value="">Predefinito</option></select>
+            <button id="refreshDevices" class="btn small" type="button">↻</button>
+          </div>
+        </label>
+        <label class="field">
+          <span>Modello Whisper</span>
+          <input id="whisperModel" list="modelList" spellcheck="false">
+        </label>
+        <label class="field">
+          <span>Modello AI</span>
+          <input id="llmModel" list="modelList" spellcheck="false">
+        </label>
+      </div>
+      <datalist id="modelList"></datalist>
+      <div class="row">
+        <button id="loadModels" class="btn small" type="button">Carica modelli disponibili</button>
+        <span id="modelsMsg" class="hint"></span>
+      </div>
+      <p class="hint">La chiave resta salvata solo in questo browser.</p>
+    </details>
+
+    <details class="panel">
+      <summary>Guida rapida (vPilot su Windows)</summary>
+      <ol class="guide">
+        <li>Installa <b>VB-Cable</b> (gratuito) da vb-audio.com e riavvia il PC.</li>
+        <li>In <b>vPilot → Settings → Audio</b> imposta l'uscita (Speakers) su <b>CABLE Input</b>. Il microfono resta il tuo headset.</li>
+        <li>Per continuare a sentire l'ATC: Impostazioni audio di Windows → Registrazione → <b>CABLE Output</b> → Proprietà → Ascolto → spunta <b>Ascolta questo dispositivo</b> e scegli le tue cuffie.</li>
+        <li><b>Modalità Gratis:</b> in Chrome apri <code>chrome://settings/content/microphone</code> e scegli <b>CABLE Output</b>.</li>
+        <li><b>Modalità Groq:</b> in Impostazioni scegli il dispositivo <b>CABLE Output</b> e incolla la chiave gratuita di console.groq.com.</li>
+        <li>Scrivi il tuo nominativo, premi <b>Avvia ascolto</b> e connettiti a VATSIM.</li>
+      </ol>
+      <p class="hint">L'app ti suggerisce cosa dire: la voce in radio resta sempre la tua.</p>
+    </details>
+  </main>
+
+  <script src="js/callsigns.js"></script>
+  <script src="js/readback.js"></script>
+  <script src="js/groq.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
