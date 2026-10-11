@@ -24,7 +24,7 @@ const CASES = [
   ['alitalia 123 line up and wait runway 34 right',
     'Line up and wait runway 34R, Alitalia 123'],
   ['Alitalia 123 taxi to holding point runway 16L via alpha bravo hold short of runway 16R',
-    'Taxi to holding point runway 16L via A, B, holding short runway 16R, Alitalia 123'],
+    'Taxi to holding point runway 16L, via Alpha, Bravo, holding short runway 16R, Alitalia 123'],
   ['Alitalia 123 cleared to Milano Malpensa via BOLLA 5A departure, climb initially 6000 feet, squawk 4521',
     'Cleared to Milano Malpensa, BOLLA 5A departure, initial climb 6000 ft, squawk 4521, Alitalia 123'],
   ['Alitalia 123 reduce speed 180 knots',
@@ -99,4 +99,19 @@ test('errori tipici del riconoscimento vocale', () => {
   assert.strictEqual(rb('Alitalia 123 squad 4521 q and h 1013').readback, 'Squawk 4521, QNH 1013, Alitalia 123');
   assert.strictEqual(rb('Alitalia 123 contact Roma radar 125 5').readback, 'Roma Radar 125.5, Alitalia 123');
   assert.strictEqual(rb('alitalia 123 descend fly level 90').readback, 'Descend FL90, Alitalia 123');
+});
+
+test('rullaggio segnalato dall\'utente: vie in parole, virgole, "a" non persa', () => {
+  assert.strictEqual(rb('Alitalia 123, taxi holding point Alpha 2, runway 26L via Papa Alpha Sierra').readback,
+    'Taxi holding point Alpha 2, runway 26L, via Papa, Alpha, Sierra, Alitalia 123');
+  assert.strictEqual(rb('Alitalia 123 taxi to holding point A2 runway 26 left via P A S').readback,
+    'Taxi to holding point Alpha 2, runway 26L, via Papa, Alpha, Sierra, Alitalia 123');
+});
+
+test('trasmissione senza nominativo: "forse per te", mai nascosta', () => {
+  const r = rb('Taxi holding point Alpha 2, runway 26L via Papa Alpha Sierra');
+  assert.strictEqual(r.forUs, 'maybe');
+  assert.strictEqual(r.readback, 'Taxi holding point Alpha 2, runway 26L, via Papa, Alpha, Sierra, Alitalia 123');
+  assert.strictEqual(rb('Air Portugal 123 climb FL120').forUs, 'maybe');
+  assert.strictEqual(rb('Speedbird 12AB climb FL120').forUs, false);
 });

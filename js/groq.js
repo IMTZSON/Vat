@@ -81,7 +81,7 @@
       form.append('temperature', '0');
       form.append('response_format', 'json');
       // Il prompt aiuta Whisper con il gergo aeronautico e il nostro nominativo.
-      form.append('prompt', `ATC radio. ${callsign ? `${callsign}, ` : ''}descend FL80, turn left heading 270, squawk 4521, QNH 1013, contact Roma Radar 125.5, cleared to land runway 16L.`);
+      form.append('prompt', `ATC radio. ${callsign ? `${callsign}, ` : ''}descend FL80, turn left heading 270, squawk 4521, QNH 1013, contact Roma Radar 125.5, taxi holding point Alpha 2 runway 26L via Papa, Sierra, hold short, line up and wait, cleared to land runway 16L.`);
       const data = await call('/audio/transcriptions', key, { method: 'POST', body: form });
       return (data.text || '').trim();
     });
@@ -92,8 +92,12 @@ Given an ATC radio transmission transcript (it may contain speech-recognition er
 produce the correct ICAO readback the pilot must say.
 Rules: read back clearances, levels/altitudes, headings, speeds, squawk codes, QNH/altimeter, frequencies,
 runway instructions (land, takeoff, line up, hold short, cross), taxi routes and conditional clearances (keep the condition).
-Put the callsign at the end. If nothing needs reading back, answer "Roger" (or "Wilco" for a request to report).
+End with the callsign the controller used (normally the pilot's own callsign). If the transmission has no callsign,
+use the pilot's own callsign; if that is not set either, omit the callsign. NEVER write "unknown" or placeholders.
+for_us is false only if the transmission is clearly addressed to a different callsign.
+If nothing needs reading back, answer "Roger" (or "Wilco" for a request to report).
 Use compact written form like "Descend FL80, left heading 270, Roma 125.5, Alitalia 123".
+Write taxiways and holding points with phonetic words and commas, e.g. "Taxi holding point Alpha 2, runway 26L, via Papa, Alpha, Sierra".
 Answer ONLY with JSON: {"for_us": boolean, "readback": string, "spoken": string (same readback written as pronounced, ICAO digits e.g. "flight level eight zero", "niner"), "note": string (short note in Italian about doubtful parts, or empty)}.`;
 
   function parseJson(text) {
@@ -111,7 +115,7 @@ Answer ONLY with JSON: {"for_us": boolean, "readback": string, "spoken": string 
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: SYSTEM },
-          { role: 'user', content: `Pilot callsign: ${callsign || 'unknown'}\nATC transmission: "${transcript}"` },
+          { role: 'user', content: `Pilot's own callsign: ${callsign || '(not set)'}\nATC transmission: "${transcript}"` },
         ],
       };
       const send = () => call('/chat/completions', key, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -126,6 +130,9 @@ Answer ONLY with JSON: {"for_us": boolean, "readback": string, "spoken": string 
       const text = data.choices && data.choices[0] && data.choices[0].message.content;
       const out = parseJson(text);
       if (!out.readback) throw new Error('Risposta AI vuota.');
+      const noPlaceholder = (x) => String(x || '').replace(/,?\s*\(?\b(unknown|not set|callsign)\b\)?\.?\s*$/i, '').trim();
+      out.readback = noPlaceholder(out.readback);
+      out.spoken = noPlaceholder(out.spoken);
       out.model = m;
       return out;
     });

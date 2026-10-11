@@ -468,16 +468,23 @@
           continue;
         }
       }
+      // Vie di rullaggio scritte come si pronunciano: "Alpha 2", "via Papa, Alpha, Sierra"
+      const twy = (letter, digits) => {
+        const word = LETTER_WORD[letter];
+        items.push({ d: digits ? `${word} ${digits}` : word, s: `${word.toLowerCase()}${digits ? ` ${spellDigits(digits)}` : ''}`, kind: 'T' });
+      };
       const L = PHONETIC[w];
       if (L) {
-        let d = L;
-        let s = LETTER_WORD[L].toLowerCase();
-        if (/^\d{1,2}$/.test(words[k + 1] || '')) { d += words[k + 1]; s += ` ${spellDigits(words[k + 1])}`; k++; }
-        items.push({ d, s, kind: 'T' });
+        if (/^\d{1,2}$/.test(words[k + 1] || '')) { twy(L, words[k + 1]); k++; } else twy(L);
         continue;
       }
-      if (/^[a-z]\d{0,2}$/.test(w) && w !== 'a') {
-        items.push({ d: w.toUpperCase(), s: spellDigits(w.toUpperCase()), kind: 'T' });
+      // Lettera singola dal riconoscimento vocale ("p a s", "a2"); "a" vale come via solo tra altre vie
+      const prevW = words[k - 1];
+      const nextW = words[k + 1] || '';
+      const nearTwy = prevW === 'via' || (items.length && items[items.length - 1].kind === 'T') || PHONETIC[nextW] || /^[a-z]\d{0,2}$/.test(nextW);
+      const m = w.match(/^([a-z])(\d{1,2})?$/);
+      if (m && (w !== 'a' || nearTwy)) {
+        twy(m[1].toUpperCase(), m[2]);
         continue;
       }
       if (/^\d+$/.test(w)) { items.push({ d: w, s: spellDigits(w), kind: 'N' }); continue; }
@@ -486,7 +493,11 @@
     let display = 'Taxi';
     let spoken = 'taxi';
     items.forEach((x, k) => {
-      const sep = k > 0 && x.kind === 'T' && items[k - 1].kind === 'T' ? ', ' : ' ';
+      const prev = items[k - 1];
+      let sep = ' ';
+      if (prev && x.kind === 'T' && prev.kind === 'T') sep = ', ';
+      else if (prev && x.kind === 'R' && (prev.kind === 'T' || prev.kind === 'N')) sep = ', ';
+      else if (prev && x.d === 'via' && prev.kind !== 'W') sep = ', ';
       display += sep + x.d;
       spoken += ` ${x.s}`;
     });
@@ -765,12 +776,13 @@
       const code = cs.code.toLowerCase();
       const ab = cs.abbrev && cs.abbrev.toLowerCase();
       if (words.some((w) => w === code || w.endsWith(code.slice(1)) || (ab && w === ab))) return true;
-      return false;
+      return hasOtherCallsign(toks) ? false : 'maybe';
     }
     const id = cs.flightId.toLowerCase();
     const idFound = words.includes(id);
     const telFound = cs.telephony ? flat.includes(cs.telephony.toLowerCase().replace(/[^a-z]/g, '')) : false;
-    if (idFound && (telFound || id.length >= 3 || !cs.telephony)) return true;
+    if (idFound && telFound) return true;
+    if (idFound && (id.length >= 3 || !cs.telephony)) return hasOtherCallsign(toks) ? 'maybe' : true;
     if (telFound) {
       const telWords = cs.telephony.toLowerCase().split(/\s+/);
       const at = words.indexOf(telWords[telWords.length - 1]);
@@ -778,7 +790,22 @@
       if (after && /^\d/.test(after) && after !== id) return false;
       return 'maybe';
     }
-    return false;
+    // Nessun nostro nominativo: è per un altro solo se si sente un altro nominativo,
+    // altrimenti (nominativo non capito o omesso) può essere per noi.
+    return hasOtherCallsign(toks) ? false : 'maybe';
+  }
+
+  // C'è il nominativo di qualcun altro all'inizio? ("Ryanair 45 …", "Speedbird 12AB …", "India Bravo Charlie …")
+  function hasOtherCallsign(toks) {
+    const t0 = toks[0];
+    const t1 = toks[1] || '';
+    const t2 = toks[2] || '';
+    if (!t0) return false;
+    if (PHONETIC[t0] && PHONETIC[t1] && PHONETIC[t2]) return true;
+    if (STOP.has(t0) || isNumTok(t0)) return false;
+    if (/^\d/.test(t1)) return true;
+    const tel = new Set(Object.values(AIRLINES).map((x) => x.toLowerCase().replace(/[^a-z]/g, '')));
+    return (tel.has(t0 + t1) && /^\d/.test(t2));
   }
 
   // ------------------------------------------------------------ principale

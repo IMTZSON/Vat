@@ -47,3 +47,16 @@ test('modello senza modalità JSON: riprova e legge il JSON dal testo', async ()
   const out = await Groq.readback('x', { key: 'k', model: 'openai/gpt-oss-120b', callsign: '' });
   assert.strictEqual(out.readback, 'Descend FL80, Alitalia 123');
 });
+
+test('mai "unknown" in fondo al readback', async () => {
+  const { Groq } = fakeGroq({ models: ['openai/gpt-oss-120b'] });
+  global.fetch = (orig => async (url, init) => {
+    if (url.endsWith('/chat/completions')) {
+      return { ok: true, status: 200, json: async () => ({ choices: [{ message: { content: JSON.stringify({ for_us: true, readback: 'Taxi holding point Alpha 2, runway 26L, via Papa, Alpha, Sierra, unknown', spoken: 'taxi … sierra, unknown', note: '' }) } }] }) };
+    }
+    return orig(url, init);
+  })(global.fetch);
+  const out = await Groq.readback('Taxi holding point Alpha 2', { key: 'k', model: 'openai/gpt-oss-120b', callsign: '' });
+  assert.strictEqual(out.readback, 'Taxi holding point Alpha 2, runway 26L, via Papa, Alpha, Sierra');
+  assert.strictEqual(out.spoken, 'taxi … sierra');
+});
