@@ -130,5 +130,36 @@
     }
   }
 
-  root.AudioCapture = { SegmentRecorder, listInputs, unlockDeviceLabels, encodeWav };
+  // Registrazione a comando (premi per parlare), per l'allenamento.
+  class ClipRecorder {
+    async start(deviceId) {
+      const audio = { echoCancellation: true, noiseSuppression: true };
+      if (deviceId) audio.deviceId = { exact: deviceId };
+      this.stream = await navigator.mediaDevices.getUserMedia({ audio });
+      this.ctx = new AudioContext();
+      const src = this.ctx.createMediaStreamSource(this.stream);
+      this.proc = this.ctx.createScriptProcessor(4096, 1, 1);
+      this.chunks = [];
+      this.proc.onaudioprocess = (e) => this.chunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+      src.connect(this.proc);
+      this.proc.connect(this.ctx.destination);
+    }
+
+    stop() {
+      const rate = this.ctx ? this.ctx.sampleRate : 48000;
+      if (this.proc) { this.proc.disconnect(); this.proc.onaudioprocess = null; }
+      if (this.ctx) this.ctx.close().catch(() => {});
+      if (this.stream) this.stream.getTracks().forEach((t) => t.stop());
+      const chunks = this.chunks || [];
+      this.proc = this.ctx = this.stream = null;
+      const len = chunks.reduce((n, c) => n + c.length, 0);
+      if (len < rate * 0.3) return null;
+      const all = new Float32Array(len);
+      let o = 0;
+      for (const c of chunks) { all.set(c, o); o += c.length; }
+      return encodeWav(downsample(all, rate, 16000), 16000);
+    }
+  }
+
+  root.AudioCapture = { SegmentRecorder, ClipRecorder, listInputs, unlockDeviceLabels, encodeWav };
 })(this);

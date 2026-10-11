@@ -1,5 +1,5 @@
-/* Interfaccia: collega audio, riconoscimento vocale, motore di readback e AI. */
-(function () {
+/* Nucleo dell'interfaccia: impostazioni, schede, notifiche e ponte col programma Windows. */
+(function (root) {
   'use strict';
 
   const $ = (id) => document.getElementById(id);
@@ -11,365 +11,211 @@
     mode: 'free',
     lang: 'en-US',
     hideOthers: true,
+    beep: true,
     groqKey: '',
     useAI: true,
     audioSource: 'device',
     device: '',
+    micDevice: '',
     whisperModel: 'whisper-large-v3-turbo',
     llmModel: 'llama-3.3-70b-versatile',
     threshold: 0.02,
+    trainPhase: 'delivery',
+    trainDifficulty: 'normal',
+    trainShowText: false,
+    simbriefUser: '',
+    callStand: '',
+    ttsVoice: '',
+    ttsRate: 1,
+    onTop: false,
+    tab: 'listen',
   };
 
-  const EXAMPLES = [
-    'Alitalia 123, descend FL80, turn left heading 270, contact Roma Radar 125.5',
-    'Alitalia 123, cleared to Milano Malpensa via BOLLA 5A departure, climb initially 6000 feet, squawk 4521',
-    'Alitalia 123, taxi to holding point runway 16L via alpha bravo, hold short of runway 16R',
-    'Alitalia 123, runway 16L, cleared to land, wind 160 degrees 5 knots',
-    'Alitalia 123, descend to altitude 4000 feet, QNH 1013, cleared ILS approach runway 16L',
-    'Alitalia 123, reduce speed 180 knots, contact Roma Director 119.2',
-  ];
-
-  const CHIP_LABEL = {
-    level: 'Quota', heading: 'Prua', speed: 'Velocità', squawk: 'Squawk', qnh: 'Altimetro',
-    frequency: 'Frequenza', runway: 'Pista', taxi: 'Rullaggio', clearance: 'Autorizzazione',
-    approach: 'Avvicinamento', arrival: 'Arrivo', direct: 'Diretto', ground: 'Terra',
+  const storage = {
+    get(key, fallback) {
+      try { const v = localStorage.getItem(key); return v === null ? fallback : JSON.parse(v); } catch (e) { return fallback; }
+    },
+    set(key, value) {
+      try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* storage non disponibile */ }
+    },
   };
 
-  // ------------------------------------------------------------ impostazioni
+  const stored = storage.get(STORE_KEY, {});
+  const listeners = {};
 
-  let settings = { ...DEFAULTS };
-  try { settings = { ...DEFAULTS, ...JSON.parse(localStorage.getItem(STORE_KEY) || '{}') }; } catch (e) { /* storage non disponibile */ }
-  const save = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(settings)); } catch (e) { /* ignora */ } };
+  // Ponte col programma per Windows (electron/preload.js); nel browser usa alternative.
+  const bridge = root.desktop || null;
+  const desktop = {
+    available: !!bridge,
+    setOnTop: (on) => bridge && bridge.setOnTop(on),
+    setCompact: (on) => bridge && bridge.setCompact(on),
+    openExternal(url) {
+      if (bridge) bridge.openExternal(url);
+      else root.open(url, '_blank', 'noopener');
+    },
+    async saveText(name, text) {
+      if (bridge) return bridge.saveText(name, text);
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
+      a.download = name;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      return true;
+    },
+    onHotkey: (fn) => bridge && bridge.onHotkey(fn),
+    info: () => (bridge ? bridge.info() : Promise.resolve(null)),
+  };
 
-  const bindings = ['callsign', 'telephony', 'mode', 'lang', 'hideOthers', 'groqKey', 'useAI', 'audioSource', 'device', 'whisperModel', 'llmModel', 'threshold'];
-  for (const key of bindings) {
-    const el = $(key);
-    if (el.type === 'checkbox') el.checked = !!settings[key];
-    else el.value = settings[key];
-    el.addEventListener(el.tagName === 'SELECT' || el.type === 'checkbox' || el.type === 'range' ? 'change' : 'input', () => {
-      settings[key] = el.type === 'checkbox' ? el.checked : (el.type === 'range' ? Number(el.value) : el.value);
-      save();
-      if (key === 'callsign' || key === 'telephony') updateCallsignHint();
-      if (key === 'threshold') { if (recorder) recorder.threshold = settings.threshold; drawThreshold(); }
-      if (key === 'mode') updateModeUI();
-    });
-  }
-  $('threshold').addEventListener('input', (e) => { settings.threshold = Number(e.target.value); if (recorder) recorder.threshold = settings.threshold; drawThreshold(); });
+  const App = {
+    $,
+    storage,
+    desktop,
+    defaults: DEFAULTS,
+    settings: { ...DEFAULTS, ...stored },
+    storedKeys: Object.keys(stored),
+    flight: storage.get('readback-copilot-flight', null),
+    modules: [],
 
-  function callsignInfo() {
-    return Readback.parseCallsign(settings.callsign, settings.telephony);
-  }
+    save() { storage.set(STORE_KEY, this.settings); },
 
-  function updateCallsignHint() {
-    const cs = callsignInfo();
-    const hint = $('csHint');
-    if (!cs) { hint.textContent = 'Inserisci il tuo nominativo: così l\'app riconosce le chiamate per te e lo aggiunge in fondo al readback.'; return; }
-    if (cs.type === 'unknown') { hint.textContent = `Compagnia non in elenco: scrivi come ti chiama l'ATC nel campo "Nominativo radio" (es. "Alitalia").`; return; }
-    hint.textContent = `L'ATC ti chiamerà: ${cs.display} — pronuncia: "${cs.spoken}"`;
-  }
+    set(key, value) {
+      this.settings[key] = value;
+      this.save();
+      this.emit(`setting:${key}`, value);
+    },
 
-  function updateModeUI() {
-    $('meterWrap').hidden = !(settings.mode === 'groq' && running);
-    if (settings.mode === 'groq' && !settings.groqKey) $('settingsPanel').open = true;
-  }
+    on(evt, fn) { (listeners[evt] = listeners[evt] || []).push(fn); },
+    emit(evt, data) { (listeners[evt] || []).forEach((fn) => { try { fn(data); } catch (e) { console.error(e); } }); },
 
-  // ------------------------------------------------------------ stato UI
+    register(fn) { this.modules.push(fn); },
 
-  function setStatus(text, cls) {
-    const el = $('status');
-    el.textContent = text;
-    el.className = `status ${cls || 'idle'}`;
-  }
+    callsignInfo() { return root.Readback.parseCallsign(this.settings.callsign, this.settings.telephony); },
 
-  let current = null;
-  const history = [];
+    setFlight(f) {
+      this.flight = f;
+      storage.set('readback-copilot-flight', f);
+      this.emit('flight', f);
+    },
 
-  function render(item) {
-    current = item;
-    const r = item.result;
-    const rb = $('readback');
-    rb.textContent = r.readback || '—';
-    rb.classList.remove('flash');
-    void rb.offsetWidth;
-    rb.classList.add('flash');
-    $('spoken').textContent = r.spoken ? `"${r.spoken}"` : '';
-    $('heard').textContent = item.heard || '—';
+    toast(msg, ms) {
+      const t = $('toast');
+      t.textContent = msg;
+      t.hidden = false;
+      clearTimeout(this._toastTimer);
+      this._toastTimer = setTimeout(() => { t.hidden = true; }, ms || 3500);
+    },
 
-    const forUs = $('forUs');
-    if (r.forUs === true) { forUs.textContent = 'Per te'; forUs.className = 'badge ok'; }
-    else if (r.forUs === 'maybe') { forUs.textContent = 'Forse per te: controlla'; forUs.className = 'badge maybe'; }
-    else if (r.forUs === false) { forUs.textContent = 'Non per te'; forUs.className = 'badge no'; }
-    else { forUs.textContent = 'Nominativo non impostato'; forUs.className = 'badge muted'; }
+    setStatus(text, cls) {
+      const el = $('status');
+      el.textContent = text;
+      el.className = `status ${cls || 'idle'}`;
+    },
 
-    const src = $('srcBadge');
-    if (item.aiPending) { src.textContent = 'AI in corso…'; src.className = 'badge ai'; }
-    else if (r.source === 'AI') { src.textContent = 'AI'; src.className = 'badge ai'; }
-    else { src.textContent = 'Regole'; src.className = 'badge muted'; }
+    switchTab(id) {
+      document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('active', b.dataset.tab === id));
+      document.querySelectorAll('.view').forEach((v) => { v.hidden = v.dataset.view !== id; });
+      if (this.settings.tab !== id) this.set('tab', id);
+      this.emit('tab', id);
+    },
 
-    const chips = $('chips');
-    chips.innerHTML = '';
-    for (const p of r.parts || []) {
-      if (!CHIP_LABEL[p.type]) continue;
-      const c = document.createElement('span');
-      c.className = 'chip';
-      const b = document.createElement('b');
-      b.textContent = CHIP_LABEL[p.type];
-      c.append(b, p.display);
-      chips.append(c);
-    }
+    setCompact(on) {
+      document.body.classList.toggle('compact', on);
+      if (on) this.switchTab('listen');
+      desktop.setCompact(on);
+      if (!on) desktop.setOnTop(this.settings.onTop);
+      $('overlayBtn').textContent = on ? '🗖 Espandi' : '🗗 Compatta';
+    },
 
-    const warn = $('warnings');
-    warn.innerHTML = '';
-    const notes = [...(r.warnings || [])];
-    if (r.noReadbackNeeded) notes.push('Nessuna istruzione da ripetere: basta un "Roger" (o "Wilco" se ti chiede di riportare).');
-    if (r.note) notes.push(r.note);
-    for (const n of notes) {
-      const li = document.createElement('li');
-      li.textContent = n;
-      warn.append(li);
-    }
-  }
-
-  function renderHistory() {
-    const ol = $('history');
-    ol.innerHTML = '';
-    if (!history.length) {
-      ol.innerHTML = '<li class="empty">Nessuna trasmissione ancora.</li>';
-      return;
-    }
-    for (const item of history) {
-      const li = document.createElement('li');
-      if (item.result.forUs === false) li.className = 'other';
-      const t = document.createElement('div');
-      t.className = 't';
-      t.textContent = `${item.time}${item.result.forUs === false ? ' · non per te' : ''}${item.result.source === 'AI' ? ' · AI' : ''}`;
-      const rb = document.createElement('div');
-      rb.className = 'rb';
-      rb.textContent = item.result.readback;
-      const atc = document.createElement('div');
-      atc.className = 'atc';
-      atc.textContent = `ATC: ${item.heard}`;
-      li.append(t, rb, atc);
-      li.addEventListener('click', () => render(item));
-      ol.append(li);
-    }
-  }
-
-  // ------------------------------------------------------------ elaborazione
-
-  async function handleTranscript(text, origin) {
-    text = (text || '').trim();
-    if (!text) return;
-    const cs = callsignInfo();
-    const result = Readback.generateReadback(text, { callsign: cs });
-    const item = {
-      heard: text,
-      origin,
-      result,
-      time: new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-    };
-    history.unshift(item);
-    if (history.length > 30) history.pop();
-
-    const show = origin === 'prova' || !(settings.hideOthers && result.forUs === false);
-    const wantAI = settings.mode === 'groq' && settings.useAI && settings.groqKey;
-    if (wantAI && show) item.aiPending = true;
-    if (show) render(item);
-    renderHistory();
-
-    if (wantAI && show) {
+    async refreshDevices(unlock) {
       try {
-        const ai = await Groq.readback(text, { key: settings.groqKey, model: settings.llmModel, callsign: cs ? cs.display : '' });
-        item.result = {
-          ...result,
-          readback: ai.readback,
-          spoken: ai.spoken || '',
-          note: ai.note || '',
-          parts: result.parts,
-          source: 'AI',
-        };
-      } catch (e) {
-        item.result = { ...result, warnings: [...result.warnings, `AI non disponibile (${e.message}): mostro il readback a regole.`] };
-      }
-      item.aiPending = false;
-      if (current === item) render(item);
-      renderHistory();
-    }
-  }
-
-  // ------------------------------------------------------------ ascolto
-
-  let running = false;
-  let recognition = null;
-  let recorder = null;
-
-  function startFree() {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) throw new Error('Questo browser non ha il riconoscimento vocale: usa Google Chrome o Microsoft Edge.');
-    recognition = new SR();
-    recognition.lang = settings.lang;
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.onresult = (e) => {
-      let interim = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const res = e.results[i];
-        if (res.isFinal) handleTranscript(res[0].transcript, 'chrome');
-        else interim += res[0].transcript;
-      }
-      $('live').textContent = interim ? `Sto sentendo: ${interim}` : '';
-    };
-    recognition.onerror = (e) => {
-      if (e.error === 'no-speech' || e.error === 'aborted') return;
-      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
-        stop();
-        setStatus('Microfono negato', 'error');
-        $('live').textContent = 'Permetti l\'accesso al microfono a questa pagina (icona nella barra degli indirizzi).';
-        return;
-      }
-      $('live').textContent = `Errore riconoscimento: ${e.error}`;
-    };
-    recognition.onend = () => {
-      if (running && recognition) setTimeout(() => { try { recognition.start(); } catch (err) { /* già avviato */ } }, 250);
-    };
-    recognition.start();
-  }
-
-  async function startGroq() {
-    if (!settings.groqKey) {
-      $('settingsPanel').open = true;
-      throw new Error('Inserisci la chiave Groq nelle Impostazioni (è gratuita su console.groq.com).');
-    }
-    recorder = new AudioCapture.SegmentRecorder({
-      threshold: settings.threshold,
-      onLevel: (rms, speaking) => {
-        const bar = $('meterBar');
-        bar.style.width = `${Math.min(100, (rms / 0.15) * 100)}%`;
-        bar.classList.toggle('on', speaking);
-      },
-      onEnded: () => { if (running) stop(); },
-      onSegment: async (wav) => {
-        setStatus('Trascrivo…', 'busy');
-        try {
-          const cs = callsignInfo();
-          const text = await Groq.transcribe(wav, { key: settings.groqKey, model: settings.whisperModel, callsign: cs ? cs.display : '' });
-          if (text) await handleTranscript(text, 'whisper');
-        } catch (e) {
-          $('live').textContent = e.message;
+        if (unlock) await root.AudioCapture.unlockDeviceLabels();
+        const inputs = await root.AudioCapture.listInputs();
+        for (const id of ['device', 'micDevice']) {
+          const sel = $(id);
+          sel.innerHTML = '<option value="">Predefinito</option>';
+          for (const d of inputs) {
+            if (!d.deviceId || d.deviceId === 'default' || d.deviceId === 'communications') continue;
+            const o = document.createElement('option');
+            o.value = d.deviceId;
+            o.textContent = d.label || 'Dispositivo senza nome (premi ↻)';
+            sel.append(o);
+          }
+          sel.value = this.settings[id];
+          if (sel.value !== this.settings[id]) sel.value = '';
         }
-        if (running) setStatus('In ascolto', 'listening');
-      },
-    });
-    await recorder.start(settings.audioSource, settings.device);
-    drawThreshold();
-  }
-
-  async function start() {
-    $('live').textContent = '';
-    try {
-      running = true;
-      if (settings.mode === 'groq') await startGroq();
-      else startFree();
-      setStatus('In ascolto', 'listening');
-      $('toggle').textContent = '■ Ferma';
-      $('toggle').classList.add('stop');
-      updateModeUI();
-    } catch (e) {
-      running = false;
-      stop();
-      setStatus('Errore', 'error');
-      $('live').textContent = e.message || String(e);
-    }
-  }
-
-  function stop() {
-    running = false;
-    if (recognition) { recognition.onend = null; try { recognition.stop(); } catch (e) { /* ignora */ } recognition = null; }
-    if (recorder) { recorder.stop(); recorder = null; }
-    setStatus('Fermo', 'idle');
-    $('toggle').textContent = '▶ Avvia ascolto';
-    $('toggle').classList.remove('stop');
-    updateModeUI();
-  }
-
-  $('toggle').addEventListener('click', () => (running ? stop() : start()));
-
-  function drawThreshold() {
-    $('meterTh').style.left = `${Math.min(100, (settings.threshold / 0.15) * 100)}%`;
-  }
-
-  // ------------------------------------------------------------ dispositivi e modelli
-
-  async function refreshDevices(unlock) {
-    try {
-      if (unlock) await AudioCapture.unlockDeviceLabels();
-      const inputs = await AudioCapture.listInputs();
-      const sel = $('device');
-      sel.innerHTML = '<option value="">Predefinito</option>';
-      for (const d of inputs) {
-        if (!d.deviceId || d.deviceId === 'default') continue;
-        const o = document.createElement('option');
-        o.value = d.deviceId;
-        o.textContent = d.label || 'Dispositivo senza nome';
-        sel.append(o);
+      } catch (e) {
+        this.toast(`Impossibile leggere i dispositivi audio: ${e.message}`);
       }
-      sel.value = settings.device;
-      if (sel.value !== settings.device) sel.value = '';
-    } catch (e) {
-      $('live').textContent = `Impossibile leggere i dispositivi: ${e.message}`;
-    }
-  }
-  $('refreshDevices').addEventListener('click', () => refreshDevices(true));
+    },
 
-  $('loadModels').addEventListener('click', async () => {
-    const msg = $('modelsMsg');
-    if (!settings.groqKey) { msg.textContent = 'Prima inserisci la chiave.'; return; }
-    msg.textContent = 'Carico…';
-    try {
-      const models = await Groq.listModels(settings.groqKey);
-      const list = $('modelList');
-      list.innerHTML = '';
-      for (const m of models) {
-        const o = document.createElement('option');
-        o.value = m;
-        list.append(o);
+    bindSettings() {
+      document.querySelectorAll('[data-setting]').forEach((el) => {
+        const key = el.dataset.setting;
+        const read = () => (el.type === 'checkbox' ? el.checked : (el.type === 'range' ? Number(el.value) : el.value));
+        const write = () => { if (el.type === 'checkbox') el.checked = !!this.settings[key]; else el.value = this.settings[key]; };
+        write();
+        this.on(`setting:${key}`, () => { if (read() !== this.settings[key]) write(); });
+        const evt = el.tagName === 'SELECT' || el.type === 'checkbox' ? 'change' : 'input';
+        el.addEventListener(evt, () => this.set(key, read()));
+      });
+    },
+
+    async start() {
+      this.bindSettings();
+      document.querySelectorAll('.tab').forEach((b) => b.addEventListener('click', () => this.switchTab(b.dataset.tab)));
+      $('overlayBtn').addEventListener('click', () => this.setCompact(!document.body.classList.contains('compact')));
+      document.querySelectorAll('.refreshDevices').forEach((b) => b.addEventListener('click', () => this.refreshDevices(true)));
+
+      this.on('setting:onTop', (v) => desktop.setOnTop(v));
+      if (this.settings.onTop) desktop.setOnTop(true);
+
+      root.TTS.voiceName = this.settings.ttsVoice;
+      root.TTS.rate = this.settings.ttsRate;
+      this.on('setting:ttsVoice', (v) => { root.TTS.voiceName = v; });
+      this.on('setting:ttsRate', (v) => { root.TTS.rate = v; });
+      const fillVoices = () => {
+        const sel = $('ttsVoice');
+        sel.innerHTML = '<option value="">Automatica</option>';
+        for (const v of root.TTS.voices()) {
+          const o = document.createElement('option');
+          o.value = v.name;
+          o.textContent = `${v.name} (${v.lang})`;
+          sel.append(o);
+        }
+        sel.value = this.settings.ttsVoice;
+      };
+      fillVoices();
+      if ('speechSynthesis' in root) speechSynthesis.onvoiceschanged = fillVoices;
+      $('ttsTest').addEventListener('click', () => root.TTS.speak('Alitalia one two three, descend flight level eight zero, turn left heading two seven zero.'));
+
+      $('resetAll').addEventListener('click', () => {
+        if (!confirm('Ripristinare tutte le impostazioni? (la chiave Groq verrà cancellata)')) return;
+        storage.set(STORE_KEY, {});
+        location.reload();
+      });
+
+      // Scorciatoie da tastiera (nel browser funzionano solo con la finestra attiva)
+      document.addEventListener('keydown', (e) => {
+        if (!e.ctrlKey || !e.shiftKey) return;
+        const map = { KeyL: 'toggle-listen', KeyR: 'speak', KeyO: 'overlay' };
+        if (map[e.code]) { e.preventDefault(); this.emit('hotkey', map[e.code]); }
+      });
+      desktop.onHotkey((name) => this.emit('hotkey', name));
+      this.on('hotkey', (name) => { if (name === 'overlay') this.setCompact(!document.body.classList.contains('compact')); });
+
+      const info = await desktop.info();
+      if (info) {
+        document.body.classList.add('is-desktop');
+        $('desktopInfo').textContent = `Programma per Windows, versione ${info.version}. Le scorciatoie funzionano anche con il simulatore in primo piano.`;
       }
-      msg.textContent = `${models.length} modelli: scegli dai campi sopra.`;
-    } catch (e) {
-      msg.textContent = e.message;
-    }
-  });
 
-  // ------------------------------------------------------------ prova e voce
+      for (const init of this.modules) {
+        try { init(this); } catch (e) { console.error(e); }
+      }
+      if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) this.refreshDevices(false);
+      this.switchTab(this.settings.tab || 'listen');
+    },
+  };
 
-  $('tryBtn').addEventListener('click', () => handleTranscript($('tryText').value, 'prova'));
-  $('tryText').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('tryBtn').click(); }
-  });
-  for (const ex of EXAMPLES) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.textContent = ex;
-    b.addEventListener('click', () => {
-      const cs = callsignInfo();
-      const text = cs ? ex.replace('Alitalia 123', cs.display) : ex;
-      $('tryText').value = text;
-      handleTranscript(text, 'prova');
-    });
-    $('examples').append(b);
-  }
-
-  $('speak').addEventListener('click', () => {
-    if (!current || !('speechSynthesis' in window)) return;
-    const u = new SpeechSynthesisUtterance(current.result.spoken || current.result.readback);
-    u.lang = 'en-GB';
-    u.rate = 0.95;
-    speechSynthesis.cancel();
-    speechSynthesis.speak(u);
-  });
-
-  updateCallsignHint();
-  drawThreshold();
-  updateModeUI();
-  if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) refreshDevices(false);
-})();
+  root.App = App;
+})(this);

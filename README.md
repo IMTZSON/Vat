@@ -1,77 +1,120 @@
-# Readback Copilot 🎧
+# Readback Copilot 🎧✈️
 
-Ascolta l'ATC mentre voli su **VATSIM** e ti mostra subito, in grande, **il readback corretto da ripetere**, con la pronuncia ICAO.
+Il tuo **copilota radio per VATSIM**. Ascolta l'ATC e ti mostra subito, in grande, **cosa ripetere**. Ti fa allenare con un ATC simulato, prepara il volo con SimBrief, meteo e controllori online, e contiene un frasario completo.
 
-```
-ATC:      "Alitalia 123, descend FL80, turn left heading 270, contact Roma Radar 125.5"
-DA DIRE:   Descend FL80, left heading 270, Roma Radar 125.5, Alitalia 123
-PRONUNCIA: descend flight level eight zero, left heading two seven zero, Roma Radar one two five decimal five, Alitalia one two three
-```
+Disponibile come **programma per Windows (.exe)** e come pagina web.
 
-- Riconosce se la chiamata è **per te**: le chiamate per altri aerei finiscono solo nello storico.
-- Mette in evidenza **quota, prua, velocità, squawk, QNH, frequenza e pista**.
-- Avvisa se un valore sembra sbagliato, per esempio uno squawk con 8 o 9 o un QNH strano.
-- Con 🔊 **Ascolta** senti la pronuncia corretta.
-- La sezione **Prova** ti fa allenare anche senza simulatore: scrivi una frase ATC e vedi il readback.
+---
 
-> L'app ti **suggerisce** cosa dire: in radio parli sempre tu. Non trasmette niente al posto tuo.
+## 📥 Scaricare il programma per Windows
 
-## Due modalità
+1. Vai alla pagina **Releases** del repository e apri la build più recente.
+2. Scarica uno dei due file:
+   - **`ReadbackCopilot-Setup-x.y.z.exe`**: installer, crea l'icona sul desktop.
+   - **`ReadbackCopilot-Portable-x.y.z.exe`**: si avvia subito, senza installare niente.
+3. Il programma non è firmato digitalmente. Se Windows mostra **"Windows ha protetto il PC"**, clicca **Ulteriori informazioni → Esegui comunque**.
 
-| | **Gratis** | **Groq** (consigliata) |
-|---|---|---|
-| Costo | 0 €, nessuna chiave | 0 €, serve una chiave gratuita |
-| Riconoscimento vocale | Chrome/Edge integrato | Whisper (molto più preciso coi numeri) |
-| Readback | Regole ICAO integrate | AI (gestisce anche frasi complesse), con le regole come riserva |
+> Le build vengono create in automatico da GitHub Actions (scheda **Actions → Build Windows**) a ogni aggiornamento del codice.
 
-### Ottenere la chiave gratuita Groq
-1. Vai su **https://console.groq.com** e registrati (piano gratuito, con limiti d'uso).
-2. Apri **API Keys → Create API Key** e copia la chiave (`gsk_...`).
-3. Nell'app apri **Impostazioni** e incollala nel campo "Chiave API Groq". Resta salvata solo nel tuo browser.
+---
 
-> Gli abbonamenti Claude o ChatGPT **non** includono una chiave API: le API si pagano a parte. Per questo l'app usa Groq, che ha un piano gratuito.
+## Cosa fa
 
-## Collegare vPilot (Windows)
+### 🎧 Ascolto (in volo)
+- Ascolta la radio di vPilot, trascrive l'ATC e ti mostra il **readback corretto** con la **pronuncia ICAO**.
+  ```
+  ATC:       "Alitalia 123, descend FL80, turn left heading 270, contact Roma Radar 125.5"
+  DA DIRE:    Descend FL80, left heading 270, Roma Radar 125.5, Alitalia 123
+  PRONUNCIA:  descend flight level eight zero, left heading two seven zero, Roma Radar one two five decimal five…
+  ```
+- Riconosce le chiamate **per te**: quelle per altri aerei vanno solo nello storico. Fa un **bip** quando l'ATC chiama te.
+- Avvisa sui valori sospetti, per esempio uno squawk con 8 o 9 o un QNH strano.
+- **Modalità compatta** sempre in primo piano sopra il simulatore.
+- **Storico** esportabile in un file di testo.
 
-L'app deve "sentire" la radio di vPilot. Il modo più pulito è un cavo audio virtuale:
+### 🎓 Allenamento
+- Un ATC simulato ti parla a voce, tu rispondi **a voce** (o scrivendo) e l'app ti **corregge elemento per elemento**: quota, prua, frequenza, squawk, pista, nominativo.
+- Fasi: Delivery, Ground, Tower, Partenza, Crociera, Avvicinamento, Misto, oppure **Volo completo** in 18 passi dal clearance al parcheggio.
+- Tre livelli di difficoltà e statistiche dei progressi per fase.
+- Se hai caricato un volo nella scheda Volo, l'allenamento usa i tuoi aeroporti, le tue piste e la tua SID.
 
-1. Installa **VB-Cable** (gratuito) da https://vb-audio.com/Cable/ e riavvia il PC.
-2. In **vPilot → Settings → Audio**, imposta il dispositivo di uscita (*Speakers/Headphones*) su **CABLE Input (VB-Audio Virtual Cable)**. Il microfono resta il tuo headset.
-3. Per continuare a sentire l'ATC in cuffia: *Impostazioni audio di Windows → Altre impostazioni audio → Registrazione → **CABLE Output** → Proprietà → Ascolto →* spunta **"Ascolta questo dispositivo"** e scegli le tue cuffie.
-4. Nell'app:
-   - **Modalità Gratis:** in Chrome apri `chrome://settings/content/microphone` e scegli **CABLE Output** come microfono. Se non funziona, imposta CABLE Output come dispositivo di registrazione predefinito di Windows (vPilot usa comunque il microfono che hai scelto nelle sue impostazioni).
-   - **Modalità Groq:** in *Impostazioni → Dispositivo di ingresso* premi ↻ e scegli **CABLE Output**. In alternativa puoi usare "Audio di sistema", ma sentirà anche i suoni del simulatore.
-5. Scrivi il tuo nominativo (es. `AZA123`), premi **Avvia ascolto** e connettiti.
+### ✈️ Volo (briefing)
+- **SimBrief**: carica l'ultimo piano di volo con il tuo nome utente. Imposta da solo il nominativo e mostra rotta, livello, piste, SID/STAR e carburante.
+- **Meteo**: METAR di partenza e arrivo spiegato in italiano (vento, visibilità, nubi, QNH, categoria VFR/IFR).
+- **ATC online su VATSIM** negli aeroporti del volo, con frequenze, lettera ATIS e testo ATIS.
+- **Le tue chiamate**: cosa dire tu per primo in ogni fase, già compilato con i dati del volo (stand, lettera ATIS, piste).
+- **Tu su VATSIM**: controlla se sei connesso e se lo squawk impostato è quello assegnato.
 
-In modalità Groq trovi un **indicatore di livello** con la **soglia**: regola la soglia (la linea gialla) appena sopra il rumore di fondo, così l'app capisce quando inizia e finisce ogni trasmissione.
+### 📖 Frasario
+- 40 frasi standard ICAO divise per fase, con la risposta corretta, una spiegazione in italiano e il tasto 🔊 per ascoltarle.
+- Ci sono anche emergenze, alfabeto fonetico, numeri con la pronuncia e un glossario.
 
-## Come aprire l'app
+### ⌨️ Scorciatoie (funzionano anche col simulatore in primo piano)
+| Tasti | Azione |
+|---|---|
+| `Ctrl+Shift+L` | Avvia o ferma l'ascolto |
+| `Ctrl+Shift+R` | Ripete a voce l'ultimo readback |
+| `Ctrl+Shift+O` | Modalità compatta sopra il simulatore |
 
-- **Online (consigliato):** attiva GitHub Pages (*Settings → Pages → Branch: `main` / root*) e apri l'indirizzo che ti dà GitHub. Su un repository privato le Pages richiedono un piano GitHub a pagamento.
-- **In locale:** scarica il progetto (*Code → Download ZIP*), estrailo e apri `index.html` con **Google Chrome** o **Edge**. Se il microfono o Groq non funzionano aprendo il file direttamente, usa la versione online.
+---
 
-## Nominativo
+## ⚙️ Configurazione (5 minuti)
 
-- Compagnie: scrivi il codice ICAO + numero (`AZA123`, `RYR45AB`, `DLH4AB`). Il nominativo radio viene riconosciuto in automatico per le compagnie più comuni (`js/callsigns.js`). Se la tua non c'è, scrivilo nel campo **Nominativo radio**.
-- Aerei privati: scrivi la marca (`I-ABCD`). Viene riconosciuta anche la forma abbreviata (*India Charlie Delta*).
+### 1. Chiave gratuita Groq (consigliata)
+Groq fornisce gratis Whisper, il riconoscimento vocale preciso coi numeri, e l'AI per i readback complessi.
+1. Vai su **https://console.groq.com** e registrati.
+2. **API Keys → Create API Key** e copia la chiave (`gsk_...`).
+3. Nel programma: **Impostazioni → Chiave API Groq**, incollala e premi **Verifica chiave**.
+
+> Attenzione: si scrive **Groq** con la Q. Grok con la K è un'altra cosa.
+> Gli abbonamenti Claude o ChatGPT non includono chiavi API.
+
+### 2. Far sentire vPilot al programma
+**Opzione A, la più semplice:** in *Impostazioni → Da dove ascoltare* scegli **Audio del PC**. Non devi installare niente, ma il programma sente anche i suoni del simulatore.
+
+**Opzione B, la più precisa (VB-Cable):**
+1. Installa **VB-Cable** (gratuito) da https://vb-audio.com/Cable/ e riavvia.
+2. In **vPilot → Settings → Audio** imposta l'uscita su **CABLE Input**. Il microfono resta il tuo headset.
+3. Per sentire ancora l'ATC: `Win+R` → `mmsys.cpl` → *Registrazione* → **CABLE Output** → *Proprietà → Ascolto* → spunta **Ascolta questo dispositivo** e scegli le tue cuffie.
+4. Nel programma: *Impostazioni → Da dove ascoltare: Dispositivo* e *Dispositivo radio:* **CABLE Output** (premi ↻ per aggiornare l'elenco).
+
+Poi regola la **soglia** (la linea gialla nella scheda Ascolto) appena sopra il rumore di fondo.
+
+### 3. Nominativo
+Scrivilo nella scheda Ascolto (es. `AZA123`, `RYR45AB`, `I-ABCD`), oppure caricalo da SimBrief. Se la tua compagnia non è riconosciuta, scrivi il nominativo radio nel campo accanto (es. "Alitalia").
+
+---
+
+## Modalità senza chiave
+- **Gratis (Chrome):** usa il riconoscimento vocale di Chrome o Edge. Dentro il programma per Windows non funziona: premi **"Apri l'app in Chrome"**: l'app si apre nel browser (la prima volta reinserisci lì nominativo e impostazioni, perché Chrome le salva per conto suo).
+- La scheda **Prova**, il **Frasario**, il **Volo** e l'allenamento con risposte **scritte** funzionano senza nessuna chiave.
 
 ## Limiti da conoscere
+- Il readback arriva circa 1–3 secondi dopo la fine della frase dell'ATC.
+- Con audio disturbato i numeri possono essere capiti male: controlla sempre la riga **ATC** e, nel dubbio, chiedi *"say again"*.
+- Le procedure dell'allenamento (SID, waypoint, frequenze) sono di fantasia: servono per imparare la fraseologia, non per volare quelle procedure.
+- L'app ti **suggerisce** cosa dire: in radio parli sempre tu.
 
-- Tra la fine della frase dell'ATC e il readback sullo schermo passano circa 1–3 secondi.
-- Con audio disturbato i numeri possono essere capiti male: controlla sempre la riga **ATC** (cosa ha sentito l'app) e, nel dubbio, chiedi *"say again"*.
-- La modalità Gratis usa le regole integrate: copre le istruzioni standard (quote, prue, velocità, squawk, QNH, frequenze, piste, rullaggio, autorizzazioni, avvicinamenti). Le frasi insolite o condizionali vengono gestite meglio dalla modalità Groq con l'AI.
+---
 
-## Sviluppo
+## Per sviluppatori
 
-Pagina statica, senza build: `index.html`, `css/`, `js/`.
+Pagina statica (`index.html`, `css/`, `js/`) dentro una shell Electron (`electron/`).
 
-- `js/readback.js`: motore di readback (normalizzazione, regole ICAO, pronuncia, riconoscimento del nominativo)
-- `js/audio.js`: cattura audio, rilevamento voce, WAV per Whisper
-- `js/groq.js`: trascrizione Whisper e readback con AI
-- `js/app.js`: interfaccia
-
-Test del motore (Node 18+):
+| File | Ruolo |
+|---|---|
+| `js/readback.js` | Motore di readback: normalizzazione, regole ICAO, pronuncia, riconoscimento nominativo |
+| `js/scenarios.js` | Generatore di istruzioni ATC per l'allenamento e valutazione delle risposte |
+| `js/metar.js`, `js/simbrief.js` | Decodifica METAR e lettura OFP SimBrief |
+| `js/audio.js`, `js/stt.js`, `js/tts.js`, `js/groq.js` | Audio, riconoscimento vocale, sintesi vocale, Groq |
+| `js/app.js`, `js/listen.js`, `js/trainer.js`, `js/flight.js`, `js/phrasebook.js` | Interfaccia |
+| `electron/main.js`, `electron/preload.js` | Programma Windows: finestra, audio del PC, scorciatoie, modalità compatta |
+| `electron/server.js` | Server locale su `127.0.0.1:47800` con proxy verso Groq/SimBrief/VATSIM |
 
 ```
-npm test
+npm install      # dipendenze (Electron)
+npm test         # test del motore
+npm start        # avvia il programma
+npm run serve    # solo server: apri http://127.0.0.1:47800 in Chrome
+npm run dist     # crea gli .exe (su Windows)
 ```

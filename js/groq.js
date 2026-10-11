@@ -7,11 +7,9 @@
 
   async function call(path, key, init) {
     let res;
+    const opts = { ...init, headers: { Authorization: `Bearer ${key}`, ...(init.headers || {}) } };
     try {
-      res = await fetch(BASE + path, {
-        ...init,
-        headers: { Authorization: `Bearer ${key}`, ...(init.headers || {}) },
-      });
+      res = root.Net ? await root.Net.fetch(BASE + path, opts) : await fetch(BASE + path, opts);
     } catch (e) {
       throw new Error('Impossibile contattare Groq (connessione assente o bloccata).');
     }

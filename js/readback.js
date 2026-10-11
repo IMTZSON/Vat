@@ -346,7 +346,7 @@
     const types = inner.filter((w) => APP_TYPES[w]);
     if (!types.length) return null;
     let typeDisplay = types.map((w) => APP_TYPES[w]).join(' ');
-    let typeSpoken = types.map((w) => (APP_TYPES[w] === APP_TYPES[w].toUpperCase() ? APP_TYPES[w].split('').join(' ') : w)).join(' ');
+    let typeSpoken = types.map((w) => APP_TYPES[w]).join(' ');
     const variant = inner.find((w) => ['zulu', 'yankee', 'xray', 'z', 'y', 'x'].includes(w));
     if (variant) {
       const L = PHONETIC[variant] || variant.toUpperCase();
@@ -838,7 +838,7 @@
     };
   }
 
-  const api = { generateReadback, parseCallsign, tokenize, spellDigits, spokenAltitude, spokenFL };
+  const api = { generateReadback, parseCallsign, detectForUs, tokenize, spellDigits, spokenAltitude, spokenFL, spokenRunway, PHONETIC, LETTER_WORD };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Readback = api;
 })(this);

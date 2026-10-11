@@ -12,143 +12,362 @@
       <span class="logo" aria-hidden="true">🎧</span>
       <div>
         <h1>Readback Copilot</h1>
-        <p class="sub">Ascolta l'ATC e ti mostra cosa ripetere</p>
+        <p class="sub">Il tuo copilota radio per VATSIM</p>
       </div>
     </div>
-    <span id="status" class="status idle">Fermo</span>
+    <nav class="tabs" role="tablist">
+      <button class="tab" data-tab="listen" role="tab">🎧 Ascolto</button>
+      <button class="tab" data-tab="train" role="tab">🎓 Allenamento</button>
+      <button class="tab" data-tab="flight" role="tab">✈️ Volo</button>
+      <button class="tab" data-tab="phrases" role="tab">📖 Frasario</button>
+      <button class="tab" data-tab="settings" role="tab">⚙️ Impostazioni</button>
+    </nav>
+    <div class="topRight">
+      <span id="status" class="status idle">Fermo</span>
+      <button id="overlayBtn" class="btn small" title="Modalità compatta sempre in primo piano (Ctrl+Shift+O)">🗗 Compatta</button>
+    </div>
   </header>
 
+  <div id="toast" class="toast" hidden></div>
+
   <main>
-    <section class="controls panel">
-      <label class="field">
-        <span>Il tuo nominativo</span>
-        <input id="callsign" placeholder="es. AZA123 o I-ABCD" autocomplete="off" spellcheck="false">
-      </label>
-      <label class="field">
-        <span>Nominativo radio <em>(opzionale)</em></span>
-        <input id="telephony" placeholder="es. Alitalia" autocomplete="off" spellcheck="false">
-      </label>
-      <label class="field">
-        <span>Modalità</span>
-        <select id="mode">
-          <option value="free">Gratis – riconoscimento vocale di Chrome</option>
-          <option value="groq">Groq – Whisper + AI (chiave gratuita)</option>
-        </select>
-      </label>
-      <button id="toggle" class="btn primary">▶ Avvia ascolto</button>
-      <p id="csHint" class="hint"></p>
-    </section>
-
-    <section class="panel readout" aria-live="polite">
-      <div class="badges">
-        <span id="forUs" class="badge muted">In attesa</span>
-        <span id="srcBadge" class="badge muted"></span>
-      </div>
-      <div class="label">Da dire</div>
-      <p id="readback" class="readback">—</p>
-      <div class="label">Come pronunciarlo</div>
-      <p id="spoken" class="spoken">Avvia l'ascolto o prova una frase qui sotto.</p>
-      <div id="chips" class="chips"></div>
-      <ul id="warnings" class="warnings"></ul>
-      <div class="heardRow">
-        <p class="heard"><span class="label inline">ATC</span> <span id="heard">—</span></p>
-        <button id="speak" class="btn small" title="Ascolta la pronuncia">🔊 Ascolta</button>
-      </div>
-      <p id="live" class="live"></p>
-      <div id="meterWrap" class="meterWrap" hidden>
-        <div class="meter"><div id="meterBar" class="meterBar"></div><div id="meterTh" class="meterTh"></div></div>
-        <label class="thLabel">Soglia <input id="threshold" type="range" min="0.002" max="0.15" step="0.001"></label>
-      </div>
-    </section>
-
-    <section class="panel">
-      <h2>Storico</h2>
-      <ol id="history" class="history"><li class="empty">Nessuna trasmissione ancora.</li></ol>
-    </section>
-
-    <details class="panel" id="tryPanel" open>
-      <summary>Prova una frase ATC (anche senza audio)</summary>
-      <textarea id="tryText" rows="3" placeholder="es. Alitalia 123, descend FL80, turn left heading 270, contact Roma 125.5"></textarea>
-      <div class="row">
-        <button id="tryBtn" class="btn">Genera readback</button>
-      </div>
-      <div id="examples" class="examples"></div>
-    </details>
-
-    <details class="panel" id="settingsPanel">
-      <summary>Impostazioni</summary>
-      <div class="grid">
+    <!-- ======================================================= ASCOLTO -->
+    <section class="view" data-view="listen">
+      <div class="controls panel">
         <label class="field">
-          <span>Lingua riconoscimento (modalità Gratis)</span>
-          <select id="lang">
-            <option value="en-US">Inglese (USA)</option>
-            <option value="en-GB">Inglese (UK)</option>
+          <span>Il tuo nominativo</span>
+          <input id="callsign" data-setting="callsign" placeholder="es. AZA123 o I-ABCD" autocomplete="off" spellcheck="false">
+        </label>
+        <label class="field">
+          <span>Nominativo radio <em>(opzionale)</em></span>
+          <input id="telephony" data-setting="telephony" placeholder="es. Alitalia" autocomplete="off" spellcheck="false">
+        </label>
+        <label class="field">
+          <span>Modalità</span>
+          <select id="mode" data-setting="mode">
+            <option value="groq">Groq – Whisper + AI (chiave gratuita)</option>
+            <option value="free">Gratis – riconoscimento vocale di Chrome</option>
           </select>
         </label>
-        <label class="field check">
-          <input id="hideOthers" type="checkbox">
-          <span>Mostra in grande solo le chiamate per me</span>
-        </label>
+        <button id="toggle" class="btn primary">▶ Avvia ascolto</button>
+        <p id="csHint" class="hint wide"></p>
+        <div id="desktopFree" class="notice wide" hidden>
+          La modalità Gratis usa il riconoscimento vocale di Chrome/Edge, che non funziona dentro il programma: aprila nel browser (tieni aperto il programma).
+          <button id="openChrome" class="btn small">Apri l'app in Chrome</button>
+        </div>
       </div>
-      <h3>Groq (Whisper + AI)</h3>
-      <div class="grid">
-        <label class="field">
-          <span>Chiave API Groq</span>
-          <input id="groqKey" type="password" placeholder="gsk_..." autocomplete="off">
-        </label>
-        <label class="field check">
-          <input id="useAI" type="checkbox">
-          <span>Usa l'AI per il readback (più preciso)</span>
-        </label>
-        <label class="field">
-          <span>Sorgente audio</span>
-          <select id="audioSource">
-            <option value="device">Dispositivo (es. CABLE Output)</option>
-            <option value="system">Audio di sistema (condivisione schermo)</option>
-          </select>
-        </label>
-        <label class="field">
-          <span>Dispositivo di ingresso</span>
+
+      <div class="panel readout" aria-live="polite">
+        <div class="badges">
+          <span id="forUs" class="badge muted">In attesa</span>
+          <span id="srcBadge" class="badge muted"></span>
+        </div>
+        <div class="label">Da dire</div>
+        <p id="readback" class="readback">—</p>
+        <div class="label">Come pronunciarlo</div>
+        <p id="spoken" class="spoken">Avvia l'ascolto o prova una frase qui sotto.</p>
+        <div id="chips" class="chips"></div>
+        <ul id="warnings" class="warnings"></ul>
+        <div class="heardRow">
+          <p class="heard"><span class="label inline">ATC</span> <span id="heard">—</span></p>
+          <button id="speak" class="btn small" title="Ascolta la pronuncia (Ctrl+Shift+R)">🔊 Ascolta</button>
+        </div>
+        <p id="live" class="live"></p>
+        <div id="meterWrap" class="meterWrap" hidden>
+          <div class="meter"><div id="meterBar" class="meterBar"></div><div id="meterTh" class="meterTh"></div></div>
+          <label class="thLabel">Soglia <input id="threshold" data-setting="threshold" type="range" min="0.002" max="0.15" step="0.001"></label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panelHead">
+          <h2>Storico</h2>
           <div class="row tight">
-            <select id="device"><option value="">Predefinito</option></select>
-            <button id="refreshDevices" class="btn small" type="button">↻</button>
+            <button id="exportHistory" class="btn small">💾 Esporta</button>
+            <button id="clearHistory" class="btn small">🗑 Svuota</button>
           </div>
-        </label>
-        <label class="field">
-          <span>Modello Whisper</span>
-          <input id="whisperModel" list="modelList" spellcheck="false">
-        </label>
-        <label class="field">
-          <span>Modello AI</span>
-          <input id="llmModel" list="modelList" spellcheck="false">
-        </label>
+        </div>
+        <ol id="history" class="history"><li class="empty">Nessuna trasmissione ancora.</li></ol>
       </div>
-      <datalist id="modelList"></datalist>
-      <div class="row">
-        <button id="loadModels" class="btn small" type="button">Carica modelli disponibili</button>
-        <span id="modelsMsg" class="hint"></span>
-      </div>
-      <p class="hint">La chiave resta salvata solo in questo browser.</p>
-    </details>
 
-    <details class="panel">
-      <summary>Guida rapida (vPilot su Windows)</summary>
-      <ol class="guide">
-        <li>Installa <b>VB-Cable</b> (gratuito) da vb-audio.com e riavvia il PC.</li>
-        <li>In <b>vPilot → Settings → Audio</b> imposta l'uscita (Speakers) su <b>CABLE Input</b>. Il microfono resta il tuo headset.</li>
-        <li>Per continuare a sentire l'ATC: Impostazioni audio di Windows → Registrazione → <b>CABLE Output</b> → Proprietà → Ascolto → spunta <b>Ascolta questo dispositivo</b> e scegli le tue cuffie.</li>
-        <li><b>Modalità Gratis:</b> in Chrome apri <code>chrome://settings/content/microphone</code> e scegli <b>CABLE Output</b>.</li>
-        <li><b>Modalità Groq:</b> in Impostazioni scegli il dispositivo <b>CABLE Output</b> e incolla la chiave gratuita di console.groq.com.</li>
-        <li>Scrivi il tuo nominativo, premi <b>Avvia ascolto</b> e connettiti a VATSIM.</li>
-      </ol>
-      <p class="hint">L'app ti suggerisce cosa dire: la voce in radio resta sempre la tua.</p>
-    </details>
+      <details class="panel" open>
+        <summary>Prova una frase ATC (anche senza audio)</summary>
+        <textarea id="tryText" rows="3" placeholder="es. Alitalia 123, descend FL80, turn left heading 270, contact Roma 125.5"></textarea>
+        <div class="row"><button id="tryBtn" class="btn">Genera readback</button></div>
+        <div id="examples" class="examples"></div>
+      </details>
+    </section>
+
+    <!-- ======================================================= ALLENAMENTO -->
+    <section class="view" data-view="train" hidden>
+      <div class="panel controls train">
+        <label class="field">
+          <span>Fase</span>
+          <select id="trainPhase" data-setting="trainPhase"></select>
+        </label>
+        <label class="field">
+          <span>Difficoltà</span>
+          <select id="trainDifficulty" data-setting="trainDifficulty">
+            <option value="easy">Facile</option>
+            <option value="normal">Normale</option>
+            <option value="hard">Difficile</option>
+          </select>
+        </label>
+        <label class="field check">
+          <input type="checkbox" id="trainShowText" data-setting="trainShowText">
+          <span>Mostra il testo dell'ATC</span>
+        </label>
+        <button id="trainNext" class="btn primary">▶ Nuova istruzione</button>
+      </div>
+
+      <div class="panel readout">
+        <div class="badges">
+          <span id="trainStation" class="badge muted">Premi "Nuova istruzione"</span>
+          <span id="trainStep" class="badge muted"></span>
+        </div>
+        <div class="label">L'ATC dice</div>
+        <p id="trainAtc" class="atcText">L'ATC ti darà un'istruzione a voce: ascolta e rispondi con il readback corretto.</p>
+        <div class="row">
+          <button id="trainReplay" class="btn small" disabled>🔊 Riascolta</button>
+          <button id="trainReveal" class="btn small" disabled>👁 Mostra testo</button>
+        </div>
+
+        <div class="answer">
+          <div class="label">La tua risposta</div>
+          <div class="row tight answerRow">
+            <button id="trainMic" class="btn mic" disabled title="Premi per parlare, ripremi per finire (oppure tieni premuto Spazio)">🎤 Parla</button>
+            <input id="trainInput" placeholder="…oppure scrivi qui il tuo readback e premi Invio" autocomplete="off" spellcheck="false" disabled>
+            <button id="trainSend" class="btn" disabled>Invia</button>
+          </div>
+          <p id="trainLive" class="live"></p>
+        </div>
+
+        <div id="trainResult" class="result" hidden>
+          <div class="scoreRow">
+            <div id="trainScore" class="score">0%</div>
+            <div>
+              <div class="label">Hai detto</div>
+              <p id="trainSaid" class="heard"></p>
+            </div>
+          </div>
+          <ul id="trainItems" class="checks"></ul>
+          <div class="label">Readback corretto</div>
+          <p id="trainCorrect" class="readback small"></p>
+          <p id="trainCorrectSpoken" class="spoken"></p>
+          <div class="row">
+            <button id="trainListenCorrect" class="btn small">🔊 Ascolta la risposta giusta</button>
+            <button id="trainRetry" class="btn small">↻ Riprova questa</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panelHead">
+          <h2>I tuoi progressi</h2>
+          <button id="trainResetStats" class="btn small">Azzera</button>
+        </div>
+        <div id="trainStats" class="stats"></div>
+      </div>
+    </section>
+
+    <!-- ======================================================= VOLO -->
+    <section class="view" data-view="flight" hidden>
+      <div class="panel">
+        <h2>Piano di volo</h2>
+        <div class="grid three">
+          <label class="field">
+            <span>Utente SimBrief (o ID)</span>
+            <input id="simbriefUser" data-setting="simbriefUser" placeholder="nome utente SimBrief" autocomplete="off" spellcheck="false">
+          </label>
+          <div class="field"><span>&nbsp;</span><button id="simbriefLoad" class="btn primary">⬇ Carica ultimo OFP</button></div>
+          <p id="simbriefMsg" class="hint"></p>
+        </div>
+        <details>
+          <summary class="hint">Oppure inserisci a mano</summary>
+          <div class="grid four">
+            <label class="field"><span>Partenza (ICAO)</span><input id="manDep" maxlength="4" placeholder="LIRF"></label>
+            <label class="field"><span>Arrivo (ICAO)</span><input id="manArr" maxlength="4" placeholder="LIMC"></label>
+            <label class="field"><span>Livello crociera (FL)</span><input id="manFl" inputmode="numeric" placeholder="360"></label>
+            <div class="field"><span>&nbsp;</span><button id="manUse" class="btn">Usa questi dati</button></div>
+          </div>
+        </details>
+        <div id="flightSummary" class="flightSummary"></div>
+      </div>
+
+      <div class="grid two">
+        <div class="panel airport" id="apDep"><h2>Partenza</h2><p class="hint">Carica un piano di volo.</p></div>
+        <div class="panel airport" id="apArr"><h2>Arrivo</h2><p class="hint">Carica un piano di volo.</p></div>
+      </div>
+      <div class="row"><button id="wxRefresh" class="btn small">↻ Aggiorna meteo e ATC</button><span id="wxMsg" class="hint"></span></div>
+
+      <div class="panel">
+        <h2>Le tue chiamate</h2>
+        <p class="hint">Cosa dire tu per primo, fase per fase, già compilato con i dati del tuo volo.</p>
+        <div class="grid three">
+          <label class="field"><span>Parcheggio (stand)</span><input id="callStand" data-setting="callStand" placeholder="es. 12"></label>
+          <label class="field"><span>ATIS partenza</span><input id="callAtisDep" maxlength="1" placeholder="es. B"></label>
+          <label class="field"><span>ATIS arrivo</span><input id="callAtisArr" maxlength="1" placeholder="es. K"></label>
+        </div>
+        <ol id="myCalls" class="calls"></ol>
+      </div>
+
+      <div class="panel">
+        <div class="panelHead"><h2>Tu su VATSIM</h2><button id="vatsimMe" class="btn small">↻ Controlla</button></div>
+        <div id="vatsimMeOut" class="hint">Connettiti a VATSIM con il tuo nominativo e premi "Controlla".</div>
+      </div>
+    </section>
+
+    <!-- ======================================================= FRASARIO -->
+    <section class="view" data-view="phrases" hidden>
+      <div class="panel">
+        <input id="phraseSearch" placeholder="🔎 Cerca una frase (es. squawk, taxi, mayday)…" autocomplete="off">
+      </div>
+      <div id="phrasebook"></div>
+      <div class="panel">
+        <h2>Alfabeto fonetico ICAO</h2>
+        <div id="alphabet" class="alphabet"></div>
+        <h2 class="mt">Numeri</h2>
+        <div id="numbers" class="alphabet"></div>
+      </div>
+      <div class="panel">
+        <h2>Glossario</h2>
+        <dl id="glossary" class="glossary"></dl>
+      </div>
+    </section>
+
+    <!-- ======================================================= IMPOSTAZIONI -->
+    <section class="view" data-view="settings" hidden>
+      <div class="panel">
+        <h2>Groq (Whisper + AI)</h2>
+        <div class="grid">
+          <label class="field">
+            <span>Chiave API Groq <a href="https://console.groq.com/keys" target="_blank" rel="noopener">(creala gratis)</a></span>
+            <input id="groqKey" data-setting="groqKey" type="password" placeholder="gsk_..." autocomplete="off">
+          </label>
+          <label class="field check">
+            <input id="useAI" data-setting="useAI" type="checkbox">
+            <span>Usa l'AI per il readback (più preciso)</span>
+          </label>
+          <label class="field">
+            <span>Modello Whisper</span>
+            <input id="whisperModel" data-setting="whisperModel" list="modelList" spellcheck="false">
+          </label>
+          <label class="field">
+            <span>Modello AI</span>
+            <input id="llmModel" data-setting="llmModel" list="modelList" spellcheck="false">
+          </label>
+        </div>
+        <datalist id="modelList"></datalist>
+        <div class="row">
+          <button id="loadModels" class="btn small" type="button">Carica modelli disponibili</button>
+          <button id="testGroq" class="btn small" type="button">Verifica chiave</button>
+          <span id="modelsMsg" class="hint"></span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Audio</h2>
+        <div class="grid">
+          <label class="field">
+            <span>Da dove ascoltare l'ATC (modalità Groq)</span>
+            <select id="audioSource" data-setting="audioSource">
+              <option value="device">Dispositivo (es. CABLE Output)</option>
+              <option value="system">Audio del PC (senza VB-Cable)</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Dispositivo radio (ATC)</span>
+            <div class="row tight">
+              <select id="device" data-setting="device"><option value="">Predefinito</option></select>
+              <button class="btn small refreshDevices" type="button" title="Aggiorna elenco">↻</button>
+            </div>
+          </label>
+          <label class="field">
+            <span>Microfono per l'allenamento</span>
+            <div class="row tight">
+              <select id="micDevice" data-setting="micDevice"><option value="">Predefinito</option></select>
+              <button class="btn small refreshDevices" type="button" title="Aggiorna elenco">↻</button>
+            </div>
+          </label>
+          <label class="field">
+            <span>Lingua riconoscimento (modalità Gratis)</span>
+            <select id="lang" data-setting="lang">
+              <option value="en-US">Inglese (USA)</option>
+              <option value="en-GB">Inglese (UK)</option>
+            </select>
+          </label>
+          <label class="field check">
+            <input id="hideOthers" data-setting="hideOthers" type="checkbox">
+            <span>Mostra in grande solo le chiamate per me</span>
+          </label>
+          <label class="field check">
+            <input id="beep" data-setting="beep" type="checkbox">
+            <span>Bip quando arriva una chiamata per me</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Voce</h2>
+        <div class="grid">
+          <label class="field">
+            <span>Voce inglese</span>
+            <select id="ttsVoice" data-setting="ttsVoice"><option value="">Automatica</option></select>
+          </label>
+          <label class="field">
+            <span>Velocità voce</span>
+            <input id="ttsRate" data-setting="ttsRate" type="range" min="0.6" max="1.4" step="0.05">
+          </label>
+        </div>
+        <div class="row"><button id="ttsTest" class="btn small">🔊 Prova voce</button></div>
+      </div>
+
+      <div class="panel">
+        <h2>Programma</h2>
+        <div class="grid">
+          <label class="field check">
+            <input id="onTop" data-setting="onTop" type="checkbox">
+            <span>Finestra sempre in primo piano</span>
+          </label>
+        </div>
+        <ul class="guide">
+          <li><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> avvia/ferma l'ascolto</li>
+          <li><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> ripete a voce l'ultimo readback</li>
+          <li><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> modalità compatta (sopra il simulatore)</li>
+        </ul>
+        <p class="hint" id="desktopInfo">Le scorciatoie funzionano anche col simulatore in primo piano solo nel programma per Windows.</p>
+        <div class="row"><button id="resetAll" class="btn small">Ripristina impostazioni</button></div>
+      </div>
+
+      <details class="panel">
+        <summary>Guida: collegare vPilot (Windows)</summary>
+        <ol class="guide">
+          <li><b>Senza installare nulla (programma per Windows):</b> in "Da dove ascoltare" scegli <b>Audio del PC</b>. Funziona subito, ma sente anche i suoni del simulatore.</li>
+          <li><b>Più preciso:</b> installa <b>VB-Cable</b> (gratuito, vb-audio.com) e riavvia.</li>
+          <li>In <b>vPilot → Settings → Audio</b> imposta l'uscita su <b>CABLE Input</b>. Il microfono resta il tuo headset.</li>
+          <li>Per sentire ancora l'ATC: <kbd>Win</kbd>+<kbd>R</kbd> → <code>mmsys.cpl</code> → Registrazione → <b>CABLE Output</b> → Proprietà → Ascolto → spunta <b>Ascolta questo dispositivo</b> → le tue cuffie.</li>
+          <li>Qui sopra scegli <b>Dispositivo</b> e <b>CABLE Output</b> come dispositivo radio.</li>
+        </ol>
+      </details>
+    </section>
   </main>
 
   <script src="js/callsigns.js"></script>
   <script src="js/readback.js"></script>
+  <script src="js/net.js"></script>
   <script src="js/groq.js"></script>
   <script src="js/audio.js"></script>
+  <script src="js/tts.js"></script>
+  <script src="js/stt.js"></script>
+  <script src="js/metar.js"></script>
+  <script src="js/simbrief.js"></script>
+  <script src="js/scenarios.js"></script>
+  <script src="js/phrasebook-data.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/listen.js"></script>
+  <script src="js/trainer.js"></script>
+  <script src="js/flight.js"></script>
+  <script src="js/phrasebook.js"></script>
+  <script src="js/main.js"></script>
 </body>
 </html>
