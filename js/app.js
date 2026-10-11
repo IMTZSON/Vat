@@ -17,8 +17,8 @@
     audioSource: 'device',
     device: '',
     micDevice: '',
-    whisperModel: 'whisper-large-v3-turbo',
-    llmModel: 'llama-3.3-70b-versatile',
+    whisperModel: '',
+    llmModel: '',
     threshold: 0.02,
     trainPhase: 'delivery',
     trainDifficulty: 'normal',
@@ -168,6 +168,15 @@
 
       this.on('setting:onTop', (v) => desktop.setOnTop(v));
       if (this.settings.onTop) desktop.setOnTop(true);
+
+      // Groq ha cambiato modello (quello impostato non esiste più): salvalo e avvisa.
+      root.Groq.onModelChange = (kind, model) => {
+        const key = kind === 'stt' ? 'whisperModel' : 'llmModel';
+        if (this.settings[key] === model) return;
+        const was = this.settings[key];
+        this.set(key, model);
+        if (was) this.toast(`Il modello Groq "${was}" non è più disponibile: ora uso "${model}".`, 6000);
+      };
 
       root.TTS.voiceName = this.settings.ttsVoice;
       root.TTS.rate = this.settings.ttsRate;

@@ -330,7 +330,7 @@
       msg.textContent = 'Verifico…';
       try {
         const ai = await root.Groq.readback('Alitalia 123, descend flight level 80, turn left heading 270', { key: S.groqKey, model: S.llmModel, callsign: 'Alitalia 123' });
-        msg.textContent = `✅ Funziona! Risposta AI: "${ai.readback}"`;
+        msg.textContent = `✅ Funziona! Modello ${ai.model}. Risposta AI: "${ai.readback}"`;
       } catch (e) {
         msg.textContent = `❌ ${e.message}`;
       }
