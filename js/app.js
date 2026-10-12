@@ -142,13 +142,15 @@
     async load() {
       await storage.init();
       const stored = storage.get(STORE_KEY, {});
+      // Chi aveva già la 3.x (solo in italiano) resta in italiano anche su un Windows in inglese
+      if (Object.keys(stored).length && !('uiLang' in stored)) stored.uiLang = 'it';
       this.settings = { ...DEFAULTS, ...stored };
       this.storedKeys = Object.keys(stored);
       this.flight = storage.get('readback-copilot-flight', null);
       root.I18n.setLang(this.settings.uiLang);
     },
 
-    save() { storage.set(STORE_KEY, this.settings); },
+    save() { this._lastSave = storage.set(STORE_KEY, this.settings); return this._lastSave; },
 
     set(key, value) {
       this.settings[key] = value;
@@ -285,7 +287,7 @@
       this.bindSettings();
       this.buildSegmented();
       // Cambio lingua: si ricarica la pagina (tutti i testi si rigenerano nella nuova lingua)
-      this.on('setting:uiLang', () => setTimeout(() => location.reload(), 250));
+      this.on('setting:uiLang', () => setTimeout(() => Promise.resolve(this._lastSave).then(() => location.reload()), 120));
       // Groq o server Whisper locale: mostra solo i campi che servono
       const sttUi = () => document.body.classList.toggle('stt-local', this.settings.sttProvider === 'local');
       this.on('setting:sttProvider', sttUi);

@@ -116,6 +116,11 @@ test('app nel browser: onboarding, lingua, ascolto, verifiche e coach', { skip: 
 
   // 5. Ascolto reale (volo Heathrow → Fiumicino, coach attivo)
   await page.evaluate(() => { App.set('coach', true); App.setFlight({ source: 'manual', dep: 'EGLL', arr: 'LIRF', depName: 'London Heathrow', arrName: 'Rome Fiumicino' }); });
+  // ATC dal cavo virtuale (un dispositivo specifico), coach dal microfono predefinito
+  await page.evaluate(async () => {
+    const d = (await navigator.mediaDevices.enumerateDevices()).find((x) => x.kind === 'audioinput' && x.deviceId && x.deviceId !== 'default');
+    App.set('device', d.deviceId);
+  });
   await page.waitForTimeout(600);
   state.stt = 0;
   await page.click('#toggle');
@@ -144,18 +149,22 @@ test('app nel browser: onboarding, lingua, ascolto, verifiche e coach', { skip: 
   assert.deepStrictEqual(real, [], 'errori nella console');
 });
 
-test('app nel browser: telefono, tema chiaro, italiano', { skip: !chromium && 'playwright non installato', timeout: 60000 }, async (t) => {
+test('app nel browser: telefono, tema chiaro, utente della 3.x', { skip: !chromium && 'playwright non installato', timeout: 60000 }, async (t) => {
   const { server: srv, port } = await server.start(ROOT, { version: 'e2e', ports: [0] });
   const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || undefined });
   t.after(async () => { await browser.close(); srv.close(); });
-  const page = await (await browser.newContext({ locale: 'it-IT', viewport: { width: 390, height: 844 }, colorScheme: 'light' })).newPage();
+  // Windows in inglese, ma impostazioni salvate da una versione precedente (solo italiano): resta in italiano
+  const ctx = await browser.newContext({ locale: 'en-US', viewport: { width: 390, height: 844 }, colorScheme: 'light' });
+  await ctx.addInitScript(() => { if (!localStorage.getItem('readback-copilot-settings')) localStorage.setItem('readback-copilot-settings', JSON.stringify({ callsign: 'AZA123', mode: 'free' })); });
+  const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await mockNetwork(page, { stt: 0 });
   await page.goto(`http://127.0.0.1:${port}/`);
-  await page.waitForSelector('#onboard[open]');
-  await page.click('#obClose');
-  await page.waitForFunction(() => !document.getElementById('onboard').open);
+  await page.waitForFunction(() => window.App && App.settings.onboarded === true);
+  assert.strictEqual(await page.getAttribute('html', 'lang'), 'it');
+  assert.strictEqual(await page.evaluate(() => document.getElementById('onboard').open), false, 'già configurato: niente configurazione guidata');
+  assert.match(await page.textContent('#csHint'), /Alitalia 123/);
   // Nessuno scroll orizzontale e tab bar visibile
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
   assert.strictEqual(overflow, false);

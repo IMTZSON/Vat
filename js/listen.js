@@ -293,6 +293,12 @@
 
     async function coachListen(item) {
       coachCancel();
+      // Stesso dispositivo dell'ATC (es. VB-Cable come microfono predefinito): il coach sentirebbe l'ATC, non te
+      if (S.audioSource === 'device' && (S.micDevice || '') === (S.device || '')) {
+        item.coach = { state: 'error', error: t('coach.sameDevice') };
+        if (current === item) renderCoach(item);
+        return;
+      }
       item.coach = { state: 'listening' };
       if (current === item) renderCoach(item);
       const finish = (data) => {

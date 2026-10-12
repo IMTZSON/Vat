@@ -492,6 +492,9 @@
     // ------------------------------------------------------------------ aggiornamenti
     'update.available': ['È disponibile Readback Copilot build {build}.', 'Readback Copilot build {build} is available.'],
 
+    // ------------------------------------------------------------------ coach (dispositivi)
+    'coach.sameDevice': ['Il coach ascolta lo stesso dispositivo dell\'ATC: in Impostazioni › Audio scegli il tuo microfono (headset) in "Il tuo microfono".', 'The coach is listening to the same device as ATC: in Settings › Audio pick your headset under "Your microphone".'],
+
     // ------------------------------------------------------------------ motore readback
     'rb.badSquawk': ['Lo squawk {code} contiene 8 o 9: non è valido, chiedi "say again squawk".', 'Squawk {code} contains an 8 or 9: it is not valid, ask "say again squawk".'],
     'rb.oddQnh': ['QNH {qnh} sembra strano: verifica.', 'QNH {qnh} looks odd: double-check it.'],
