@@ -60,9 +60,66 @@
       $('updateLater').onclick = () => { App.set('updateDismissed', u.build); $('updateBanner').hidden = true; };
     }
 
-    App.checkUpdates = check;
-    App.on('setting:checkUpdates', (v) => { if (v) check(true); else $('updateBanner').hidden = true; });
+    // ------------------------------------------------------------ programma installato: aggiornamento in un clic
+    const U = App.desktop.updater;
+    let auto = false;
+
+    function showAuto(s) {
+      const banner = $('updateBanner');
+      const text = $('updateText');
+      const btn = $('updateGet');
+      let bar = banner.querySelector('.update-progress');
+      if (!bar) {
+        bar = document.createElement('span');
+        bar.className = 'update-progress';
+        bar.innerHTML = '<i></i>';
+        btn.before(bar);
+      }
+      if (s.state === 'downloading') {
+        text.textContent = t('update.downloading', { version: s.version || '' });
+        bar.hidden = false;
+        bar.firstChild.style.width = `${s.percent || 0}%`;
+        btn.hidden = true;
+        banner.hidden = S.updateDismissed === `dl-${s.version}`;
+        $('updateLater').onclick = () => { App.set('updateDismissed', `dl-${s.version}`); banner.hidden = true; };
+      } else if (s.state === 'ready') {
+        text.textContent = t('update.ready', { version: s.version || '' });
+        bar.hidden = true;
+        btn.hidden = false;
+        btn.textContent = t('update.restart');
+        // Mai durante l'ascolto senza chiedere: il riavvio interrompe la radio
+        btn.onclick = () => {
+          if (App.isListening && App.isListening() && !confirm(t('update.confirmListening'))) return;
+          U.install();
+        };
+        $('updateLater').onclick = () => { banner.hidden = true; App.toast(t('update.onQuit')); };
+        banner.hidden = false;
+      }
+    }
+
+    async function setup() {
+      if (U) {
+        try {
+          const s = await U.state();
+          auto = !!(s && s.supported);
+        } catch (e) { auto = false; }
+      }
+      if (auto) {
+        U.onState(showAuto);
+        if (S.checkUpdates) U.check();
+        // Il programma resta aperto per ore: un controllo ogni 6 ore
+        setInterval(() => { if (S.checkUpdates) U.check(); }, EVERY_MS);
+      } else {
+        check(false);
+      }
+    }
+
+    App.checkUpdates = (force) => (auto ? U.check() : check(force));
+    App.on('setting:checkUpdates', (v) => {
+      if (v) App.checkUpdates(true);
+      else $('updateBanner').hidden = true;
+    });
     // Dopo l'avvio, senza rallentarlo
-    setTimeout(() => check(false), 4000);
+    setTimeout(setup, 4000);
   });
 })(this);

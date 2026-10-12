@@ -40,6 +40,7 @@
     coach: false,
     checkUpdates: true,
     onboarded: false,
+    pttKey: null,
   };
 
   /* Archivio dati. Backend scelto all'avvio (storage.init):
@@ -125,6 +126,8 @@
       return true;
     },
     onHotkey: (fn) => bridge && bridge.onHotkey(fn),
+    ptt: bridge && bridge.ptt ? bridge.ptt : null,
+    updater: bridge && bridge.updater ? bridge.updater : null,
     info: () => (bridge ? bridge.info() : Promise.resolve(null)),
   };
 
@@ -164,6 +167,10 @@
     register(fn) { this.modules.push(fn); },
 
     t: (k, v) => root.I18n.t(k, v),
+
+    // PTT di vPilot disponibile (programma per Windows) e impostato
+    pttAvailable: false,
+    pttActive() { return !!(this.pttAvailable && this.settings.pttKey); },
 
     // Il riconoscimento vocale è configurato? (chiave Groq, server locale o modalità Chrome)
     sttReady() {
@@ -354,6 +361,18 @@
         $('aboutLine').textContent = this.t('app.aboutLine', { version: info.version + (info.build ? ` (build ${info.build})` : '') });
         this.version = info;
       }
+
+      // Tasto PTT: il programma osserva la tastiera di sistema e avvisa quando trasmetti
+      if (desktop.ptt) {
+        try {
+          this.pttAvailable = !!(await desktop.ptt.available());
+          if (this.pttAvailable) {
+            desktop.ptt.onChange((down) => this.emit('ptt', down));
+            if (this.settings.pttKey) await desktop.ptt.set(this.settings.pttKey);
+          }
+        } catch (e) { this.pttAvailable = false; }
+      }
+      document.body.classList.toggle('has-ptt', this.pttAvailable);
 
       for (const init of this.modules) {
         try { init(this); } catch (e) { console.error(e); }

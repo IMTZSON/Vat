@@ -495,6 +495,23 @@
     // ------------------------------------------------------------------ coach (dispositivi)
     'coach.sameDevice': ['Il coach ascolta lo stesso dispositivo dell\'ATC: in Impostazioni › Audio scegli il tuo microfono (headset) in "Il tuo microfono".', 'The coach is listening to the same device as ATC: in Settings › Audio pick your headset under "Your microphone".'],
 
+    // ------------------------------------------------------------------ PTT e aggiornamento automatico
+    'ptt.title': ['Tasto PTT di vPilot', 'vPilot PTT key'],
+    'ptt.hint': ['Lo stesso tasto con cui trasmetti: il coach registra esattamente quello che dici in radio.', 'The key you transmit with: the coach records exactly what you say on the radio.'],
+    'ptt.none': ['Nessuno', 'None'],
+    'ptt.set': ['Imposta', 'Set'],
+    'ptt.pressNow': ['Premi il tasto…', 'Press the key…'],
+    'ptt.saved': ['Tasto PTT impostato: {key}', 'PTT key set: {key}'],
+    'coach.pressPtt': ['Premi il PTT e ripeti…', 'Press PTT and read back…'],
+    'update.downloading': ['Scarico Readback Copilot {version}…', 'Downloading Readback Copilot {version}…'],
+    'update.ready': ['Readback Copilot {version} è pronto.', 'Readback Copilot {version} is ready.'],
+    'update.restart': ['Riavvia e aggiorna', 'Restart and update'],
+    'update.confirmListening': ['Stai ascoltando l\'ATC: riavviare adesso interrompe l\'ascolto. Aggiornare comunque?', 'You\'re listening to ATC: restarting now stops listening. Update anyway?'],
+    'update.onQuit': ['L\'aggiornamento verrà installato quando chiudi il programma.', 'The update will be installed when you close the app.'],
+
+    // ------------------------------------------------------------------ privacy PTT
+    'about.p4': ['<b>Tasto PTT:</b> se lo imposti, il programma osserva la tastiera solo per riconoscere quel tasto. Nessun altro tasto viene registrato o inviato.', '<b>PTT key:</b> if you set one, the app watches the keyboard only to recognise that key. No other key is recorded or sent.'],
+
     // ------------------------------------------------------------------ motore readback
     'rb.badSquawk': ['Lo squawk {code} contiene 8 o 9: non è valido, chiedi "say again squawk".', 'Squawk {code} contains an 8 or 9: it is not valid, ask "say again squawk".'],
     'rb.oddQnh': ['QNH {qnh} sembra strano: verifica.', 'QNH {qnh} looks odd: double-check it.'],

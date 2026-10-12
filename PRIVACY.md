@@ -20,6 +20,12 @@ Impostazioni (compresa la chiave Groq), storico delle chiamate, statistiche di a
 
 Nient'altro. Non ci sono analytics, crash report o pubblicità.
 
+## Tasto PTT
+Se imposti il tasto PTT di vPilot (coach readback), il programma osserva tastiera e pulsanti del mouse a livello di sistema **solo per riconoscere quel tasto**: non registra, non salva e non invia nessun altro tasto. Senza tasto impostato l'osservazione è spenta. Il tasto non viene bloccato: vPilot lo riceve normalmente.
+
+## Aggiornamenti
+Il programma installato controlla su GitHub se c'è una versione nuova (al massimo ogni 6 ore, disattivabile), la scarica in background e la installa solo quando premi "Riavvia e aggiorna" o quando chiudi il programma.
+
 ## Cancellare i dati
 *Impostazioni → Ripristina impostazioni* cancella le impostazioni e la chiave. Per cancellare tutto, chiudi il programma ed elimina la cartella `%APPDATA%\Readback Copilot`.
 
@@ -38,6 +44,8 @@ Readback Copilot has no accounts, no servers of its own and no usage analytics. 
 - **VATSIM**: public data is downloaded; nothing personal is sent.
 - **SimBrief**: your SimBrief username, when you press "Load from SimBrief".
 - **OpenStreetMap / MapTiler**: map tile coordinates (and your MapTiler key, if used).
-- **GitHub**: the list of releases, at most every 6 hours (can be turned off).
+- **GitHub**: the list of releases and, for the installed app, the update itself — at most every 6 hours (can be turned off). Updates install only when you press "Restart and update" or quit.
+
+**PTT key**: if you set your vPilot PTT key (readback coach), the app observes the keyboard and mouse buttons system-wide **only to recognise that key**; no other key is recorded, stored or sent, and the key still reaches vPilot. With no key set, nothing is observed.
 
 No analytics, no crash reports, no ads. To delete everything, close the app and delete `%APPDATA%\Readback Copilot`.

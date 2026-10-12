@@ -14,7 +14,9 @@ Programma per **Windows (.exe)** e pagina web · Interfaccia in **italiano e ing
    - **`ReadbackCopilot-Portable-x.y.z.exe`**: si avvia senza installare niente.
 3. Se Windows mostra **"Windows ha protetto il PC"**: **Ulteriori informazioni → Esegui comunque** (vale finché il programma non è firmato digitalmente).
 
-Al primo avvio parte la **configurazione guidata** (2 minuti): lingua, nominativo, riconoscimento vocale con verifica della chiave e **prova dell'audio dal vivo**. Quando esce una build nuova, il programma te lo dice.
+Al primo avvio parte la **configurazione guidata** (2 minuti): lingua, nominativo, riconoscimento vocale con verifica della chiave e **prova dell'audio dal vivo**.
+
+**Aggiornamenti in un clic**: la versione installata scarica da sola le nuove versioni stabili e ti propone **"Riavvia e aggiorna"** (non si riavvia mai a sorpresa durante un volo; se rimandi, si aggiorna alla chiusura). La versione portatile e le build di prova ti avvisano con un link.
 
 ---
 
@@ -29,7 +31,7 @@ Il centro è la **mappa** con il tuo volo; sopra, in vetro, il pannello con 5 sc
   - l'AI non può aggiungere numeri che l'ATC non ha detto (vince il readback a regole);
   - frequenza contro i **controllori online** (anche centri come `LON_S_CTR` per Heathrow), pista contro gli **aeroporti del volo**, QNH contro il **METAR**, squawk valido.
 - **Precisione**: il prompt dato a Whisper non contiene mai numeri (con audio sporco Whisper tende a copiarli); le chiamate si mostrano nell'ordine in cui l'ATC ha parlato; la **soglia del microfono si regola da sola** sul rumore di fondo.
-- **Coach readback** (opzionale): dopo una chiamata per te ascolta il tuo microfono e ti dice cosa hai dimenticato, con le statistiche di ciò che sbagli più spesso.
+- **Coach readback** (opzionale): dopo una chiamata per te ascolta il tuo microfono e ti dice cosa hai dimenticato, con le statistiche di ciò che sbagli più spesso. Con il **tasto PTT di vPilot** impostato (*Impostazioni → Coach readback*) registra esattamente la tua trasmissione, dalla pressione al rilascio; mentre trasmetti compare l'indicatore **TX**.
 - Bip per le chiamate per te, modalità compatta sopra il simulatore, storico esportabile.
 
 ### ✈️ Volo
@@ -88,7 +90,8 @@ Pagina statica (`index.html`, `css/`, `js/`, `data/`) dentro una shell Electron 
 | `js/groq.js`, `js/stt.js`, `js/tts.js` | Whisper (Groq o server locale), LLM, riconoscimento e sintesi vocale |
 | `js/coach.js`, `js/scenarios.js` | Valutazione dei readback (coach in volo e allenamento) |
 | `js/i18n.js`, `js/strings.js` | Traduzioni: `{ chiave: [italiano, inglese] }`, `data-i18n` nell'HTML |
-| `js/onboarding.js`, `js/updates.js` | Configurazione guidata, avviso aggiornamenti |
+| `js/onboarding.js`, `js/updates.js` | Configurazione guidata, aggiornamenti (automatici o avviso) |
+| `electron/ptt.js`, `electron/updater.js` | Tasto PTT di sistema (uiohook-napi, solo osservazione), aggiornamento automatico (electron-updater) |
 | `js/app.js`, `js/listen.js`, `js/flight.js`, `js/tracking.js`, … | Interfaccia |
 | `electron/main.js`, `electron/store.js`, `electron/server.js` | Finestra, archivio dati su file, server locale (proxy, mappe, archivio per Chrome) |
 | `scripts/build-data.js` | Rigenera `data/world.json` da OurAirports, OpenFlights e VATSpy |
@@ -127,7 +130,8 @@ node scripts/eval-audio.js cartella   # precisione su audio reali (GROQ_API_KEY 
 **Highlights**
 - Every readback is **verified**: audio quality, Whisper phantom phrases and prompt echoes, AI vs rules (the AI can never add a number ATC didn't say), frequency vs **online controllers** (centres like `LON_S_CTR` included), runway vs your **airports**, QNH vs **METAR**, valid squawk.
 - **Accuracy by design**: no numbers ever go into the Whisper prompt, calls are shown in the order ATC spoke, the **microphone threshold adapts** to background noise.
-- **Readback coach** (opt-in): after a call for you it listens to your mic and tells you what you missed, with stats on what you miss most.
+- **Readback coach** (opt-in): after a call for you it listens to your mic and tells you what you missed, with stats on what you miss most. Set your **vPilot PTT key** and it records exactly your transmission, with a **TX** indicator.
+- **One-click updates**: the installed app downloads new stable versions in the background and offers **"Restart and update"** — never a surprise restart mid-flight.
 - **Speech recognition**: Groq (free key at console.groq.com), a **local Whisper server** (OpenAI-compatible, audio never leaves your PC) or Chrome.
 - **Worldwide data**: 13,850 airports with runways, 860 airline callsigns, VATSIM centre names.
 - Live map tracking, SimBrief, decoded METAR, pre-filled calls, cabin service simulation, A320/737 checklists, CRAFT notes, automatic logbook, training with voice ATC, ICAO phrasebook.

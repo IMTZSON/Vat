@@ -143,7 +143,7 @@
       if (!c) { box.hidden = true; b.hidden = true; return; }
       b.hidden = false;
       if (c.state === 'listening') {
-        badge(b, `🎙️ ${t('coach.listening')}`, 'ai');
+        badge(b, `🎙️ ${t(item.coachPtt ? 'coach.pressPtt' : 'coach.listening')}`, 'ai');
         box.hidden = true;
         return;
       }
@@ -286,10 +286,58 @@
 
     let coachRec = null;
     let coachTimer = null;
+    let pttSession = null;
     function coachCancel() {
       clearTimeout(coachTimer);
       if (coachRec) { const r = coachRec; coachRec = null; r.stop(); }
+      if (pttSession) { const p = pttSession; pttSession = null; p.rec.close(); }
     }
+
+    // Valuta il readback registrato e chiude la finestra del coach
+    async function coachScore(item, wav, finish) {
+      try {
+        const cs = App.callsignInfo();
+        const r = await transcribe(wav, { callsign: cs ? cs.display : '' });
+        if (!r.text || root.Precision.phantom(r.text)) { finish({ state: 'missed' }); return; }
+        const ev = root.Coach.evaluate(item.rules, r.text);
+        coachStats = root.Coach.record(coachStats, ev);
+        App.storage.set(COACH_KEY, coachStats);
+        App.emit('coach', coachStats);
+        finish({ state: 'done', score: ev.score, said: ev.said, missed: ev.missed.map((m) => ({ type: m.type, expected: m.expected })), ptt: !!item.coachPtt });
+      } catch (e) {
+        finish({ state: 'error', error: e.message });
+      }
+    }
+
+    // Con il tasto PTT: registra esattamente la tua trasmissione (dalla pressione al rilascio)
+    async function coachListenPtt(item, finish) {
+      const rec = new root.AudioCapture.PttRecorder();
+      try {
+        await rec.open(S.micDevice);
+      } catch (e) {
+        finish({ state: 'error', error: t('coach.micError', { msg: e.message }) });
+        return;
+      }
+      item.coachPtt = true;
+      if (current === item) renderCoach(item);
+      pttSession = { item, rec, finish, held: false };
+      coachTimer = setTimeout(() => { if (pttSession && pttSession.item === item && !pttSession.held) { coachCancel(); finish({ state: 'missed' }); } }, COACH_WINDOW_MS);
+    }
+
+    App.on('ptt', (down) => {
+      $('txBadge').hidden = !down;
+      activity.classList.toggle('tx', !!down);
+      const s = pttSession;
+      if (!s) return;
+      if (down) { s.held = true; s.rec.begin(); return; }
+      s.held = false;
+      const wav = s.rec.end();
+      if (!wav) return; // pressione troppo breve: si continua ad aspettare
+      pttSession = null;
+      clearTimeout(coachTimer);
+      s.rec.close();
+      coachScore(s.item, wav, s.finish);
+    });
 
     async function coachListen(item) {
       coachCancel();
@@ -308,6 +356,7 @@
         renderHistory();
         saveHistory();
       };
+      if (App.pttActive()) { await coachListenPtt(item, finish); return; }
       let got = false;
       const rec = new root.AudioCapture.SegmentRecorder({
         auto: true,
@@ -319,18 +368,7 @@
           if (got) return;
           got = true;
           if (coachRec === rec) coachCancel();
-          try {
-            const cs = App.callsignInfo();
-            const r = await transcribe(wav, { callsign: cs ? cs.display : '' });
-            if (!r.text || root.Precision.phantom(r.text)) { finish({ state: 'missed' }); return; }
-            const ev = root.Coach.evaluate(item.rules, r.text);
-            coachStats = root.Coach.record(coachStats, ev);
-            App.storage.set(COACH_KEY, coachStats);
-            App.emit('coach', coachStats);
-            finish({ state: 'done', score: ev.score, said: ev.said, missed: ev.missed.map((m) => ({ type: m.type, expected: m.expected })) });
-          } catch (e) {
-            finish({ state: 'error', error: e.message });
-          }
+          await coachScore(item, wav, finish);
         },
       });
       coachRec = rec;
@@ -621,6 +659,34 @@
     }
     App.on('coach', renderCoachStats);
     App.on('setting:coach', renderCoachStats);
+    // ------------------------------------------------------------ tasto PTT (impostazioni)
+
+    function renderPtt() {
+      const k = S.pttKey;
+      $('pttLabel').textContent = k ? k.label : t('ptt.none');
+      $('pttLabel').classList.toggle('set', !!k);
+      $('pttClear').hidden = !k;
+    }
+    $('pttSet').addEventListener('click', async () => {
+      if (!App.desktop.ptt) return;
+      $('pttLabel').textContent = t('ptt.pressNow');
+      $('pttLabel').classList.add('capturing');
+      const b = await App.desktop.ptt.capture();
+      $('pttLabel').classList.remove('capturing');
+      if (b) {
+        App.set('pttKey', b);
+        await App.desktop.ptt.set(b);
+        App.toast(t('ptt.saved', { key: b.label }));
+      }
+      renderPtt();
+    });
+    $('pttClear').addEventListener('click', async () => {
+      App.set('pttKey', null);
+      if (App.desktop.ptt) await App.desktop.ptt.set(null);
+      renderPtt();
+    });
+    renderPtt();
+
     $('coachResetStats').addEventListener('click', () => {
       if (!confirm(t('train.resetConfirm'))) return;
       coachStats = root.Coach.emptyStats();

@@ -1,5 +1,5 @@
-/* Programma per Windows: finestra dell'app, cattura audio del PC, scorciatoie globali
-   e modalità compatta sopra il simulatore. */
+/* Programma per Windows: finestra dell'app, cattura audio del PC, scorciatoie globali,
+   modalità compatta sopra il simulatore, tasto PTT di vPilot e aggiornamento automatico. */
 'use strict';
 
 const { app, BrowserWindow, ipcMain, shell, globalShortcut, session, desktopCapturer, dialog, Menu } = require('electron');
@@ -7,11 +7,37 @@ const path = require('path');
 const fs = require('fs');
 const server = require('./server');
 const { Store } = require('./store');
+const { PttController, keyNames } = require('./ptt');
+const { createUpdater } = require('./updater');
 
 let win = null;
 let origin = '';
 let normalBounds = null;
 let store = null;
+let ptt = null;
+let updater = null;
+
+const send = (channel, data) => { if (win && !win.isDestroyed()) win.webContents.send(channel, data); };
+
+// Modulo nativo per osservare la tastiera di sistema: se manca o non si carica, il PTT resta disattivato
+function loadPtt() {
+  try {
+    const { uIOhook, UiohookKey } = require('uiohook-napi');
+    return new PttController(uIOhook, { names: keyNames(UiohookKey), onChange: (down) => send('ptt', !!down) });
+  } catch (e) {
+    return null;
+  }
+}
+
+function loadUpdater() {
+  // Solo nel programma installato (non in sviluppo né nella versione portatile)
+  const supported = app.isPackaged && !process.env.PORTABLE_EXECUTABLE_DIR;
+  let autoUpdater = null;
+  if (supported) {
+    try { ({ autoUpdater } = require('electron-updater')); } catch (e) { autoUpdater = null; }
+  }
+  return createUpdater({ autoUpdater, supported, send: (s) => send('updater', s) });
+}
 
 const HOTKEYS = {
   'CommandOrControl+Shift+L': 'toggle-listen',
@@ -50,6 +76,8 @@ async function init() {
       .catch(() => callback({}));
   });
 
+  ptt = loadPtt();
+  updater = loadUpdater();
   createWindow();
   for (const [accel, name] of Object.entries(HOTKEYS)) {
     try { globalShortcut.register(accel, () => win && win.webContents.send('hotkey', name)); } catch (e) { /* scorciatoia occupata */ }
@@ -130,12 +158,23 @@ ipcMain.handle('store-load', () => ({ data: store.all(), isNew: store.isNew }));
 ipcMain.on('store-set', (e, key, value) => { store.set(String(key), value); });
 ipcMain.handle('store-merge', (e, obj) => store.merge(obj));
 
+// Tasto PTT (vedi ptt.js)
+ipcMain.handle('ptt-available', () => !!ptt);
+ipcMain.handle('ptt-set', (e, binding) => (ptt ? ptt.setBinding(binding) : null));
+ipcMain.handle('ptt-capture', () => (ptt ? ptt.capture(15000) : null));
+
+// Aggiornamento automatico (vedi updater.js)
+ipcMain.handle('updater-state', () => (updater ? { ...updater.state, supported: updater.supported } : { state: 'unsupported', supported: false }));
+ipcMain.handle('updater-check', () => (updater ? updater.check() : null));
+ipcMain.handle('updater-install', () => (updater ? updater.install() : false));
+
 function buildInfo() {
   try { return require('../package.json').buildNumber || null; } catch (e) { return null; }
 }
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
+  try { if (ptt) ptt.release(); } catch (e) { /* ignora */ }
   try { if (store) store.flush(); } catch (e) { /* ignora */ }
 });
 app.on('window-all-closed', () => app.quit());

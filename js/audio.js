@@ -121,6 +121,75 @@
     return vad;
   }
 
+  /* Buffer per le trasmissioni col PTT: tiene sempre l'ultimo mezzo secondo (preroll), così la prima
+     parola non si perde; begin() alla pressione del PTT, end() al rilascio restituisce i campioni. */
+  function createClipBuffer(opts) {
+    const o = { rate: 48000, prerollMs: 500, maxMs: 30000, ...(opts || {}) };
+    let pre = [];
+    let preLen = 0;
+    let rec = null;
+    let recLen = 0;
+    const maxPre = Math.round((o.rate * o.prerollMs) / 1000);
+    const maxRec = Math.round((o.rate * o.maxMs) / 1000);
+    return {
+      get recording() { return !!rec; },
+      push(chunk) {
+        if (rec) {
+          if (recLen < maxRec) { rec.push(chunk); recLen += chunk.length; }
+          return;
+        }
+        pre.push(chunk);
+        preLen += chunk.length;
+        while (pre.length > 1 && preLen - pre[0].length >= maxPre) preLen -= pre.shift().length;
+      },
+      begin() {
+        if (rec) return;
+        rec = pre;
+        recLen = preLen;
+        pre = [];
+        preLen = 0;
+      },
+      end() {
+        if (!rec) return null;
+        const out = concat(rec);
+        rec = null;
+        recLen = 0;
+        return out;
+      },
+    };
+  }
+
+  // Microfono sempre pronto per il PTT: open() all'inizio della finestra del coach, begin()/end() col tasto.
+  class PttRecorder {
+    async open(deviceId) {
+      const audio = { echoCancellation: false, noiseSuppression: true, autoGainControl: true };
+      if (deviceId) audio.deviceId = { exact: deviceId };
+      this.stream = await navigator.mediaDevices.getUserMedia({ audio });
+      this.ctx = new AudioContext();
+      this.rate = this.ctx.sampleRate;
+      this.buf = createClipBuffer({ rate: this.rate });
+      const src = this.ctx.createMediaStreamSource(this.stream);
+      this.tap = await tap(this.ctx, src, (c) => this.buf && this.buf.push(c));
+    }
+
+    begin() { if (this.buf) this.buf.begin(); }
+
+    // WAV 16 kHz della trasmissione, o null se troppo corta (pressione accidentale)
+    end() {
+      if (!this.buf) return null;
+      const all = this.buf.end();
+      if (!all || all.length < this.rate * 0.4) return null;
+      return encodeWav(downsample(all, this.rate, 16000), 16000);
+    }
+
+    close() {
+      if (this.tap) this.tap.disconnect();
+      if (this.ctx) this.ctx.close().catch(() => {});
+      if (this.stream) this.stream.getTracks().forEach((t) => t.stop());
+      this.tap = this.ctx = this.stream = this.buf = null;
+    }
+  }
+
   async function listInputs() {
     const devices = await navigator.mediaDevices.enumerateDevices();
     return devices.filter((d) => d.kind === 'audioinput');
@@ -234,7 +303,7 @@
     }
   }
 
-  const api = { SegmentRecorder, ClipRecorder, listInputs, unlockDeviceLabels, encodeWav, downsample, createVad };
+  const api = { SegmentRecorder, ClipRecorder, PttRecorder, listInputs, unlockDeviceLabels, encodeWav, downsample, createVad, createClipBuffer };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.AudioCapture = api;
 })(this);

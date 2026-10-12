@@ -96,3 +96,23 @@ test('opzioni non indicate (undefined) usano i valori predefiniti', () => {
   run(vad, [[5, 0.001, 0], [10, 0.001, 0.3], [12, 0.001, 0]]);
   assert.strictEqual(segs.length, 1);
 });
+
+const { createClipBuffer } = require('../js/audio.js');
+
+test('buffer PTT: tiene il preroll, registra tra begin ed end, poi riparte', () => {
+  const b = createClipBuffer({ rate: 1000, prerollMs: 300, maxMs: 2000 });
+  const chunk = (v, n) => new Float32Array(n || 100).fill(v);
+  for (let i = 0; i < 10; i++) b.push(chunk(0.1)); // 1 s di silenzio: ne restano ~300 ms
+  b.begin();
+  assert.ok(b.recording);
+  for (let i = 0; i < 5; i++) b.push(chunk(0.5));
+  const out = b.end();
+  assert.ok(!b.recording);
+  assert.ok(out.length >= 800 && out.length <= 900, `campioni ${out.length}`);
+  assert.strictEqual(out[out.length - 1], 0.5);
+  assert.strictEqual(b.end(), null, 'senza begin non c\'è niente');
+  for (let i = 0; i < 40; i++) b.push(chunk(0.2));
+  b.begin();
+  for (let i = 0; i < 100; i++) b.push(chunk(0.3)); // oltre maxMs: si ferma a 2 s
+  assert.ok(b.end().length <= 2000 + 300);
+});

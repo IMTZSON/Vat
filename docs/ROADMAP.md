@@ -81,7 +81,7 @@ Il dato sulla precisione misurata è il più importante: raccogliere un set di 1
 
 1. Spagnolo e tedesco (solo `js/strings.js`).
 2. Telemetria opt-in e anonima per le metriche sopra.
-3. Rilevamento del PTT di vPilot, per associare con certezza il readback del coach alla chiamata giusta.
+3. ~~Rilevamento del PTT di vPilot~~ — fatto in 4.0 (tastiera e pulsanti del mouse; i pulsanti del joystick non sono ancora supportati).
 4. Proxy di trascrizione Pro (backend minimo) e pagamenti.
 5. Build per macOS (Electron è già multipiattaforma; serve la cattura audio di sistema su macOS).
-6. Aggiornamento automatico in un clic (electron-updater), dopo la firma del codice.
+6. ~~Aggiornamento automatico in un clic~~ — fatto in 4.0 (dalle release stabili di `main`; con la firma del codice sparirà anche l'avviso di SmartScreen al primo download).

@@ -176,3 +176,90 @@ test('app nel browser: telefono, tema chiaro, utente della 3.x', { skip: !chromi
   assert.strictEqual(await page.textContent('#topTitle'), 'Altro');
   assert.deepStrictEqual(errors, []);
 });
+
+test('programma per Windows (ponte simulato): coach col PTT, tasto PTT, aggiornamento in un clic', { skip: !chromium && 'playwright non installato', timeout: 120000 }, async (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rc-e2e-'));
+  const { server: srv, port } = await server.start(ROOT, { version: 'e2e', ports: [0] });
+  const wav = await fakeWav(dir);
+  const browser = await chromium.launch({
+    executablePath: process.env.PW_CHROMIUM || undefined,
+    args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', `--use-file-for-fake-audio-capture=${wav}`, '--autoplay-policy=no-user-gesture-required'],
+  });
+  t.after(async () => { await browser.close(); srv.close(); });
+  const ctx = await browser.newContext({ locale: 'en-GB', viewport: { width: 1280, height: 820 } });
+  // Il ponte che electron/preload.js espone nel programma vero
+  await ctx.addInitScript(() => {
+    window.__store = {};
+    window.desktop = {
+      setOnTop() {}, setCompact() {}, openExternal() {}, saveText: async () => true, onHotkey() {},
+      info: async () => ({ version: '4.0.5', build: 5, origin: location.origin }),
+      store: {
+        load: async () => ({ isNew: false, data: { 'readback-copilot-settings': { callsign: 'BAW123', groqKey: 'gsk_e2e', mode: 'groq', onboarded: true, uiLang: 'en', coach: true, audioSource: 'device', pttKey: { kind: 'key', code: 58, label: 'CapsLock' } } } }),
+        set: (k, v) => { window.__store[k] = v; },
+        merge: async () => 0,
+      },
+      ptt: {
+        available: async () => true,
+        set: async (b) => { window.__pttBinding = b; return b; },
+        capture: async () => ({ kind: 'key', code: 29, label: 'Ctrl' }),
+        onChange: (fn) => { window.__ptt = fn; },
+      },
+      updater: {
+        state: async () => ({ state: 'idle', supported: true }),
+        check: async () => {
+          setTimeout(() => window.__upd({ state: 'downloading', version: '4.0.9', percent: 30 }), 50);
+          setTimeout(() => window.__upd({ state: 'ready', version: '4.0.9', percent: 100 }), 300);
+        },
+        install: async () => { window.__installed = true; return true; },
+        onState: (fn) => { window.__upd = fn; },
+      },
+    };
+  });
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('dialog', (d) => d.accept());
+  const state = { stt: 0, atc: 'Speedbird 123, descend flight level 80, turn left heading 270, contact London Control 127.1', pilot: 'Descend flight level 80, left heading 270, London Control 127.1, Speedbird 123', ai: 'Descend FL80, left heading 270, London Control 127.1, Speedbird 123' };
+  await mockNetwork(page, state);
+  await page.goto(`http://127.0.0.1:${port}/`);
+  await page.waitForFunction(() => window.App && App.pttAvailable === true);
+  assert.strictEqual(await page.evaluate(() => App.storage.backend), 'file');
+  assert.deepStrictEqual(await page.evaluate(() => window.__pttBinding), { kind: 'key', code: 58, label: 'CapsLock' }, 'il tasto salvato viene riattivato all\'avvio');
+
+  // Impostazioni: il tasto PTT si cattura premendolo
+  await page.click('.tab[data-tab="more"]');
+  await page.click('[data-go="settings"]');
+  assert.ok(await page.isVisible('#pttLabel'));
+  assert.strictEqual(await page.textContent('#pttLabel'), 'CapsLock');
+  await page.click('#pttSet');
+  await page.waitForFunction(() => document.getElementById('pttLabel').textContent === 'Ctrl');
+  await page.waitForFunction(() => window.__store['readback-copilot-settings'] && window.__store['readback-copilot-settings'].pttKey.label === 'Ctrl');
+
+  // Ascolto: chiamata per me, il coach aspetta il PTT
+  await page.click('.tab[data-tab="listen"]');
+  await page.evaluate(async () => {
+    App.setFlight({ source: 'manual', dep: 'EGLL', arr: 'LIRF', depName: 'London Heathrow', arrName: 'Rome Fiumicino' });
+    const d = (await navigator.mediaDevices.enumerateDevices()).find((x) => x.kind === 'audioinput' && x.deviceId && x.deviceId !== 'default');
+    App.set('device', d.deviceId);
+  });
+  await page.waitForTimeout(500);
+  state.stt = 0;
+  await page.click('#toggle');
+  await page.waitForFunction(() => /Press PTT/.test(document.getElementById('coachBadge').textContent), null, { timeout: 20000 });
+  // Trasmetto per 1,5 s
+  await page.evaluate(() => window.__ptt(true));
+  assert.ok(await page.isVisible('#txBadge'), 'indicatore TX acceso');
+  await page.waitForTimeout(1500);
+  await page.evaluate(() => window.__ptt(false));
+  assert.ok(!(await page.isVisible('#txBadge')));
+  await page.waitForFunction(() => /100%/.test(document.getElementById('coachBadge').textContent), null, { timeout: 15000 });
+  assert.match(await page.textContent('#coachOut'), /Perfect/);
+
+  // Aggiornamento: scarica in background, poi "Restart and update" (con conferma, perché sto ascoltando)
+  await page.waitForFunction(() => /is ready/.test(document.getElementById('updateText').textContent), null, { timeout: 15000 });
+  assert.strictEqual(await page.textContent('#updateGet'), 'Restart and update');
+  await page.click('#updateGet');
+  await page.waitForFunction(() => window.__installed === true);
+  await page.click('#toggle');
+  assert.deepStrictEqual(errors, []);
+});

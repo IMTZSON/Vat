@@ -53,9 +53,13 @@ jobs:
       - name: Installa dipendenze
         run: npm ci
 
-      # Il numero di build finisce nel programma: serve all'avviso di aggiornamento (tag build-N)
-      - name: Numero di build
-        run: npm pkg set buildNumber=${{ github.run_number }}
+      # Il numero di build finisce nel programma (avviso di aggiornamento, tag build-N) e nella versione:
+      # 4.0.N cresce a ogni build, così l'aggiornamento automatico riconosce quella più nuova.
+      - name: Numero di build e versione
+        shell: bash
+        run: |
+          npm pkg set buildNumber=${{ github.run_number }}
+          npm pkg set version=$(node -p "require('./package.json').version.split('.').slice(0,2).join('.')").${{ github.run_number }}
 
       # Firma del codice: si attiva da sola quando i secret WIN_CSC_LINK (certificato .pfx in base64)
       # e WIN_CSC_KEY_PASSWORD sono configurati nel repository. Senza, l'exe resta non firmato.
@@ -66,11 +70,23 @@ jobs:
           CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
 
+      # latest.yml (e il .blockmap per scaricare solo le differenze) servono all'aggiornamento automatico
+      - name: Controlla i file per l'aggiornamento automatico
+        shell: bash
+        run: |
+          ls -la dist
+          test -f dist/latest.yml
+          grep -q "ReadbackCopilot-Setup-" dist/latest.yml
+          cat dist/latest.yml
+
       - name: Carica gli .exe come artifact
         uses: actions/upload-artifact@v4
         with:
           name: ReadbackCopilot-Windows
-          path: dist/*.exe
+          path: |
+            dist/*.exe
+            dist/*.blockmap
+            dist/latest.yml
           if-no-files-found: error
 
       - name: Pubblica nella pagina Releases
@@ -81,7 +97,10 @@ jobs:
           name: Readback Copilot – build ${{ github.run_number }}
           target_commitish: ${{ github.sha }}
           prerelease: ${{ github.ref_name != 'main' }}
-          files: dist/*.exe
+          files: |
+            dist/*.exe
+            dist/*.blockmap
+            dist/latest.yml
           body: |
             **Come installare (Windows 10/11, 64 bit)** · **How to install**
             - `ReadbackCopilot-Setup-*.exe`: installer con collegamento sul desktop · installer with desktop shortcut.

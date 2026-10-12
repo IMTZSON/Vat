@@ -42,6 +42,7 @@
         <span id="verify" class="badge"></span>
         <span id="srcBadge" class="badge"></span>
         <span id="coachBadge" class="badge" hidden></span>
+        <span id="txBadge" class="badge tx" hidden>TX</span>
       </div>
       <button id="speak" class="mini-btn" data-i18n-title="activity.speak" title="Ascolta la pronuncia (Ctrl+Shift+R)"><i data-icon="volume-2"></i></button>
       <button id="activityToggle" class="mini-btn" data-i18n-title="activity.toggle" title="Espandi / riduci"><i data-icon="chevron-down"></i></button>
@@ -401,6 +402,7 @@
         <div class="group-title" data-i18n="coach.group">Coach readback</div>
         <div class="group">
           <label class="row"><span class="row-label"><span data-i18n="coach.enable">Valuta i miei readback in volo</span><small class="row-sub" data-i18n="coach.enableSub">Dopo una chiamata per te ascolta il tuo microfono e ti dice se hai ripetuto tutto.</small></span><input id="coach" data-setting="coach" type="checkbox" class="switch"></label>
+          <div class="row ptt-only"><span class="row-label"><span data-i18n="ptt.title">Tasto PTT di vPilot</span><small class="row-sub" id="pttHint" data-i18n="ptt.hint">Lo stesso tasto con cui trasmetti: il coach registra esattamente quello che dici in radio.</small></span><span id="pttLabel" class="ptt-key" data-i18n="ptt.none">Nessuno</span><button id="pttSet" class="link-btn" type="button" data-i18n="ptt.set">Imposta</button><button id="pttClear" class="icon-btn" type="button" data-i18n-title="common.delete" title="Elimina" hidden><i data-icon="x"></i></button></div>
         </div>
 
         <div class="group-title" data-i18n="settings.map">Mappa</div>
@@ -446,6 +448,7 @@
           <ul class="about-list">
             <li data-i18n-html="about.p1"><b>Sul tuo PC:</b> impostazioni, chiave Groq, storico, logbook e note restano in un file nella tua cartella utente. Nessun account, nessuna statistica d'uso.</li>
             <li data-i18n-html="about.p2"><b>Groq:</b> solo mentre ascolti, l'audio di ogni chiamata ATC (e, col coach, del tuo readback) viene inviato a Groq per la trascrizione. Con un server Whisper <b>locale</b> l'audio non esce dal PC.</li>
+            <li data-i18n-html="about.p4"><b>Tasto PTT:</b> se lo imposti, il programma osserva la tastiera solo per riconoscere quel tasto. Nessun altro tasto viene registrato o inviato.</li>
             <li data-i18n-html="about.p3"><b>Dati pubblici:</b> feed VATSIM, METAR, SimBrief (solo col tuo nome utente), mappe OpenStreetMap/MapTiler e controllo aggiornamenti su GitHub.</li>
           </ul>
         </div>

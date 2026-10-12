@@ -54,6 +54,20 @@
     },
     "portable": {
       "artifactName": "ReadbackCopilot-Portable-${version}.${ext}"
-    }
+    },
+    "npmRebuild": false,
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://github.com/IMTZSON/Vat/releases/latest/download"
+      }
+    ],
+    "asarUnpack": [
+      "node_modules/uiohook-napi/**"
+    ]
+  },
+  "dependencies": {
+    "electron-updater": "6.8.9",
+    "uiohook-napi": "1.5.5"
   }
 }
