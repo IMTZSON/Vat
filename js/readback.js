@@ -8,6 +8,8 @@
     ? require('./callsigns.js')
     : root.Callsigns;
   const AIRLINES = (Callsigns && Callsigns.AIRLINES) || {};
+  const I18n = (typeof require === 'function' && typeof module !== 'undefined') ? require('./i18n.js') : root.I18n;
+  const tr = (k, v) => (I18n ? I18n.t(k, v) : k);
 
   // ---------------------------------------------------------------- lessico
 
@@ -674,7 +676,7 @@
     if (toks[i] !== 'squawk') return null;
     const t1 = toks[i + 1];
     if (isDigits(t1, 4, 4)) {
-      if (/[89]/.test(t1)) ctx.warnings.push(`Lo squawk ${t1} contiene 8 o 9: non è valido, chiedi "say again squawk".`);
+      if (/[89]/.test(t1)) ctx.warnings.push(tr('rb.badSquawk', { code: t1 }));
       return { part: P('squawk', `Squawk ${t1}`, `squawk ${spellDigits(t1)}`), next: i + 2 };
     }
     if (t1 === 'ident') return { part: P('squawk', 'Squawk ident', 'squawk ident'), next: i + 2 };
@@ -696,7 +698,7 @@
     if (!/^\d{3,4}(\.\d{1,2})?$/.test(v || '')) return null;
     const val = v.replace('.', '');
     if (t === 'qnh') {
-      if (Number(val) < 940 || Number(val) > 1060) ctx.warnings.push(`QNH ${val} sembra strano: verifica.`);
+      if (Number(val) < 940 || Number(val) > 1060) ctx.warnings.push(tr('rb.oddQnh', { qnh: val }));
       return { part: P('qnh', `QNH ${val}`, `QNH ${spellDigits(val)}`), next: j + 1 };
     }
     return { part: P('qnh', `Altimeter ${val}`, `altimeter ${spellDigits(val)}`), next: j + 1 };
@@ -718,7 +720,7 @@
     }
     if (freq) j++;
     else if (toks[j] && /^\d{3,6}(\.\d+)?$/.test(toks[j])) {
-      ctx.warnings.push(`Frequenza "${toks[j]}" non valida: chiedi "say again frequency".`);
+      ctx.warnings.push(tr('rb.badFreq', { freq: toks[j] }));
     }
     if (!freq && !station.words.length) return null;
     const name = titleCase(station.words);
@@ -1007,7 +1009,7 @@
     // Pista con numero impossibile (es. "61L"): meglio chiedere che indovinare
     toks.forEach((t, k) => {
       const m = t === 'runway' && (toks[k + 1] || '').match(/^(\d{1,2})[lrc]?$/);
-      if (m && (Number(m[1]) < 1 || Number(m[1]) > 36)) ctx.warnings.push(`Pista "${toks[k + 1].toUpperCase()}" non valida: chiedi "say again runway".`);
+      if (m && (Number(m[1]) < 1 || Number(m[1]) > 36)) ctx.warnings.push(tr('rb.badRunway', { rwy: toks[k + 1].toUpperCase() }));
     });
 
     const noReadbackNeeded = parts.length === 0;
@@ -1016,19 +1018,16 @@
     if (noReadbackNeeded) {
       // Casi in cui non si fa un readback ma bisogna sapere cosa fare
       let special = null;
-      if (/ standby /.test(joined)) special = ['— nessuna risposta (standby)', 'Standby: non rispondere, aspetta che l\'ATC ti richiami.'];
-      else if (/ say again /.test(joined)) special = ['Ripeti la tua ultima chiamata', 'L\'ATC non ti ha capito: ripeti la tua ultima chiamata.'];
+      if (/ standby /.test(joined)) special = [tr('rb.standby'), tr('rb.standbyNote')];
+      else if (/ say again /.test(joined)) special = [tr('rb.sayAgain'), tr('rb.sayAgainNote')];
       else {
         const m = joined.match(/ (?:say|report)(?: your)? (level|altitude|heading|speed|position) /);
-        if (m) {
-          const what = { level: 'il tuo livello (es. "Level 240")', altitude: 'la tua quota (es. "Passing 5000 feet")', heading: 'la tua prua (es. "Heading 270")', speed: 'la tua velocità (es. "Speed 250 knots")', position: 'la tua posizione' }[m[1]];
-          special = [`Riporta ${what.split(' (')[0]}`, `L'ATC ti chiede ${what}, seguito dal nominativo.`];
-        }
+        if (m) special = [tr(`rb.report.${m[1]}`), tr('rb.reportNote', { what: tr(`rb.reportWhat.${m[1]}`) })];
       }
       if (special) {
         return {
           input: text, normalized: toks.join(' '), parts: [], readback: special[0], spoken: '', forUs,
-          noReadbackNeeded: true, warnings: [...ctx.warnings, special[1]], callsign: cs, source: 'regole', special: true,
+          noReadbackNeeded: true, warnings: ctx.warnings, info: [special[1]], callsign: cs, source: 'regole', special: true,
         };
       }
       parts.push(wantsReport ? P('ack', 'Wilco', 'wilco') : P('ack', 'Roger', 'roger'));
@@ -1055,6 +1054,7 @@
       forUs,
       noReadbackNeeded,
       warnings: ctx.warnings,
+      info: [],
       callsign: cs,
       source: 'regole',
     };

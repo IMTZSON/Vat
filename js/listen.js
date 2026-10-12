@@ -26,6 +26,8 @@
     let running = false;
     let recognition = null;
     let recorder = null;
+    let order = Promise.resolve();
+    let pending = 0;
 
     // ------------------------------------------------------------ nominativo e modalità
 
@@ -46,6 +48,7 @@
     App.on('setting:telephony', updateCallsignHint);
     App.on('setting:mode', () => { if (running) stop(); updateModeUI(); });
     App.on('setting:threshold', (v) => { if (recorder) recorder.threshold = v; drawThreshold(); });
+    App.on('setting:autoThreshold', (v) => { if (recorder) recorder.auto = v; $('threshold').disabled = !!v; drawThreshold(); });
 
     $('openChrome').addEventListener('click', () => App.desktop.openExternal(`${location.origin}/`));
 
@@ -114,7 +117,8 @@
       warn.innerHTML = '';
       const fromVerify = v ? v.reasons.map((x) => x.text) : [];
       const notes = [...fromVerify, ...(r.warnings || []).filter((w) => !fromVerify.includes(w))];
-      if (r.noReadbackNeeded && r.source !== 'AI') notes.push('Nessuna istruzione da ripetere: basta un "Roger" (o "Wilco" se ti chiede di riportare).');
+      for (const n of r.info || []) if (!notes.includes(n)) notes.push(n);
+      if (r.noReadbackNeeded && r.source !== 'AI' && !r.special) notes.push('Nessuna istruzione da ripetere: basta un "Roger" (o "Wilco" se ti chiede di riportare).');
       if (r.note) notes.push(r.note);
       for (const n of notes) {
         const li = document.createElement('li');
@@ -124,7 +128,7 @@
     }
 
     function saveHistory() {
-      App.storage.set(HISTORY_KEY, history.slice(0, 100).map((h) => ({ heard: h.heard, time: h.time, date: h.date, result: { readback: h.result.readback, spoken: h.result.spoken, forUs: h.result.forUs, source: h.result.source, parts: h.result.parts, warnings: h.result.warnings, note: h.result.note } })));
+      App.storage.set(HISTORY_KEY, history.slice(0, 100).map((h) => ({ heard: h.heard, time: h.time, date: h.date, coach: h.coach, result: { readback: h.result.readback, spoken: h.result.spoken, forUs: h.result.forUs, source: h.result.source, parts: h.result.parts, warnings: h.result.warnings, info: h.result.info, special: h.result.special, note: h.result.note } })));
     }
 
     // Conversazione a fumetti: ATC a sinistra, il tuo readback a destra
@@ -200,17 +204,16 @@
       const cs = App.callsignInfo();
       const next = { freqs: [], runways: [], qnh: [], whisper: '' };
       const ctx = [];
-      if (cs) ctx.push(`Callsign ${cs.display}`);
       if (f && f.dep && f.arr) {
         const A = root.Scenarios.AIRPORTS;
         if (A[f.dep] && A[f.arr]) next.runways = [...new Set([...A[f.dep].rwys, ...A[f.arr].rwys, f.depRwy, f.arrRwy].filter(Boolean))];
-        ctx.push(`Runways ${[f.depRwy, f.arrRwy].filter(Boolean).join(', ')}`);
         if (App.wx && Date.now() - App.wx.t < 3600000) next.qnh = [App.wx.dep, App.wx.arr].filter(Boolean);
         try {
           const data = await root.Vatsim.feed(60000);
           next.freqs = root.Vatsim.frequenciesFor(data, [f.dep, f.arr]);
-          const st = next.freqs.filter((x) => x.callsign !== 'UNICOM').slice(0, 8).map((x) => `${stationName(x.callsign)} ${x.freq.toFixed(3).replace(/0+$/, '')}`);
-          if (st.length) ctx.push(`Stations ${st.join(', ')}`);
+          // Solo i nomi delle stazioni (mai le frequenze: vedi Groq.buildPrompt)
+          const st = [...new Set(next.freqs.filter((x) => x.callsign !== 'UNICOM').slice(0, 10).map((x) => stationName(x.callsign)))];
+          if (st.length) ctx.push(st.join(', '));
         } catch (e) { /* senza dati VATSIM si saltano i controlli sulle frequenze */ }
       }
       next.whisper = ctx.join('. ');
@@ -223,12 +226,12 @@
 
     function verify(item, aiText) {
       const cs = App.callsignInfo();
-      return root.Precision.check({ transcript: item.heard, rules: item.rules, ai: aiText || null, callsign: cs, audio: item.audio, live });
+      return root.Precision.check({ transcript: item.heard, rules: item.rules, ai: aiText || null, callsign: cs, audio: item.audio, live, prompt: item.prompt });
     }
 
     // ------------------------------------------------------------ elaborazione
 
-    async function handleTranscript(text, origin, audio) {
+    async function handleTranscript(text, origin, audio, prompt) {
       text = (text || '').trim();
       if (!text) return;
       const cs = App.callsignInfo();
@@ -240,6 +243,7 @@
         result,
         rules: result,
         audio: audio || null,
+        prompt: prompt || '',
         date: now.toLocaleDateString('it-IT'),
         time: now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
       };
@@ -318,23 +322,37 @@
       }
       recorder = new root.AudioCapture.SegmentRecorder({
         threshold: S.threshold,
-        onLevel: (rms, speaking) => {
+        auto: S.autoThreshold,
+        onLevel: (rms, speaking, th) => {
           const bar = $('meterBar');
           bar.style.width = `${Math.min(100, (rms / 0.15) * 100)}%`;
           bar.classList.toggle('on', speaking);
           $('toggle').style.setProperty('--lvl', Math.min(1, rms / 0.08).toFixed(2));
+          if (S.autoThreshold) drawThreshold(th);
         },
         onEnded: () => { if (running) stop(); },
-        onSegment: async (wav) => {
-          App.setStatus('Trascrivo…', 'busy');
-          try {
-            const cs = App.callsignInfo();
-            const r = await root.Groq.transcribe(wav, { key: S.groqKey, model: S.whisperModel, callsign: cs ? cs.display : '', context: live && live.whisper });
-            if (r.text) await handleTranscript(r.text, 'whisper', root.Precision.audioConfidence(r.segments));
-          } catch (e) {
-            $('live').textContent = e.message;
-          }
-          if (running) App.setStatus('In ascolto', 'listening');
+        // Le trascrizioni partono subito (in parallelo) ma i risultati si mostrano
+        // nell'ordine in cui l'ATC ha parlato: una risposta lenta non scavalca la successiva.
+        onSegment: (wav) => {
+          const cs = App.callsignInfo();
+          const csName = cs ? cs.display : '';
+          const context = live && live.whisper;
+          const prompt = root.Groq.buildPrompt(csName, context);
+          pending++;
+          App.setStatus(App.t('listen.transcribing'), 'busy');
+          const job = root.Groq.transcribe(wav, { key: S.groqKey, model: S.whisperModel, callsign: csName, context, base: S.sttBase })
+            .then((r) => ({ r }), (e) => ({ e }));
+          order = order.then(async () => {
+            const { r, e } = await job;
+            try {
+              if (e) $('live').textContent = e.message;
+              else if (r.text && root.Precision.phantom(r.text)) $('live').textContent = App.t('listen.ignoredNoise', { text: r.text });
+              else if (r.text) await handleTranscript(r.text, 'whisper', root.Precision.audioConfidence(r.segments), prompt);
+            } finally {
+              pending--;
+              if (running && !pending) App.setStatus(App.t('status.listening'), 'listening');
+            }
+          });
         },
       });
       await recorder.start(S.audioSource, S.device);
@@ -374,8 +392,10 @@
       updateModeUI();
     }
 
-    function drawThreshold() {
-      $('meterTh').style.left = `${Math.min(100, (S.threshold / 0.15) * 100)}%`;
+    function drawThreshold(th) {
+      const v = th !== undefined ? th : (S.autoThreshold && recorder ? recorder.threshold : S.threshold);
+      $('meterTh').style.left = `${Math.min(100, (v / 0.15) * 100)}%`;
+      $('meterTh').classList.toggle('auto', !!S.autoThreshold);
     }
 
     function speakCurrent() {

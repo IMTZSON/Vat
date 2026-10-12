@@ -6,6 +6,8 @@
 
   const req = (name, global) => ((typeof require === 'function' && typeof module !== 'undefined') ? require(name) : root[global]);
   const Sc = req('./scenarios.js', 'Scenarios');
+  const I18n = req('./i18n.js', 'I18n');
+  const tr = (k, v) => I18n.t(k, v);
 
   function lev(a, b) {
     const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
@@ -30,12 +32,47 @@
     return { avg, noSpeech, comp, level };
   }
 
+  const words = (text) => String(text || '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter(Boolean);
+
+  // Frasi "fantasma" che Whisper scrive quando sente solo rumore o silenzio.
+  const PHANTOMS = [
+    /^(thank you|thanks)( (very|so) much)?( for watching| for listening)?$/,
+    /^(you|bye|bye bye|okay|ok|oh|uh|um|hmm|yeah|so|the)$/,
+    /^(please )?(like and )?subscribe.*$/, /^subtitles? by.*$/, /^(transcribed|transcription) by.*$/,
+    /^(music|applause|silence|noise|static|blank audio|inaudible)$/, /^\.*$/,
+  ];
+  function phantom(text) {
+    const w = words(text).join(' ');
+    return !w || PHANTOMS.some((re) => re.test(w));
+  }
+
+  // La trascrizione ripete un pezzo lungo del prompt (eco): segno che Whisper non ha capito l'audio.
+  function promptEcho(text, prompt, minRun) {
+    const a = words(text);
+    const b = words(prompt);
+    const need = minRun || 7;
+    if (a.length < need || b.length < need) return false;
+    let best = 0;
+    const prev = new Array(b.length + 1).fill(0);
+    for (let i = 1; i <= a.length; i++) {
+      let diag = 0;
+      for (let j = 1; j <= b.length; j++) {
+        const tmp = prev[j];
+        prev[j] = a[i - 1] === b[j - 1] ? diag + 1 : 0;
+        if (prev[j] > best) best = prev[j];
+        diag = tmp;
+      }
+    }
+    return best >= need;
+  }
+
   /* opts: {
        transcript: string,            cosa ha capito il riconoscimento vocale
        rules: risultato di Readback.generateReadback,
        ai: string | null,             readback proposto dall'AI
        callsign: oggetto nominativo,
        audio: risultato di audioConfidence | null,
+       prompt: prompt dato a Whisper (per riconoscere l'eco) | undefined,
        live: { freqs: [{freq, callsign}], runways: ['16L', ...], qnh: [1013, ...] } | null
      }
      -> { status: 'ok' | 'warn' | 'bad', reasons: [{level, text}], useRules, alt, suggestion } */
@@ -51,11 +88,12 @@
     let suggestion = null;
 
     // 1. Audio
-    if (opts.audio && opts.audio.level === 'bad') add('bad', 'Audio poco chiaro: i numeri potrebbero essere sbagliati. Chiedi "say again".');
-    else if (opts.audio && opts.audio.level === 'warn') add('warn', 'Audio non perfetto: controlla bene i numeri.');
+    if (opts.prompt && promptEcho(opts.transcript, opts.prompt)) add('bad', tr('verify.echo'));
+    if (opts.audio && opts.audio.level === 'bad') add('bad', tr('verify.audioBad'));
+    else if (opts.audio && opts.audio.level === 'warn') add('warn', tr('verify.audioWarn'));
 
     // 2. Avvisi delle regole (squawk con 8/9, QNH fuori scala, frequenza non valida…)
-    for (const w of rules.warnings || []) if (!/^(Standby|L'ATC)/.test(w)) add('warn', w);
+    for (const w of rules.warnings || []) add('warn', w);
 
     // 3. AI confrontata con trascrizione e regole
     if (opts.ai) {
@@ -63,13 +101,13 @@
       const invented = [...new Set(aiNums.filter((n) => !heard.has(n)))];
       if (invented.length) {
         useRules = true;
-        add('warn', `L'AI ha scritto ${invented.join(', ')}, che non c'è in quello che ha detto l'ATC: mostro il readback a regole.`);
+        add('warn', tr('verify.aiInvented', { nums: invented.join(', ') }));
       } else {
         const ruleText = (rules.parts || []).filter((p) => p.type !== 'ack').map((p) => p.display).join(' ');
         const missing = [...new Set(strip(numbers(ruleText)).filter((n) => !aiNums.includes(n)))];
         if (missing.length) {
           alt = rules.readback;
-          add('warn', `L'AI non ha ripetuto ${missing.join(', ')}: controlla. Versione a regole: "${rules.readback}"`);
+          add('warn', tr('verify.aiMissing', { nums: missing.join(', '), rules: rules.readback }));
         }
       }
     }
@@ -92,22 +130,22 @@
         const nearest = all.reduce((best, x) => (!best || score(x) < score(best) ? x : best), null);
         if (nearest && score(nearest) <= 1) {
           suggestion = { freq: nearest.freq.toFixed(3).replace(/0+$/, '').replace(/\.$/, '.0'), callsign: nearest.callsign };
-          add('warn', `La frequenza ${m[1]} non risulta tra gli ATC online: forse ${nearest.freq.toFixed(3)} (${nearest.callsign})?`);
+          add('warn', tr('verify.freqMaybe', { freq: m[1], near: nearest.freq.toFixed(3), cs: nearest.callsign }));
         } else {
-          add('warn', `La frequenza ${m[1]} non corrisponde a nessun ATC online in zona: controlla.`);
+          add('warn', tr('verify.freqUnknown', { freq: m[1] }));
         }
       }
     }
     if (live.runways && live.runways.length) {
       const known = new Set(live.runways.map((r) => String(r).toUpperCase()));
       const rwys = [...new Set((allText.match(/runway (\d{2}[LRC]?)/gi) || []).map((x) => x.split(' ')[1].toUpperCase()))];
-      for (const r of rwys) if (!known.has(r)) add('warn', `La pista ${r} non risulta tra quelle degli aeroporti del volo (${[...known].join(', ')}): controlla.`);
+      for (const r of rwys) if (!known.has(r)) add('warn', tr('verify.rwyUnknown', { rwy: r, list: [...known].join(', ') }));
     }
     const qnhs = (live.qnh || []).filter(Boolean);
     if (qnhs.length) {
       const m = allText.match(/QNH (\d{3,4})/);
       if (m && qnhs.every((q) => Math.abs(q - Number(m[1])) > 3)) {
-        add('warn', `QNH ${m[1]} diverso da quello del METAR (${qnhs.join(' / ')}): controlla.`);
+        add('warn', tr('verify.qnhDiff', { qnh: m[1], metar: qnhs.join(' / ') }));
       }
     }
 
@@ -115,7 +153,7 @@
     return { status, reasons, useRules, alt, suggestion };
   }
 
-  const api = { check, audioConfidence, numbers };
+  const api = { check, audioConfidence, numbers, phantom, promptEcho };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Precision = api;
 })(this);

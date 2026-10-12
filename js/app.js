@@ -20,6 +20,7 @@
     whisperModel: '',
     llmModel: '',
     threshold: 0.02,
+    autoThreshold: true,
     trainPhase: 'delivery',
     trainDifficulty: 'normal',
     trainShowText: false,
@@ -92,6 +93,8 @@
     emit(evt, data) { (listeners[evt] || []).forEach((fn) => { try { fn(data); } catch (e) { console.error(e); } }); },
 
     register(fn) { this.modules.push(fn); },
+
+    t: (k, v) => root.I18n.t(k, v),
 
     callsignInfo() { return root.Readback.parseCallsign(this.settings.callsign, this.settings.telephony); },
 

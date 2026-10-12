@@ -72,8 +72,26 @@
     }
   }
 
+  /* Prompt per Whisper: solo VOCABOLARIO (fraseologia, nominativo, nomi delle stazioni).
+     Niente numeri: con audio disturbato Whisper tende a copiare il prompt, e un numero di esempio
+     (es. "squawk 4521") finirebbe nella trascrizione come se l'avesse detto l'ATC.
+     Le cifre restano solo nel nominativo, che le verifiche escludono comunque. */
+  const VOCAB = 'ATC radio phraseology: climb, descend, maintain, flight level, altitude, feet, heading, turn left, turn right, '
+    + 'squawk, QNH, altimeter, contact, monitor, decimal, runway, taxi, holding point, hold short, line up and wait, '
+    + 'cleared for takeoff, cleared to land, cleared ILS approach, via, direct, reduce speed, knots, '
+    + 'Alpha, Bravo, Charlie, Delta, Echo, Foxtrot, Golf, Hotel, India, Juliett, Kilo, Lima, Mike, November, '
+    + 'Oscar, Papa, Quebec, Romeo, Sierra, Tango, Uniform, Victor, Whiskey, X-ray, Yankee, Zulu.';
+
+  function buildPrompt(callsign, context) {
+    const cs = String(callsign || '').trim();
+    const keep = new Set(cs.split(/\s+/).filter(Boolean));
+    // Toglie ogni parola con cifre dal contesto, tranne quelle del nominativo
+    const ctx = String(context || '').split(/\s+/).filter((w) => w && (!/\d/.test(w) || keep.has(w.replace(/[.,;]$/, '')))).join(' ');
+    return [cs ? `${cs}.` : '', ctx ? `${ctx.replace(/[.,;\s]+$/, '')}.` : '', VOCAB].filter(Boolean).join(' ').slice(0, 900);
+  }
+
   // Restituisce { text, segments } (segments con avg_logprob ecc. per valutare la qualità).
-  // context: stazioni/frequenze online, piste e ATIS del volo, per aiutare Whisper sui numeri.
+  // context: nominativo e nomi delle stazioni del volo, per aiutare Whisper (mai numeri).
   function transcribe(wavBlob, { key, model, callsign, context }) {
     return withModel(key, 'stt', model, async (m) => {
       const send = async (format) => {
@@ -83,8 +101,7 @@
         form.append('language', 'en');
         form.append('temperature', '0');
         form.append('response_format', format);
-        const base = `ATC radio. ${callsign ? `${callsign}, ` : ''}descend FL80, turn left heading 270, squawk 4521, QNH 1013, contact Roma Radar 125.5, taxi holding point Alpha 2 runway 26L via Papa, Sierra, hold short, line up and wait, cleared to land runway 16L.`;
-        form.append('prompt', `${context ? `${context}. ` : ''}${base}`.slice(0, 900));
+        form.append('prompt', buildPrompt(callsign, context));
         return call('/audio/transcriptions', key, { method: 'POST', body: form });
       };
       let data;
@@ -152,6 +169,6 @@ Answer ONLY with JSON: {"for_us": boolean, "readback": string, "spoken": string 
     });
   }
 
-  Object.assign(Groq, { transcribe, readback, listModels, pickModel });
+  Object.assign(Groq, { transcribe, readback, listModels, pickModel, buildPrompt, VOCAB });
   root.Groq = Groq;
 })(this);

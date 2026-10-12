@@ -76,3 +76,38 @@ test('squawk non valido dalle regole', () => {
   const t = 'Alitalia 123, squawk 4891';
   assert.strictEqual(P.check({ transcript: t, rules: rules(t), callsign: cs }).status, 'warn');
 });
+
+// ------------------------------------------------------------------ prompt di Whisper, fantasmi ed eco
+const { Groq } = require('../js/groq.js');
+
+test('il prompt di Whisper non contiene numeri (tranne quelli del nominativo)', () => {
+  const p = Groq.buildPrompt('Alitalia 123', 'Roma Radar, Roma Approach 119.2, runway 16L, QNH 1013, squawk 4521');
+  const digits = p.match(/\S*\d\S*/g) || [];
+  assert.deepStrictEqual(digits.map((d) => d.replace(/[.,]/g, '')), ['123']);
+  assert.match(p, /Roma Radar/);
+  assert.match(p, /line up and wait/);
+  assert.ok(!/4521|1013|16L|119/.test(p));
+  assert.ok(p.length <= 900);
+});
+
+test('prompt senza nominativo né contesto: solo vocabolario', () => {
+  const p = Groq.buildPrompt('', '');
+  assert.ok(!/\d/.test(p));
+  assert.strictEqual(p, Groq.VOCAB);
+});
+
+test('frasi fantasma di Whisper riconosciute', () => {
+  for (const x of ['Thank you.', 'Thanks for watching!', 'you', ' . ', 'Subtitles by the Amara.org community', '[BLANK_AUDIO]']) {
+    assert.ok(P.phantom(x), x);
+  }
+  for (const x of ['Alitalia 123, roger', 'Thank you, Alitalia 123, good day', 'descend FL80']) assert.ok(!P.phantom(x), x);
+});
+
+test('eco del prompt: riconosciuta e segnalata come audio non chiaro', () => {
+  const prompt = Groq.buildPrompt('Alitalia 123', 'Roma Radar');
+  assert.ok(P.promptEcho('Line up and wait, cleared for takeoff, cleared to land, cleared ILS approach', prompt));
+  assert.ok(!P.promptEcho('Alitalia 123, runway 16L, line up and wait', prompt));
+  assert.ok(!P.promptEcho('Alitalia 123, cleared ILS approach runway 16L, report established', prompt));
+  const r = P.check({ transcript: 'Alpha, Bravo, Charlie, Delta, Echo, Foxtrot, Golf, Hotel', rules: { parts: [], warnings: [] }, prompt });
+  assert.strictEqual(r.status, 'bad');
+});
