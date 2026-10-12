@@ -910,7 +910,7 @@
     const m = cs.match(/^([A-Z]{3})(\d[A-Z0-9]{0,4})$/);
     const custom = customTelephony && customTelephony.trim();
     if (m) {
-      const tel = custom || AIRLINES[m[1]];
+      const tel = custom || AIRLINES[m[1]] || (Callsigns && Callsigns.lookup ? Callsigns.lookup(m[1]) : null);
       if (tel) {
         return {
           type: 'airline', code: cs, telephony: tel, flightId: m[2],

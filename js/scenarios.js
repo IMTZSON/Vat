@@ -76,9 +76,13 @@
   function makeContext(opts, r) {
     opts = opts || {};
     const cs = (opts.callsign && typeof opts.callsign === 'object') ? opts.callsign : (R.parseCallsign(opts.callsign || 'AZA123') || R.parseCallsign('AZA123'));
+    const W = (typeof require === 'function' && typeof module !== 'undefined') ? require('./world.js') : root.World;
     const airport = (icao, fallbackName) => {
       const known = AIRPORTS[icao];
       if (known) return { icao, ...known };
+      // Aeroporto fuori dall'elenco curato: nome, città, piste e centro dal database mondiale
+      const w = W && W.airport(icao);
+      if (w && w.rwys.length) return { icao, city: w.city || w.name, name: fallbackName || w.name, rwys: w.rwys, acc: w.acc || w.city || 'Control' };
       const name = fallbackName || icao || 'Roma Fiumicino';
       const city = name.split(/[\s/-]+/)[0];
       return { icao, city, name, rwys: ['09', '27'], acc: 'Roma' };

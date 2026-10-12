@@ -8,7 +8,7 @@
   root.App.register((App) => {
     const $ = App.$;
     const L = root.L;
-    const A = root.Scenarios.AIRPORTS;
+    const ap = (icao) => root.World.airport(icao) || {};
     const TRAIL_KEY = 'readback-copilot-trail';
     let map = null;
     let tiles = null;
@@ -46,8 +46,9 @@
     function routePoints() {
       const f = App.flight;
       if (!f) return [];
-      const dep = f.depPos || (A[f.dep] ? { lat: A[f.dep].lat, lon: A[f.dep].lon } : null);
-      const arr = f.arrPos || (A[f.arr] ? { lat: A[f.arr].lat, lon: A[f.arr].lon } : null);
+      const pos = (icao) => { const a = ap(icao); return typeof a.lat === 'number' ? { lat: a.lat, lon: a.lon } : null; };
+      const dep = f.depPos || pos(f.dep);
+      const arr = f.arrPos || pos(f.arr);
       const pts = [];
       if (dep) pts.push({ ident: f.dep, ...dep });
       for (const x of f.fixes || []) pts.push(x);
@@ -142,7 +143,7 @@
       if ((!App.flight || App.flight.dep !== fp.departure) && fp.departure && fp.arrival) {
         App.setFlight({
           source: 'VATSIM', callsign: p.callsign, dep: fp.departure, arr: fp.arrival,
-          depName: (A[fp.departure] || {}).name || fp.departure, arrName: (A[fp.arrival] || {}).name || fp.arrival,
+          depName: ap(fp.departure).name || fp.departure, arrName: ap(fp.arrival).name || fp.arrival,
           aircraft: fp.aircraft_short || '', cruise: fp.altitude ? Math.round(Number(String(fp.altitude).replace(/\D/g, '')) / (Number(fp.altitude) > 1000 ? 100 : 1)) : null, route: fp.route || '',
         });
       }

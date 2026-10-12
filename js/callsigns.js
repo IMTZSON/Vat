@@ -51,7 +51,15 @@
     GEC: 'Lufthansa Cargo',
   };
 
-  const api = { AIRLINES };
+  // Prima l'elenco curato qui sopra, poi il database mondiale (data/world.json, ~860 compagnie).
+  function lookup(code) {
+    const c = String(code || '').toUpperCase();
+    if (AIRLINES[c]) return AIRLINES[c];
+    const W = (typeof require === 'function' && typeof module !== 'undefined') ? require('./world.js') : root.World;
+    return (W && W.airline(c)) || null;
+  }
+
+  const api = { AIRLINES, lookup };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Callsigns = api;
 })(this);

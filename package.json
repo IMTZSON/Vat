@@ -11,6 +11,7 @@
     "test": "node --test tests/*.test.js",
     "start": "electron .",
     "serve": "node electron/server.js",
+    "build:data": "node scripts/build-data.js",
     "dist": "electron-builder --win --x64 --publish never"
   },
   "devDependencies": {
@@ -29,6 +30,7 @@
       "index.html",
       "css/**",
       "js/**",
+      "data/**",
       "electron/**",
       "package.json"
     ],

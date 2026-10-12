@@ -117,7 +117,7 @@ function createHandler(root, opts) {
     try { rel = decodeURIComponent(url.pathname); } catch (e) { return send(res, 400, 'Bad request', 'text/plain'); }
     if (rel === '/') rel = '/index.html';
     const file = path.resolve(rootDir, `.${path.posix.normalize(rel)}`);
-    const okDirs = ['index.html', 'css', 'js'].map((p) => path.join(rootDir, p));
+    const okDirs = ['index.html', 'css', 'js', 'data'].map((p) => path.join(rootDir, p));
     if (!okDirs.some((d) => file === d || file.startsWith(d + path.sep))) return send(res, 404, 'Not found', 'text/plain');
     fs.readFile(file, (err, data) => {
       if (err) return send(res, 404, 'Not found', 'text/plain');

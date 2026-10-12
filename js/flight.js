@@ -8,7 +8,7 @@
     const $ = App.$;
     const S = App.settings;
     const R = root.Readback;
-    const AIRPORTS = root.Scenarios.AIRPORTS;
+    const ap = (icao) => root.World.airport(icao) || {};
     let wx = { dep: null, arr: null };
 
     // ------------------------------------------------------------ SimBrief
@@ -38,7 +38,7 @@
       const fl = Number($('manFl').value) || null;
       App.setFlight({
         source: 'manuale', callsign: (App.callsignInfo() || {}).code || '',
-        dep, depName: (AIRPORTS[dep] || {}).name || dep, arr, arrName: (AIRPORTS[arr] || {}).name || arr, cruise: fl,
+        dep, depName: ap(dep).name || dep, arr, arrName: ap(arr).name || arr, cruise: fl,
         pax: Number($('manPax').value) || null, aircraft: App.settings.aircraft,
       });
       refreshWx();
@@ -59,7 +59,7 @@
         $('planCard').open = true;
         return;
       }
-      const city = (icao, name) => (AIRPORTS[icao] ? AIRPORTS[icao].city : (name || '').split(/[\s/-]+/)[0]);
+      const city = (icao, name) => ap(icao).city || (name || '').split(/[\s/-]+/)[0];
       const meta = [];
       if (f.cruise) meta.push(`<span>Crociera <b>FL${f.cruise}</b></span>`);
       if (f.aircraft) meta.push(`<span><b>${esc(f.aircraft)}</b>${f.reg ? ` · ${esc(f.reg)}` : ''}</span>`);
@@ -96,9 +96,9 @@
       const el = $(elId);
       const I = root.Icons.svg;
       if (!icao) { el.innerHTML = `<div class="wx-head"><div><span class="eyebrow">${title}</span><b>—</b></div></div><span class="muted">Carica un volo.</span>`; return; }
-      const ap = AIRPORTS[icao];
+      const a = ap(icao);
       const m = info && info.metar;
-      let html = `<div class="wx-head"><div><span class="eyebrow">${title}</span><b>${esc(icao)}</b><span class="name">${esc(ap ? ap.name : '')}</span></div>${m && m.category ? `<span class="badge cat-${m.category}">${m.category}</span>` : ''}</div>`;
+      let html = `<div class="wx-head"><div><span class="eyebrow">${title}</span><b>${esc(icao)}</b><span class="name">${esc(a.name || '')}</span></div>${m && m.category ? `<span class="badge cat-${m.category}">${m.category}</span>` : ''}</div>`;
       if (!info) { el.innerHTML = `${html}<span class="muted">Premi aggiorna per meteo e ATC.</span>`; return; }
       if (m) {
         const w = m.wind;
@@ -165,10 +165,10 @@
     function renderCalls() {
       const f = App.flight || {};
       const cs = App.callsignInfo() || R.parseCallsign('AZA123');
-      const city = (icao, name) => (AIRPORTS[icao] ? AIRPORTS[icao].city : (name || icao || '…').split(/[\s/-]+/)[0]);
+      const city = (icao, name) => ap(icao).city || (name || icao || '…').split(/[\s/-]+/)[0];
       const depCity = city(f.dep, f.depName);
       const arrCity = city(f.arr, f.arrName);
-      const acc = (AIRPORTS[f.dep] || {}).acc || depCity;
+      const acc = ap(f.dep).acc || depCity;
       const stand = S.callStand || '[stand]';
       const atisDep = ($('callAtisDep').value || '').toUpperCase();
       const atisArr = ($('callAtisArr').value || '').toUpperCase();

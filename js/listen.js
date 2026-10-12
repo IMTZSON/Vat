@@ -193,20 +193,17 @@
     // ------------------------------------------------------------ contesto live per le verifiche
 
     let live = null;
-    const SUFFIX = { DEL: 'Delivery', GND: 'Ground', TWR: 'Tower', APP: 'Approach', DEP: 'Departure', CTR: 'Control', FSS: 'Information', ATIS: 'Information' };
-    function stationName(callsign) {
-      const parts = callsign.split('_');
-      const ap = root.Scenarios.AIRPORTS[parts[0]];
-      return `${ap ? ap.city : parts[0]} ${SUFFIX[parts[parts.length - 1]] || ''}`.trim();
-    }
+    const stationName = (callsign) => root.World.stationName(callsign);
     async function refreshLive() {
       const f = App.flight;
       const cs = App.callsignInfo();
       const next = { freqs: [], runways: [], qnh: [], whisper: '' };
       const ctx = [];
       if (f && f.dep && f.arr) {
-        const A = root.Scenarios.AIRPORTS;
-        if (A[f.dep] && A[f.arr]) next.runways = [...new Set([...A[f.dep].rwys, ...A[f.arr].rwys, f.depRwy, f.arrRwy].filter(Boolean))];
+        // Piste di partenza e arrivo (database mondiale): se un aeroporto è sconosciuto si salta il controllo
+        const dep = root.World.airport(f.dep);
+        const arr = root.World.airport(f.arr);
+        if (dep && arr && dep.rwys.length && arr.rwys.length) next.runways = [...new Set([...dep.rwys, ...arr.rwys, f.depRwy, f.arrRwy].filter(Boolean))];
         if (App.wx && Date.now() - App.wx.t < 3600000) next.qnh = [App.wx.dep, App.wx.arr].filter(Boolean);
         try {
           const data = await root.Vatsim.feed(60000);
