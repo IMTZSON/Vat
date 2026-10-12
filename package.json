@@ -1,7 +1,7 @@
 {
   "name": "readback-copilot",
   "productName": "Readback Copilot",
-  "version": "3.0.1",
+  "version": "4.0.0",
   "private": true,
   "description": "Copilota radio per VATSIM: ascolta l'ATC e mostra il readback corretto, allenamento, briefing e frasario.",
   "author": "IMTZSON",
@@ -12,11 +12,13 @@
     "start": "electron .",
     "serve": "node electron/server.js",
     "build:data": "node scripts/build-data.js",
-    "dist": "electron-builder --win --x64 --publish never"
+    "dist": "electron-builder --win --x64 --publish never",
+    "test:e2e": "node --test tests-e2e/*.e2e.js"
   },
   "devDependencies": {
     "electron": "43.7.3",
-    "electron-builder": "26.15.3"
+    "electron-builder": "26.15.3",
+    "playwright": "1.56.1"
   },
   "build": {
     "appId": "app.readbackcopilot.desktop",

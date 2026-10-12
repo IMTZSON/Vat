@@ -111,3 +111,12 @@ test('eco del prompt: riconosciuta e segnalata come audio non chiaro', () => {
   const r = P.check({ transcript: 'Alpha, Bravo, Charlie, Delta, Echo, Foxtrot, Golf, Hotel', rules: { parts: [], warnings: [] }, prompt });
   assert.strictEqual(r.status, 'bad');
 });
+
+test('harness di valutazione audio: confronto dei numeri', () => {
+  const E = require('../scripts/eval-audio.js');
+  const cs = R.parseCallsign('AZA123');
+  const a = E.readbackNumbers('Alitalia 123, descend flight level 80, turn left heading 270, contact Roma Radar 125.5', cs);
+  assert.deepStrictEqual(a.nums.sort(), ['125.5', '270', '80'].sort());
+  assert.deepStrictEqual(E.compare(['80', '270', '125.5'], ['80', '270', '125.05']), { hit: 2, missing: 1, extra: 1 });
+  assert.deepStrictEqual(E.compare(['80'], ['80']), { hit: 1, missing: 0, extra: 0 });
+});

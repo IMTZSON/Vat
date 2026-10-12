@@ -52,7 +52,7 @@
 
     function open(at) {
       // Groq è il consigliato: Chrome solo se l'utente l'aveva già scelto
-      const choseChrome = S.mode === 'free' && canChrome && (S.onboarded || App.storedKeys.includes('mode'));
+      const choseChrome = S.mode === 'free' && canChrome && S.onboarded;
       Object.assign(draft, { provider: choseChrome ? 'chrome' : S.sttProvider, source: S.audioSource });
       $('obCallsign').value = S.callsign;
       $('obTelephony').value = S.telephony;
