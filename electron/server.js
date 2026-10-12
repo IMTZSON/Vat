@@ -5,6 +5,7 @@
 
 const http = require('http');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
 const MIME = {
@@ -17,7 +18,50 @@ const MIME = {
   '.ico': 'image/x-icon',
 };
 
-const ALLOWED_HOSTS = new Set(['api.groq.com', 'www.simbrief.com', 'metar.vatsim.net', 'data.vatsim.net', 'api.github.com']);
+const ALLOWED_HOSTS = new Set(['api.groq.com', 'www.simbrief.com', 'metar.vatsim.net', 'data.vatsim.net', 'api.github.com', 'api.ivao.aero', 'aviationweather.gov']);
+
+/* Dati della mappa radar (settori ATC): aggiornati dalla fonte ufficiale al massimo una volta al giorno,
+   salvati nella cache del PC; senza rete si usa l'ultima copia scaricata o quella inclusa nel programma. */
+const MAP_DATA = {
+  vatspy: { file: 'vatspy.dat', type: 'text/plain; charset=utf-8', url: 'https://raw.githubusercontent.com/vatsimnetwork/vatspy-data-project/master/VATSpy.dat', check: (b) => b.includes('[FIRs]') },
+  fir: { file: 'fir-boundaries.json', type: 'application/json; charset=utf-8', url: 'https://raw.githubusercontent.com/vatsimnetwork/vatspy-data-project/master/Boundaries.geojson', check: (b) => b.includes('FeatureCollection') },
+  tracon: { file: 'tracon-boundaries.json', type: 'application/json; charset=utf-8', url: 'https://github.com/vatsimnetwork/simaware-tracon-project/releases/latest/download/TRACONBoundaries.geojson', check: (b) => b.includes('FeatureCollection') },
+};
+const MAP_MAX_AGE = 24 * 3600 * 1000;
+const mapPending = {};
+
+async function mapData(name, rootDir, opts) {
+  const spec = MAP_DATA[name];
+  const dir = opts.cacheDir || path.join(os.tmpdir(), 'readback-copilot-cache');
+  const cached = path.join(dir, spec.file);
+  let stat = null;
+  try { stat = fs.statSync(cached); } catch (e) { stat = null; }
+  if (stat && Date.now() - stat.mtimeMs < MAP_MAX_AGE) return { body: fs.readFileSync(cached), source: 'cache' };
+  if (!mapPending[name]) {
+    mapPending[name] = (async () => {
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), opts.mapTimeout || 20000);
+      try {
+        const r = await fetch(spec.url, { signal: ctl.signal, headers: { 'User-Agent': `ReadbackCopilot/${opts.version || 'dev'}` } });
+        const body = Buffer.from(await r.arrayBuffer());
+        if (!r.ok || !spec.check(body.toString('utf8', 0, Math.min(body.length, 4096)) + body.toString('utf8', Math.max(0, body.length - 4096)))) throw new Error(`HTTP ${r.status}`);
+        fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(`${cached}.tmp`, body);
+        fs.renameSync(`${cached}.tmp`, cached);
+        return { body, source: 'fresh' };
+      } finally {
+        clearTimeout(timer);
+        delete mapPending[name];
+      }
+    })();
+  }
+  try {
+    return await mapPending[name];
+  } catch (e) {
+    if (stat) return { body: fs.readFileSync(cached), source: 'stale' };
+    return { body: fs.readFileSync(path.join(rootDir, 'data', spec.file)), source: 'bundled' };
+  }
+}
 
 // Server Whisper locale (whisper.cpp, faster-whisper-server…): sul PC o nella rete di casa, anche in http.
 function isPrivateHost(host) {
@@ -120,6 +164,17 @@ function createHandler(root, opts) {
       return send(res, 405, { error: { message: 'Metodo non consentito' } });
     }
 
+    const md = url.pathname.match(/^\/api\/mapdata\/(vatspy|fir|tracon)$/);
+    if (md) {
+      try {
+        const r = await mapData(md[1], rootDir, opts);
+        res.writeHead(200, { 'Content-Type': MAP_DATA[md[1]].type, 'Cache-Control': 'no-cache', 'X-Map-Data': r.source, 'X-Content-Type-Options': 'nosniff' });
+        return res.end(r.body);
+      } catch (e) {
+        return send(res, 500, { error: { message: e.message } });
+      }
+    }
+
     const tm = url.pathname.match(/^\/api\/tile\/(light|dark)\/(\d{1,2})\/(\d{1,7})\/(\d{1,7})\.png$/);
     if (tm) return serveTile(res, tm, url.searchParams.get('k') || '', opts);
 
@@ -178,7 +233,7 @@ function start(root, opts) {
   });
 }
 
-module.exports = { start, ALLOWED_HOSTS, TILE_CACHE, isPrivateHost };
+module.exports = { start, ALLOWED_HOSTS, TILE_CACHE, isPrivateHost, MAP_DATA };
 
 if (require.main === module) {
   const pkg = require('../package.json');

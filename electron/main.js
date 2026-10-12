@@ -62,7 +62,7 @@ if (!app.requestSingleInstanceLock()) {
 async function init() {
   Menu.setApplicationMenu(null);
   store = new Store(path.join(app.getPath('userData'), 'readback-copilot-data.json'));
-  const { port } = await server.start(path.join(__dirname, '..'), { desktop: true, version: app.getVersion(), build: buildInfo(), store });
+  const { port } = await server.start(path.join(__dirname, '..'), { desktop: true, version: app.getVersion(), build: buildInfo(), store, cacheDir: path.join(app.getPath('userData'), 'map-cache') });
   origin = `http://127.0.0.1:${port}`;
 
   const ses = session.defaultSession;

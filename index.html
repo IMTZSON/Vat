@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tile.openstreetmap.org https://api.maptiler.com; connect-src 'self' https://api.groq.com https://www.simbrief.com https://metar.vatsim.net https://data.vatsim.net https://api.github.com http://127.0.0.1:* http://localhost:*; media-src 'self' blob:; worker-src 'self' blob:; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tile.openstreetmap.org https://api.maptiler.com; connect-src 'self' https://api.groq.com https://www.simbrief.com https://metar.vatsim.net https://data.vatsim.net https://api.github.com https://api.ivao.aero https://aviationweather.gov http://127.0.0.1:* http://localhost:*; media-src 'self' blob:; worker-src 'self' blob:; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
   <title>Readback Copilot</title>
   <link rel="icon" type="image/png" href="css/icon.png">
   <link rel="stylesheet" href="css/vendor/leaflet.css">
@@ -17,6 +17,7 @@
 
   <!-- Controlli mappa -->
   <div class="map-controls">
+    <button id="mapLayers" class="fab glass" data-i18n-title="radar.layers" title="Traffico, ATC e mappa"><i data-icon="layers"></i><span id="radarDot" class="fab-dot" hidden></span></button>
     <button id="mapLocate" class="fab glass" data-i18n-title="map.locate" title="Centra sull'aereo"><i data-icon="locate-fixed"></i></button>
     <button id="mapFit" class="fab glass" data-i18n-title="map.fit" title="Mostra tutta la rotta"><i data-icon="route"></i></button>
     <div class="fab-stack glass">
@@ -24,6 +25,39 @@
       <button id="mapZoomOut" data-i18n-title="map.zoomOut" title="Riduci"><i data-icon="minus"></i></button>
     </div>
   </div>
+
+  <!-- ================================================================== RADAR: TRAFFICO E LIVELLI -->
+  <section id="radarPanel" class="radar-panel glass" hidden>
+    <header class="radar-head">
+      <b data-i18n="radar.title">Traffico live</b>
+      <span id="radarStatus" class="radar-status"></span>
+      <button id="radarClose" class="icon-btn" data-i18n-title="common.close" title="Chiudi"><i data-icon="x"></i></button>
+    </header>
+    <div class="radar-search"><i data-icon="search"></i><input id="radarSearch" data-i18n-placeholder="radar.searchPh" placeholder="Cerca nominativo o aeroporto" autocomplete="off" spellcheck="false"></div>
+    <ol id="radarResults" class="radar-results"></ol>
+    <div class="radar-nets">
+      <button type="button" class="net-chip" data-net="vatsim"><i class="net-dot vatsim"></i>VATSIM<b id="cntVatsim">—</b></button>
+      <button type="button" class="net-chip" data-net="ivao"><i class="net-dot ivao"></i>IVAO<b id="cntIvao">—</b></button>
+    </div>
+    <div class="radar-toggles">
+      <label><input type="checkbox" data-radar="pilots"><span data-i18n="radar.pilots">Aerei</span></label>
+      <label><input type="checkbox" data-radar="sectors"><span data-i18n="radar.sectors">Settori ATC</span></label>
+      <label><input type="checkbox" data-radar="airports"><span data-i18n="radar.airports">Torri e aeroporti</span></label>
+      <label><input type="checkbox" data-radar="labels"><span data-i18n="radar.labels">Etichette</span></label>
+      <label><input type="checkbox" data-radar="firLines"><span data-i18n="radar.firLines">Confini FIR</span></label>
+      <label><input type="checkbox" data-radar="mine"><span data-i18n="radar.mine">Solo i miei aeroporti</span></label>
+    </div>
+    <div class="radar-field"><span data-i18n="radar.phase">Aerei</span>
+      <select id="radarPhase" class="seg"><option value="all" data-i18n="radar.phaseAll">Tutti</option><option value="ground" data-i18n="radar.phaseGround">A terra</option><option value="air" data-i18n="radar.phaseAir">In volo</option><option value="high">FL245+</option></select>
+    </div>
+    <div class="radar-field"><span data-i18n="radar.base">Mappa</span>
+      <select id="radarBase" class="seg"><option value="vector" data-i18n="radar.baseVector">Radar (offline)</option><option value="detailed" data-i18n="radar.baseDetailed">Dettagliata</option></select>
+    </div>
+    <div class="radar-legend">
+      <span><i style="--c: var(--sec-ctr)"></i>CTR</span><span><i style="--c: var(--sec-uir)"></i>UIR</span><span><i style="--c: var(--sec-app)"></i>APP</span>
+      <span><i style="--c: var(--sec-twr)"></i>TWR</span><span><i style="--c: var(--sec-gnd)"></i>GND</span><span><i style="--c: var(--sec-del)"></i>DEL</span><span><i style="--c: var(--sec-atis)"></i>ATIS</span>
+    </div>
+  </section>
 
   <!-- ================================================================== AGGIORNAMENTO DISPONIBILE -->
   <div id="updateBanner" class="update-banner glass" hidden>
@@ -583,6 +617,7 @@
   </dialog>
 
   <script src="js/vendor/leaflet.js"></script>
+  <script src="js/vendor/topojson-client.min.js"></script>
   <script src="js/strings.js"></script>
   <script src="js/i18n.js"></script>
   <script src="js/icons.js"></script>
@@ -598,6 +633,8 @@
   <script src="js/scenarios.js"></script>
   <script src="js/world.js"></script>
   <script src="js/precision.js"></script>
+  <script src="js/sectors.js"></script>
+  <script src="js/networks.js"></script>
   <script src="js/coach.js"></script>
   <script src="js/vatsim.js"></script>
   <script src="js/geo.js"></script>
@@ -610,6 +647,7 @@
   <script src="js/trainer.js"></script>
   <script src="js/flight.js"></script>
   <script src="js/tracking.js"></script>
+  <script src="js/radar.js"></script>
   <script src="js/logbook.js"></script>
   <script src="js/cockpit.js"></script>
   <script src="js/cabin.js"></script>

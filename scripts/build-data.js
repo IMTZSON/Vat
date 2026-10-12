@@ -10,6 +10,8 @@ const fs = require('fs');
 const path = require('path');
 
 const SOURCES = {
+  'Boundaries.geojson': 'https://raw.githubusercontent.com/vatsimnetwork/vatspy-data-project/master/Boundaries.geojson',
+  'TRACONBoundaries.geojson': 'https://github.com/vatsimnetwork/simaware-tracon-project/releases/latest/download/TRACONBoundaries.geojson',
   'airports.csv': 'https://raw.githubusercontent.com/davidmegginson/ourairports-data/main/airports.csv',
   'runways.csv': 'https://raw.githubusercontent.com/davidmegginson/ourairports-data/main/runways.csv',
   'airlines.dat': 'https://raw.githubusercontent.com/jpatokal/openflights/master/data/airlines.dat',
@@ -136,6 +138,45 @@ function buildFirIds(dat) {
   return Object.fromEntries(Object.keys(out).sort().map((k) => [k, out[k]]));
 }
 
+// Coordinate arrotondate (4 decimali ≈ 11 m) e punti consecutivi uguali tolti: file ~40% più piccoli
+function roundGeo(geo, digits) {
+  const f = 10 ** (digits || 4);
+  const ring = (r) => {
+    const out = [];
+    for (const [x, y] of r) {
+      const p = [Math.round(x * f) / f, Math.round(y * f) / f];
+      const last = out[out.length - 1];
+      if (!last || last[0] !== p[0] || last[1] !== p[1]) out.push(p);
+    }
+    return out;
+  };
+  const geom = (g) => {
+    if (!g) return g;
+    if (g.type === 'Polygon') return { type: g.type, coordinates: g.coordinates.map(ring) };
+    if (g.type === 'MultiPolygon') return { type: g.type, coordinates: g.coordinates.map((p) => p.map(ring)) };
+    return g;
+  };
+  return { type: 'FeatureCollection', features: geo.features.map((ft) => ({ type: 'Feature', properties: ft.properties, geometry: geom(ft.geometry) })) };
+}
+
+// Dati della mappa radar: confini FIR (VATSpy), TRACON (SimAware), VATSpy.dat, mappa base (Natural Earth)
+function buildMapData(dir, read) {
+  const out = path.join(__dirname, '..', 'data');
+  fs.writeFileSync(path.join(out, 'fir-boundaries.json'), JSON.stringify(roundGeo(JSON.parse(read('Boundaries.geojson')))));
+  fs.writeFileSync(path.join(out, 'tracon-boundaries.json'), JSON.stringify(roundGeo(JSON.parse(read('TRACONBoundaries.geojson')))));
+  fs.writeFileSync(path.join(out, 'vatspy.dat'), read('VATSpy.dat'));
+  // Mappa base offline: confini dei paesi 1:50M di Natural Earth (TopoJSON di world-atlas)
+  const wa = require.resolve('world-atlas/countries-50m.json');
+  fs.copyFileSync(wa, path.join(out, 'basemap.json'));
+  // Dettaglio 1:10M per gli zoom vicini (caricato solo quando serve)
+  fs.copyFileSync(require.resolve('world-atlas/countries-10m.json'), path.join(out, 'basemap-10m.json'));
+  const tc = require.resolve('topojson-client/dist/topojson-client.min.js');
+  fs.copyFileSync(tc, path.join(__dirname, '..', 'js', 'vendor', 'topojson-client.min.js'));
+  for (const f of ['fir-boundaries.json', 'tracon-boundaries.json', 'vatspy.dat', 'basemap.json']) {
+    console.log(`data/${f}: ${(fs.statSync(path.join(out, f)).size / 1024).toFixed(0)} KB`);
+  }
+}
+
 async function main() {
   const dir = path.resolve(process.argv[2] || path.join(__dirname, '..', '.data-cache'));
   fs.mkdirSync(dir, { recursive: true });
@@ -166,8 +207,9 @@ async function main() {
   const out = path.join(__dirname, '..', 'data', 'world.json');
   fs.mkdirSync(path.dirname(out), { recursive: true });
   fs.writeFileSync(out, JSON.stringify(world));
+  buildMapData(dir, read);
   console.log(`${out}: ${Object.keys(world.airports).length} aeroporti, ${Object.keys(world.airlines).length} compagnie, ${Object.keys(world.firs).length} centri, ${(fs.statSync(out).size / 1024).toFixed(0)} KB`);
 }
 
 if (require.main === module) main().catch((e) => { console.error(e.message); process.exit(1); });
-module.exports = { parseCsv, buildAirports, buildAirlines, buildFirs, buildFirIds, radioName, firOfAirport };
+module.exports = { roundGeo, parseCsv, buildAirports, buildAirlines, buildFirs, buildFirIds, radioName, firOfAirport };

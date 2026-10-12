@@ -12,7 +12,6 @@
     const t = App.t;
     const TRAIL_KEY = 'readback-copilot-trail';
     let map = null;
-    let tiles = null;
     let routeLine = null;
     let trailLine = null;
     let plane = null;
@@ -21,29 +20,8 @@
     let last = App.storage.get('readback-copilot-track-state', null); // { phase, alt, t }
     let trail = App.storage.get(TRAIL_KEY, []);
 
-    const dark = () => root.matchMedia && root.matchMedia('(prefers-color-scheme: dark)').matches;
 
-    // OpenStreetMap (senza chiave, con un filtro per lo stile chiaro/scuro dell'app) oppure MapTiler se c'è la chiave
-    function setTiles() {
-      if (!map) return;
-      if (tiles) tiles.remove();
-      const style = dark() ? 'dark' : 'light';
-      const key = (App.settings.mapKey || '').trim();
-      let url;
-      if (root.Net.proxy) url = `api/tile/${style}/{z}/{x}/{y}.png${key ? `?k=${encodeURIComponent(key)}` : ''}`;
-      else if (key) url = `https://api.maptiler.com/maps/${style === 'dark' ? 'streets-v2-dark' : 'streets-v2'}/256/{z}/{x}/{y}.png?key=${encodeURIComponent(key)}`;
-      else url = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-      $('map').classList.toggle('tiles-osm', !key);
-      tiles = L.tileLayer(url, {
-        maxZoom: 18,
-        attribution: `${key ? '© <a href="https://www.maptiler.com/copyright/">MapTiler</a> · ' : ''}© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>`,
-      }).addTo(map);
-      tiles.on('tileerror', () => {
-        if (key && !tiles._warned) { tiles._warned = true; App.toast(t('map.badKey'), 6000); }
-      });
-    }
-    App.on('setting:mapKey', () => setTiles());
-
+    // La mappa base (vettoriale offline o dettagliata), i settori ATC e il traffico sono in radar.js
     function routePoints() {
       const f = App.flight;
       if (!f) return [];
@@ -89,12 +67,12 @@
 
     function initMap() {
       if (map || !L) return;
-      map = L.map('map', { zoomControl: false, attributionControl: true, worldCopyJump: true, zoomSnap: 0.25 }).setView([42.5, 12.5], 6);
-      setTiles();
+      map = L.map('map', { zoomControl: false, attributionControl: true, worldCopyJump: true, zoomSnap: 0.25, minZoom: 2, preferCanvas: true }).setView([42.5, 12.5], 6);
+      App.map = map;
       drawRoute();
       drawTrail();
       if (!routeLine) setTimeout(fitRoute, 50);
-      if (root.matchMedia) root.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { setTiles(); drawRoute(); drawTrail(); });
+      if (root.matchMedia) root.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { drawRoute(); drawTrail(); App.emit('theme'); });
       $('mapZoomIn').addEventListener('click', () => map.zoomIn());
       $('mapZoomOut').addEventListener('click', () => map.zoomOut());
       $('mapFit').addEventListener('click', fitRoute);

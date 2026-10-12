@@ -18,7 +18,9 @@
   "devDependencies": {
     "electron": "43.7.3",
     "electron-builder": "26.15.3",
-    "playwright": "1.56.1"
+    "playwright": "1.56.1",
+    "topojson-client": "3.1.0",
+    "world-atlas": "2.0.2"
   },
   "build": {
     "appId": "app.readbackcopilot.desktop",

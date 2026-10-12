@@ -96,3 +96,39 @@ test('indirizzi privati riconosciuti', () => {
   for (const h of ['localhost', '127.0.0.1', '10.0.0.5', '192.168.0.10', '172.16.0.1', '172.31.255.1', '[::1]']) assert.ok(server.isPrivateHost(h), h);
   for (const h of ['8.8.8.8', '172.32.0.1', 'example.com', '192.169.0.1', '']) assert.ok(!server.isPrivateHost(h), h);
 });
+
+test('dati della mappa: scaricati una volta al giorno, poi cache, senza rete la copia inclusa', async (t) => {
+  const os = require('os');
+  const fs = require('fs');
+  const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'rc-map-'));
+  const prev = global.fetch;
+  let online = true;
+  let calls = 0;
+  global.fetch = async (url) => {
+    calls++;
+    if (!online) throw new Error('offline');
+    if (String(url).includes('VATSpy.dat')) return new Response('[Countries]\n[FIRs]\nLIRR|Roma||LIRR\n', { status: 200 });
+    return new Response('{"type":"FeatureCollection","features":[]}', { status: 200 });
+  };
+  const { server: srv, port } = await server.start(path.join(__dirname, '..'), { version: 'test', ports: [0], cacheDir });
+  t.after(() => { srv.close(); global.fetch = prev; });
+
+  let r = await new Promise((resolve) => http.get({ host: '127.0.0.1', port, path: '/api/mapdata/vatspy', headers: { host: `127.0.0.1:${port}` } }, (res) => { let b = ''; res.on('data', (c) => { b += c; }); res.on('end', () => resolve({ src: res.headers['x-map-data'], b })); }));
+  assert.strictEqual(r.src, 'fresh');
+  assert.match(r.b, /LIRR\|Roma/);
+  r = await new Promise((resolve) => http.get({ host: '127.0.0.1', port, path: '/api/mapdata/vatspy', headers: { host: `127.0.0.1:${port}` } }, (res) => { res.resume(); res.on('end', () => resolve({ src: res.headers['x-map-data'] })); }));
+  assert.strictEqual(r.src, 'cache');
+  assert.strictEqual(calls, 1);
+
+  // Senza rete e senza cache: la copia inclusa nel programma
+  online = false;
+  r = await new Promise((resolve) => http.get({ host: '127.0.0.1', port, path: '/api/mapdata/tracon', headers: { host: `127.0.0.1:${port}` } }, (res) => { let b = ''; res.on('data', (c) => { b += c; }); res.on('end', () => resolve({ src: res.headers['x-map-data'], len: b.length })); }));
+  assert.strictEqual(r.src, 'bundled');
+  assert.ok(r.len > 100000);
+  // Risposta sbagliata (es. pagina di errore): non sovrascrive niente
+  online = true;
+  global.fetch = async () => new Response('<html>rate limited</html>', { status: 200 });
+  r = await new Promise((resolve) => http.get({ host: '127.0.0.1', port, path: '/api/mapdata/fir', headers: { host: `127.0.0.1:${port}` } }, (res) => { res.resume(); res.on('end', () => resolve({ src: res.headers['x-map-data'] })); }));
+  assert.strictEqual(r.src, 'bundled');
+  assert.ok(!fs.existsSync(path.join(cacheDir, 'fir-boundaries.json')));
+});

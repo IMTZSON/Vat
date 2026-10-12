@@ -835,3 +835,99 @@ body:not(.has-ptt) .ptt-only { display: none !important; }
 /* Banner di aggiornamento con avanzamento */
 .update-banner .update-progress { flex: none; width: 70px; height: 4px; border-radius: 2px; background: var(--fill-2); overflow: hidden; }
 .update-banner .update-progress i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.4s; }
+
+/* ================================================================== mappa radar */
+:root {
+  --map-sea: #d5e3f0; --map-land: #f6f8fb; --map-border: rgba(100, 116, 139, 0.5); --map-fir: rgba(37, 99, 235, 0.22);
+  --sec-ctr: #2563eb; --sec-uir: #7c3aed; --sec-app: #d97706; --sec-twr: #dc2626; --sec-gnd: #16a34a; --sec-del: #0891b2; --sec-atis: #64748b;
+  --traffic-vatsim: #0284c7; --traffic-ivao: #db2777; --traffic-halo: rgba(255, 255, 255, 0.95); --traffic-label: #0f172a;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --map-sea: #070b12; --map-land: #111824; --map-border: rgba(148, 163, 184, 0.28); --map-fir: rgba(148, 163, 184, 0.13);
+    --sec-ctr: #60a5fa; --sec-uir: #a78bfa; --sec-app: #fbbf24; --sec-twr: #f87171; --sec-gnd: #4ade80; --sec-del: #22d3ee; --sec-atis: #94a3b8;
+    --traffic-vatsim: #38bdf8; --traffic-ivao: #f472b6; --traffic-halo: rgba(7, 11, 18, 0.9); --traffic-label: #e2e8f0;
+  }
+}
+#map.base-vector { background: var(--map-sea); }
+#map.over-plane { cursor: pointer; }
+.traffic-canvas { position: absolute; top: 0; left: 0; pointer-events: none; }
+.fab { position: relative; }
+.fab-dot { position: absolute; top: 9px; right: 9px; width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 2px var(--glass-strong); }
+
+/* Etichette dei settori e aeroporti con ATC */
+.sector-label.k-tracon span, .sector-label.k-tower span { transform: translate(-50%, 60%); }
+.sector-label span { display: inline-block; transform: translate(-50%, -50%); padding: 2px 7px; border-radius: 7px; font: 700 10.5px var(--font); letter-spacing: 0.03em; color: #fff; background: var(--c); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); white-space: nowrap; cursor: pointer; }
+.apt-badge { display: flex !important; align-items: center; gap: 4px; white-space: nowrap; cursor: pointer; }
+.apt-badge .apt-code { font: 700 10.5px var(--font); color: var(--text); text-shadow: 0 0 3px var(--map-sea), 0 0 3px var(--map-sea); }
+.apt-badge .apt-pos { display: flex; gap: 1px; }
+.apt-badge .apt-pos i { display: grid; place-items: center; width: 14px; height: 14px; border-radius: 3px; font: 800 9.5px var(--font); font-style: normal; color: #fff; }
+.apt-badge .pos-delivery { background: var(--sec-del); }
+.apt-badge .pos-ground { background: var(--sec-gnd); }
+.apt-badge .pos-tower { background: var(--sec-twr); }
+.apt-badge .pos-atis { background: var(--sec-atis); }
+
+/* Popup radar */
+.radar-popup .leaflet-popup-content-wrapper { background: var(--glass-strong); color: var(--text); border-radius: 16px; box-shadow: var(--shadow-glass); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
+.radar-popup .leaflet-popup-tip { background: var(--glass-strong); }
+.radar-popup .leaflet-popup-content { margin: 12px 14px; font: 13px/1.4 var(--font); min-width: 220px; }
+.radar-popup a.leaflet-popup-close-button { color: var(--text-3); }
+.radar-pop { display: grid; gap: 8px; }
+.pop-title { font-size: 16px; font-weight: 760; display: flex; align-items: center; gap: 8px; padding-right: 14px; }
+.pop-sub, .pop-note { color: var(--text-2); font-size: 12.5px; margin-top: -4px; }
+.pop-note { color: var(--orange); }
+.pop-route { display: flex; align-items: center; gap: 10px; }
+.pop-route div { display: grid; flex: 1; min-width: 0; }
+.pop-route div.r { text-align: right; }
+.pop-route b { font-size: 18px; letter-spacing: 0.02em; }
+.pop-route span { color: var(--text-2); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pop-route i .icon { width: 18px; height: 18px; color: var(--accent); transform: rotate(45deg); }
+.pop-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 10px; }
+.pop-grid div { display: grid; }
+.pop-grid span { font-size: 10px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.05em; }
+.pop-grid b { font-size: 13.5px; }
+.pop-follow { justify-self: start; }
+.net-tag { font-size: 10px; font-weight: 800; letter-spacing: 0.06em; padding: 2px 6px; border-radius: 5px; color: #fff; background: var(--traffic-vatsim); }
+.net-tag.ivao { background: var(--traffic-ivao); }
+.atc-row { display: grid; gap: 2px; padding-top: 6px; border-top: 1px solid var(--separator); }
+.atc-row:first-of-type { border-top: 0; padding-top: 0; }
+.atc-top { display: flex; align-items: center; gap: 6px; }
+.atc-freq { margin-left: auto; font: 700 13px var(--mono); color: var(--accent); }
+.atc-name { color: var(--text-2); font-size: 12px; }
+.atc-atis { font-size: 11.5px; color: var(--text-2); max-height: 90px; overflow: auto; }
+
+/* Pannello filtri */
+.radar-panel { position: fixed; z-index: 24; right: calc(var(--gap) + 56px); top: 50%; transform: translateY(-50%); width: 300px; max-height: calc(100vh - 120px); overflow-y: auto; padding: 14px; border-radius: 22px; display: grid; gap: 10px; animation: view-in 0.25s ease-out; }
+.radar-panel[hidden] { display: none; }
+.radar-head { display: flex; align-items: center; gap: 8px; }
+.radar-head b { font-size: 16px; font-weight: 760; }
+.radar-status { flex: 1; color: var(--text-2); font-size: 12px; text-align: right; }
+.radar-search { display: flex; align-items: center; gap: 8px; background: var(--fill); border-radius: 12px; padding: 0 10px; }
+.radar-search input { flex: 1; border: 0; background: none; color: var(--text); font: 500 14px var(--font); padding: 9px 0; outline: none; min-width: 0; }
+.radar-search .icon { color: var(--text-3); }
+.radar-results { list-style: none; margin: -4px 0 0; padding: 0; display: grid; }
+.radar-results:empty { display: none; }
+.radar-results li { display: flex; align-items: center; gap: 8px; padding: 7px 6px; border-radius: 10px; cursor: pointer; font-size: 13px; }
+.radar-results li:hover { background: var(--fill); }
+.radar-results li span { color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.radar-results li.empty { color: var(--text-3); cursor: default; }
+.radar-results .icon { color: var(--accent); }
+.radar-nets { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.net-chip { display: flex; align-items: center; gap: 7px; border: 1.5px solid var(--card-edge); background: var(--surface); color: var(--text-2); border-radius: 12px; padding: 8px 10px; font: 700 12.5px var(--font); cursor: pointer; }
+.net-chip b { margin-left: auto; font-variant-numeric: tabular-nums; }
+.net-chip.on { color: var(--text); border-color: var(--accent); background: var(--accent-soft); }
+.net-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; display: inline-block; }
+.net-dot.vatsim { background: var(--traffic-vatsim); }
+.net-dot.ivao { background: var(--traffic-ivao); }
+.radar-toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; font-size: 13px; }
+.radar-toggles label { display: flex; align-items: center; gap: 7px; cursor: pointer; }
+.radar-toggles input { accent-color: var(--accent); margin: 0; }
+.radar-field { display: grid; gap: 5px; }
+.radar-field > span { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-3); }
+.radar-field .segmented { width: 100%; }
+.radar-field .segmented button { flex: 1; font-size: 12px; }
+.radar-legend { display: flex; flex-wrap: wrap; gap: 6px 10px; font-size: 11px; font-weight: 650; color: var(--text-2); }
+.radar-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; background: var(--c); margin-right: 4px; vertical-align: -1px; }
+@media (max-width: 899px) {
+  .radar-panel { top: auto; bottom: 90px; left: 10px; right: 10px; width: auto; transform: none; max-height: 60vh; }
+}

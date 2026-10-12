@@ -51,6 +51,8 @@ async function mockNetwork(page, state) {
     if (u.includes('vatsim-data.json')) return route.fulfill({ json: { controllers: [{ callsign: 'LON_S_CTR', facility: 6, frequency: '127.100' }, { callsign: 'EGLL_TWR', facility: 4, frequency: '118.500' }], atis: [], pilots: [] } });
     if (u.includes('metar.vatsim.net')) return route.fulfill({ body: 'EGLL 121250Z 24008KT 9999 FEW030 18/10 Q1013 NOSIG', contentType: 'text/plain' });
     if (u.includes('api.github.com')) return route.fulfill({ json: [] });
+    if (u.includes('api.ivao.aero')) return route.fulfill({ json: { clients: { pilots: [], atcs: [] } } });
+    if (u.includes('aviationweather.gov')) return route.fulfill({ body: '', contentType: 'text/plain' });
     return route.fulfill({ status: 404, body: 'not mocked' });
   });
 }
@@ -261,5 +263,62 @@ test('programma per Windows (ponte simulato): coach col PTT, tasto PTT, aggiorna
   await page.click('#updateGet');
   await page.waitForFunction(() => window.__installed === true);
   await page.click('#toggle');
+  assert.deepStrictEqual(errors, []);
+});
+
+test('mappa radar: settori reali, traffico VATSIM e IVAO, filtri, ricerca e clic su un aereo', { skip: !chromium && 'playwright non installato', timeout: 90000 }, async (t) => {
+  const { server: srv, port } = await server.start(ROOT, { version: 'e2e', ports: [0], cacheDir: fs.mkdtempSync(path.join(os.tmpdir(), 'rc-map-')), mapTimeout: 1 });
+  const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || undefined });
+  t.after(async () => { await browser.close(); srv.close(); });
+  const ctx = await browser.newContext({ locale: 'en-GB', viewport: { width: 1440, height: 900 } });
+  await ctx.addInitScript(() => localStorage.setItem('readback-copilot-settings', JSON.stringify({ callsign: 'AZA123', onboarded: true, uiLang: 'en', mapView: { c: [47, 6], z: 5 } })));
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  const ctl = (callsign, frequency) => ({ callsign, frequency, facility: 6, name: 'ATC', text_atis: ['Hello'] });
+  const pilot = (callsign, lat, lon, alt, gs) => ({ callsign, latitude: lat, longitude: lon, altitude: alt, groundspeed: gs, heading: 90, transponder: '2000', flight_plan: { departure: 'LIRF', arrival: 'EGLL', aircraft_short: 'A320', altitude: '36000' } });
+  const vat = { pilots: [pilot('BAW1', 50.5, 0.5, 30000, 450), pilot('DLH2', 50.1, 8.6, 300, 10), pilot('AZA123', 45, 9, 36000, 450)], controllers: [ctl('LON_S_CTR', '129.425'), ctl('EGLL_N_APP', '119.725'), ctl('LIRF_TWR', '118.700'), ctl('LIRF_GND', '121.800'), ctl('LIRF_OBS', '199.998')], atis: [] };
+  const iv = { clients: { pilots: [{ callsign: 'IVA9', lastTrack: { latitude: 46.2, longitude: 6.6, altitude: 20000, groundSpeed: 400, heading: 180 } }], atcs: [{ callsign: 'PAR_CTR', atcSession: { frequency: 128.1 } }] } };
+  await page.route('**/api/tile/**', (r) => r.fulfill({ status: 404 }));
+  await page.route('**/api/proxy**', (route) => {
+    const u = new URL(route.request().url()).searchParams.get('url');
+    if (u.includes('vatsim-data')) return route.fulfill({ json: vat });
+    if (u.includes('ivao')) return route.fulfill({ json: iv });
+    return route.fulfill({ json: [] });
+  });
+  await page.goto(`http://127.0.0.1:${port}/`);
+  await page.waitForFunction(() => window.App && App.sectors && App.radar && App.radar.visiblePilots().length === 3, null, { timeout: 20000 }).catch(async (e) => {
+    console.log(await page.evaluate(() => ({ sectors: !!(window.App && App.sectors), pilots: window.App && App.radar && App.radar.visiblePilots().map((p) => p.callsign), nets: window.App && App.radar && Object.keys(App.radar.nets).map((k) => [k, !!App.radar.nets[k]]) })), errors);
+    throw e;
+  });
+  // Il mio aereo (AZA123) lo disegna tracking.js: non è doppio
+  assert.deepStrictEqual(await page.evaluate(() => App.radar.visiblePilots().map((p) => p.callsign).sort()), ['BAW1', 'DLH2', 'IVA9']);
+  // Settori: FIR di Londra Sud, TRACON di Heathrow, Parigi (IVAO); Fiumicino come lettere T G, nessun cerchio
+  const labels = await page.$$eval('.sector-label span', (els) => els.map((e) => e.textContent).sort());
+  assert.deepStrictEqual(labels, ['EGLL_N', 'LON_S', 'PAR']);
+  assert.match(await page.textContent('.apt-badge'), /LIRF.*G.*T/);
+  // Filtri
+  await page.click('#mapLayers');
+  await page.click('.net-chip[data-net="ivao"]');
+  await page.waitForFunction(() => App.radar.visiblePilots().length === 2);
+  assert.deepStrictEqual(await page.$$eval('.sector-label span', (els) => els.map((e) => e.textContent).sort()), ['EGLL_N', 'LON_S']);
+  await page.click('.net-chip[data-net="ivao"]');
+  await page.click('#radarPhase + .segmented button[data-value="air"]');
+  await page.waitForFunction(() => App.radar.visiblePilots().every((p) => p.gs >= 50));
+  // Ricerca e "segui"
+  await page.fill('#radarSearch', 'baw');
+  await page.click('#radarResults li');
+  await page.waitForSelector('.radar-popup .pop-title', { timeout: 5000 });
+  assert.match(await page.textContent('.radar-popup .pop-title'), /BAW1/);
+  // Clic diretto su un aereo
+  await page.click('#radarClose');
+  await page.evaluate(() => { App.map.closePopup(); App.map.setView([46.2, 7.6], 7, { animate: false }); });
+  await page.waitForTimeout(300);
+  const pt = await page.evaluate(() => { const p = App.radar.visiblePilots().find((x) => x.callsign === 'IVA9'); const c = App.map.latLngToContainerPoint([p.lat, p.lon]); return { x: c.x, y: c.y }; });
+  await page.mouse.click(pt.x, pt.y);
+  await page.waitForFunction(() => /IVA9/.test((document.querySelector('.radar-popup .pop-title') || {}).textContent || ''));
+  // Impostazioni ricordate
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('readback-copilot-settings')).radar);
+  assert.strictEqual(saved.phase, 'air');
   assert.deepStrictEqual(errors, []);
 });

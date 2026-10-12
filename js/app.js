@@ -236,6 +236,7 @@
         sel.after(seg);
         sync();
         if (sel.dataset.setting) this.on(`setting:${sel.dataset.setting}`, () => setTimeout(sync));
+        sel.addEventListener('sync', sync);
       });
     },
 
