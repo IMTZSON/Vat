@@ -984,3 +984,6 @@ body:not(.has-ptt) .ptt-only { display: none !important; }
 @media (max-width: 899px) {
   .radar-panel { top: auto; bottom: 90px; left: 10px; right: 10px; width: auto; transform: none; max-height: 60vh; }
 }
+/* Rotta dell'aereo selezionato */
+.leaflet-tooltip.route-tip { background: var(--surface-solid); color: var(--text); border: 0; border-radius: 6px; padding: 1px 6px; font: 700 10.5px var(--font); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25); }
+.leaflet-tooltip.route-tip::before { display: none; }

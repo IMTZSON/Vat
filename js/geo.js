@@ -49,6 +49,35 @@
     return { total, flown, remaining, pct: total ? Math.min(1, flown / total) : 0, next: route[best.i + 1], offRoute: best.d };
   }
 
+  /* Arco di cerchio massimo da a a b in n segmenti: [[lat, lon], ...]. Le longitudini restano continue
+     (es. 179 → 181 invece di 179 → -179), così la linea non attraversa tutta la mappa all'antimeridiano. */
+  function greatCircle(a, b, n) {
+    const steps = Math.max(1, n || 32);
+    const p1 = [rad(a.lat), rad(a.lon)];
+    const p2 = [rad(b.lat), rad(b.lon)];
+    const d = distance(a, b) / R_NM;
+    const out = [];
+    let prevLon = null;
+    for (let i = 0; i <= steps; i++) {
+      const f = i / steps;
+      let lat;
+      let lon;
+      if (d < 1e-9) { lat = a.lat; lon = a.lon; } else {
+        const A = Math.sin((1 - f) * d) / Math.sin(d);
+        const B = Math.sin(f * d) / Math.sin(d);
+        const x = A * Math.cos(p1[0]) * Math.cos(p1[1]) + B * Math.cos(p2[0]) * Math.cos(p2[1]);
+        const y = A * Math.cos(p1[0]) * Math.sin(p1[1]) + B * Math.cos(p2[0]) * Math.sin(p2[1]);
+        const z = A * Math.sin(p1[0]) + B * Math.sin(p2[0]);
+        lat = (Math.atan2(z, Math.sqrt(x * x + y * y)) * 180) / Math.PI;
+        lon = (Math.atan2(y, x) * 180) / Math.PI;
+      }
+      if (prevLon !== null) { while (lon - prevLon > 180) lon -= 360; while (lon - prevLon < -180) lon += 360; }
+      prevLon = lon;
+      out.push([lat, lon]);
+    }
+    return out;
+  }
+
   function eta(remainingNm, gsKt, now) {
     if (!gsKt || gsKt < 60 || remainingNm === null || remainingNm === undefined) return null;
     return new Date((now || Date.now()) + (remainingNm / gsKt) * 3600000);
@@ -93,7 +122,7 @@
     return out;
   }
 
-  const api = { distance, bearing, routeProgress, eta, phase, events, PHASES };
+  const api = { distance, bearing, greatCircle, routeProgress, eta, phase, events, PHASES };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Geo = api;
 })(this);

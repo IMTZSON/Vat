@@ -53,3 +53,21 @@ test('collegato già in volo: niente decollo finto', () => {
   assert.strictEqual(p, 'cruise');
   assert.deepStrictEqual(Geo.events(null, p), []);
 });
+
+test('greatCircle: estremi, punto medio e antimeridiano', () => {
+  const G = require('../js/geo.js');
+  const pts = G.greatCircle({ lat: 41.8, lon: 12.25 }, { lat: 51.47, lon: -0.45 }, 10);
+  assert.equal(pts.length, 11);
+  assert.ok(Math.abs(pts[0][0] - 41.8) < 1e-6 && Math.abs(pts[0][1] - 12.25) < 1e-6);
+  assert.ok(Math.abs(pts[10][0] - 51.47) < 1e-6 && Math.abs(pts[10][1] + 0.45) < 1e-6);
+  // sul cerchio massimo la somma delle distanze è uguale alla distanza diretta
+  let sum = 0;
+  for (let i = 1; i < pts.length; i++) sum += G.distance({ lat: pts[i - 1][0], lon: pts[i - 1][1] }, { lat: pts[i][0], lon: pts[i][1] });
+  assert.ok(Math.abs(sum - G.distance({ lat: 41.8, lon: 12.25 }, { lat: 51.47, lon: -0.45 })) < 0.5);
+  // Tokyo → Los Angeles: longitudini continue oltre 180
+  const pac = G.greatCircle({ lat: 35.55, lon: 139.78 }, { lat: 33.94, lon: -118.4 }, 20);
+  for (let i = 1; i < pac.length; i++) assert.ok(Math.abs(pac[i][1] - pac[i - 1][1]) < 30);
+  assert.ok(Math.abs(pac[20][1] - (360 - 118.4)) < 1e-6);
+  assert.ok(Math.max(...pac.map((p) => p[0])) > 45, 'la rotta sale verso nord');
+  assert.deepEqual(G.greatCircle({ lat: 1, lon: 2 }, { lat: 1, lon: 2 }, 2), [[1, 2], [1, 2], [1, 2]]);
+});

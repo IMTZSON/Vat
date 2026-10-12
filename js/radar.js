@@ -165,6 +165,7 @@
     // ================================================================== settori ATC
     const sectorLayer = L.layerGroup().addTo(map);
     const airportLayer = L.layerGroup().addTo(map);
+    const routeLayer = L.layerGroup().addTo(map);
     let sectorKey = '';
 
     function kindOf(volume, position) {
@@ -391,6 +392,9 @@
       const ap = (icao) => { const a = root.World.airport(icao); return a ? (a.city || a.name) : ''; };
       const route = p.dep || p.arr ? `<div class="pop-route"><div><b>${esc(p.dep || '—')}</b><span>${esc(ap(p.dep))}</span></div><i>${root.Icons.svg('plane')}</i><div class="r"><b>${esc(p.arr || '—')}</b><span>${esc(ap(p.arr))}</span></div></div>` : '';
       const ground = root.Networks.onGround(p);
+      const arrAp = p.arr && root.World.airport(p.arr);
+      const togo = arrAp && !ground ? root.Geo.distance(p, arrAp) : null;
+      const eta = togo ? root.Geo.eta(togo, p.gs) : null;
       return `<div class="radar-pop">
         <div class="pop-title">${esc(p.callsign)} <span class="net-tag ${esc(p.net)}">${p.net === 'ivao' ? 'IVAO' : 'VATSIM'}</span></div>
         ${p.name ? `<div class="pop-sub">${esc(p.name)}</div>` : ''}
@@ -402,14 +406,40 @@
           <div><span>HDG</span><b>${String(Math.round(p.hdg)).padStart(3, '0')}°</b></div>
           <div><span>SQK</span><b>${esc(p.squawk || '—')}</b></div>
           <div><span>${esc(t('radar.cruise'))}</span><b>${p.cruise ? esc(fmtLevel(p.cruise)) : '—'}</b></div>
+          ${togo ? `<div><span>${esc(t('radar.toGo'))}</span><b>${Math.round(togo)} NM</b></div><div><span>ETA</span><b>${eta ? `${String(eta.getUTCHours()).padStart(2, '0')}:${String(eta.getUTCMinutes()).padStart(2, '0')}Z` : '—'}</b></div>` : ''}
         </div>
         <button class="pill-btn accent pop-follow" data-follow="${esc(p.key)}">${root.Icons.svg('crosshair')} ${esc(t('radar.follow'))}</button>
       </div>`;
     }
 
+    /* Rotta dell'aereo selezionato: partenza → aereo (percorsa, tenue) e aereo → arrivo (tratteggiata),
+       su cerchio massimo, con i due aeroporti marcati */
+    function drawRoute(p) {
+      routeLayer.clearLayers();
+      if (!p) return;
+      const dep = p.dep && root.World.airport(p.dep);
+      const arr = p.arr && root.World.airport(p.arr);
+      const color = css(p.net === 'ivao' ? '--traffic-ivao' : '--traffic-vatsim');
+      const me = { lat: p.lat, lon: p.lon };
+      const opts = { pane: 'traffic', interactive: false, weight: 2, color };
+      if (dep) {
+        const arc = root.Geo.greatCircle(dep, me, 48);
+        const shift = p.lon - arc[arc.length - 1][1];
+        L.polyline(arc.map(([y, x]) => [y, x + shift]), { ...opts, opacity: 0.45 }).addTo(routeLayer);
+        L.circleMarker([dep.lat, dep.lon + shift], { ...opts, radius: 4, weight: 2, fillColor: color, fillOpacity: 1 }).bindTooltip(dep.icao, { permanent: true, direction: 'top', className: 'route-tip', pane: 'labels' }).addTo(routeLayer);
+      }
+      if (arr) {
+        const arc = root.Geo.greatCircle(me, arr, 48);
+        const end = arc[arc.length - 1];
+        L.polyline(arc, { ...opts, opacity: 0.95, dashArray: '6 6' }).addTo(routeLayer);
+        L.circleMarker(end, { ...opts, radius: 4, weight: 2, fillColor: css('--map-land'), fillOpacity: 1 }).bindTooltip(arr.icao, { permanent: true, direction: 'top', className: 'route-tip', pane: 'labels' }).addTo(routeLayer);
+      }
+    }
+
     function select(p, open) {
       selectedKey = p ? p.key : null;
       traffic.redraw();
+      drawRoute(p);
       if (!p) { if (popup) map.closePopup(popup); return; }
       if (open) {
         popup = L.popup({ className: 'radar-popup', maxWidth: 300, autoPan: true, offset: [0, -6] }).setLatLng([p.lat, p.lon]).setContent(pilotPopup(p)).openOn(map);
@@ -426,7 +456,7 @@
       follow = false;
       select(p, true);
     }, true);
-    map.on('popupclose', (e) => { if (e.popup === popup) { selectedKey = null; follow = false; traffic.redraw(); } });
+    map.on('popupclose', (e) => { if (e.popup === popup) { selectedKey = null; follow = false; traffic.redraw(); drawRoute(null); } });
     map.on('dragstart', () => { follow = false; });
     map.getContainer().addEventListener('mousemove', (e) => {
       const r = map.getContainer().getBoundingClientRect();
@@ -445,6 +475,7 @@
       const p = allPilots().find((x) => x.key === selectedKey);
       if (!p) return;
       if (popup && map.hasLayer(popup)) { popup.setLatLng([p.lat, p.lon]); popup.setContent(pilotPopup(p)); }
+      drawRoute(p);
       if (follow) map.panTo([p.lat, p.lon], { animate: true });
     }
 

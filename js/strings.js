@@ -564,6 +564,9 @@
     // ------------------------------------------------------------------ meteo nei popup della mappa
     'radar.noAtcHere': ['Nessun controllore online qui.', 'No controller online here.'],
 
+    // ------------------------------------------------------------------ rotta sulla mappa
+    'radar.toGo': ['Mancano', 'To go'],
+
     // ------------------------------------------------------------------ motore readback
     'rb.badSquawk': ['Lo squawk {code} contiene 8 o 9: non è valido, chiedi "say again squawk".', 'Squawk {code} contains an 8 or 9: it is not valid, ask "say again squawk".'],
     'rb.oddQnh': ['QNH {qnh} sembra strano: verifica.', 'QNH {qnh} looks odd: double-check it.'],
