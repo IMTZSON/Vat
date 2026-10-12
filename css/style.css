@@ -700,3 +700,10 @@ body.compact .activity .readback { display: block; -webkit-line-clamp: unset; ov
 body.compact .activity.collapsed .activity-more { display: grid; }
 body.compact #activityToggle { display: none; }
 body.compact .compact-exit { top: auto; bottom: 16px; right: 16px; width: 38px; height: 38px; }
+
+/* OpenStreetMap con lo stile dell'app: più morbida di giorno, scura di notte */
+.map-canvas.tiles-osm .leaflet-tile-pane { filter: saturate(0.72) contrast(0.96) brightness(1.03); }
+@media (prefers-color-scheme: dark) {
+  .map-canvas.tiles-osm .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.86) contrast(0.92) saturate(0.55); }
+}
+.opt { font-style: normal; color: var(--text-3); font-size: 12px; }

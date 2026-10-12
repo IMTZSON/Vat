@@ -28,6 +28,7 @@
     ttsVoice: '',
     ttsRate: 1,
     onTop: false,
+    mapKey: '',
     aircraft: 'A320',
     cabSource: 'auto',
     cabMinutes: 90,

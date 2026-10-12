@@ -1,7 +1,7 @@
 {
   "name": "readback-copilot",
   "productName": "Readback Copilot",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "private": true,
   "description": "Copilota radio per VATSIM: ascolta l'ATC e mostra il readback corretto, allenamento, briefing e frasario.",
   "author": "IMTZSON",

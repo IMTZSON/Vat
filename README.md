@@ -145,4 +145,4 @@ npm run dist     # crea gli .exe (su Windows)
 - Font Inter: SIL Open Font License (`css/fonts/LICENSE-Inter-OFL.txt`)
 - Leaflet: BSD-2 (`js/vendor/LICENSE-leaflet.txt`)
 - Icone Lucide: ISC (`js/vendor/LICENSE-lucide.txt`)
-- Mappe © OpenStreetMap contributors, © CARTO
+- Mappe © OpenStreetMap contributors (opzionale: © MapTiler con chiave personale)

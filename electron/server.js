@@ -39,6 +39,45 @@ function readBody(req) {
   });
 }
 
+// Mappe: OpenStreetMap non richiede chiavi; MapTiler (più curata) solo se l'utente inserisce la sua chiave gratuita.
+// Le tile passano dal server locale per identificarsi correttamente (regole d'uso OSM) e per tenerle in memoria.
+const TILE_CACHE = new Map();
+const TILE_CACHE_MAX = 3000;
+function tileSources(style, key) {
+  const list = [];
+  if (key) list.push({ name: 'maptiler', url: `https://api.maptiler.com/maps/${style === 'dark' ? 'streets-v2-dark' : 'streets-v2'}/256/{z}/{x}/{y}.png?key=${encodeURIComponent(key)}` });
+  list.push({ name: 'osm', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' });
+  return list;
+}
+
+async function serveTile(res, m, key, opts) {
+  const [, style, z, x, y] = m;
+  const zi = Number(z);
+  const max = 2 ** zi;
+  if (zi < 0 || zi > 19 || Number(x) >= max || Number(y) >= max) return send(res, 400, { error: { message: 'Tile non valida' } });
+  for (const src of tileSources(style, key)) {
+    const id = `${src.name}/${style}/${z}/${x}/${y}`;
+    let hit = TILE_CACHE.get(id);
+    if (!hit) {
+      try {
+        const r = await fetch(src.url.replace('{z}', z).replace('{x}', x).replace('{y}', y), {
+          headers: { 'User-Agent': `ReadbackCopilot/${opts.version || 'dev'} (flight simulator companion; https://github.com/IMTZSON/Vat)` },
+        });
+        const type = r.headers.get('content-type') || '';
+        if (!r.ok || !type.startsWith('image/')) continue;
+        hit = { type, body: Buffer.from(await r.arrayBuffer()) };
+        TILE_CACHE.set(id, hit);
+        if (TILE_CACHE.size > TILE_CACHE_MAX) TILE_CACHE.delete(TILE_CACHE.keys().next().value);
+      } catch (e) {
+        continue;
+      }
+    }
+    res.writeHead(200, { 'Content-Type': hit.type, 'Cache-Control': 'max-age=86400', 'X-Tile-Source': src.name });
+    return res.end(hit.body);
+  }
+  return send(res, 502, { error: { message: 'Mappa non raggiungibile' } });
+}
+
 function createHandler(root, opts) {
   const rootDir = path.resolve(root);
   return async function handler(req, res) {
@@ -53,6 +92,9 @@ function createHandler(root, opts) {
     const url = new URL(req.url, `http://127.0.0.1:${port}`);
 
     if (url.pathname === '/api/ping') return send(res, 200, { ok: true, desktop: !!opts.desktop, version: opts.version || '' });
+
+    const tm = url.pathname.match(/^\/api\/tile\/(light|dark)\/(\d{1,2})\/(\d{1,7})\/(\d{1,7})\.png$/);
+    if (tm) return serveTile(res, tm, url.searchParams.get('k') || '', opts);
 
     if (url.pathname === '/api/proxy') {
       let target;
@@ -101,7 +143,7 @@ function start(root, opts) {
   });
 }
 
-module.exports = { start, ALLOWED_HOSTS };
+module.exports = { start, ALLOWED_HOSTS, TILE_CACHE };
 
 if (require.main === module) {
   const pkg = require('../package.json');

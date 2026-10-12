@@ -22,15 +22,26 @@
 
     const dark = () => root.matchMedia && root.matchMedia('(prefers-color-scheme: dark)').matches;
 
+    // OpenStreetMap (senza chiave, con un filtro per lo stile chiaro/scuro dell'app) oppure MapTiler se c'è la chiave
     function setTiles() {
       if (!map) return;
       if (tiles) tiles.remove();
-      tiles = L.tileLayer(`https://{s}.basemaps.cartocdn.com/${dark() ? 'dark_all' : 'rastertiles/voyager'}/{z}/{x}/{y}{r}.png`, {
-        maxZoom: 12,
-        subdomains: 'abcd',
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a>',
+      const style = dark() ? 'dark' : 'light';
+      const key = (App.settings.mapKey || '').trim();
+      let url;
+      if (root.Net.proxy) url = `api/tile/${style}/{z}/{x}/{y}.png${key ? `?k=${encodeURIComponent(key)}` : ''}`;
+      else if (key) url = `https://api.maptiler.com/maps/${style === 'dark' ? 'streets-v2-dark' : 'streets-v2'}/256/{z}/{x}/{y}.png?key=${encodeURIComponent(key)}`;
+      else url = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+      $('map').classList.toggle('tiles-osm', !key);
+      tiles = L.tileLayer(url, {
+        maxZoom: 18,
+        attribution: `${key ? '© <a href="https://www.maptiler.com/copyright/">MapTiler</a> · ' : ''}© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>`,
       }).addTo(map);
+      tiles.on('tileerror', () => {
+        if (key && !tiles._warned) { tiles._warned = true; App.toast('La chiave MapTiler non funziona: controlla in Impostazioni (intanto uso OpenStreetMap).', 6000); }
+      });
     }
+    App.on('setting:mapKey', () => setTiles());
 
     function routePoints() {
       const f = App.flight;
