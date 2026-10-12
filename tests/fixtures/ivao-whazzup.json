@@ -1,0 +1,17 @@
+{
+  "updatedAt": "2026-10-12T21:00:00Z",
+  "servers": [],
+  "clients": {
+    "pilots": [
+      { "callsign": "ITY456", "userId": 123456, "createdAt": "2026-10-12T19:00:00Z",
+        "lastTrack": { "altitude": 35000, "groundSpeed": 452, "heading": 315, "latitude": 44.1, "longitude": 10.2, "onGround": false, "transponder": 4521 },
+        "flightPlan": { "departureId": "LIRF", "arrivalId": "EGLL", "aircraftId": "A20N", "level": "F350", "flightRules": "I", "route": "TAQ6A ...", "aircraft": { "icaoCode": "A20N" } } },
+      { "callsign": "IVA1", "lastTrack": { "altitude": 12, "groundSpeed": 0, "heading": 90, "latitude": 41.8, "longitude": 12.25, "onGround": true } },
+      { "callsign": "BROKEN", "lastTrack": { } }
+    ],
+    "atcs": [
+      { "callsign": "LIRR_CTR", "userId": 99, "atcSession": { "frequency": 125.5, "position": "CTR" }, "atis": { "lines": ["Roma Radar"] } },
+      { "callsign": "LIRF_TWR", "atcSession": { "frequency": 118.7 } }
+    ]
+  }
+}

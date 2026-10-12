@@ -1,0 +1,112 @@
+name: Build Windows
+
+on:
+  push:
+    branches: [main, 'claude/**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # Test veloci su Linux: unitari (motore, verifiche, dati, server) + end-to-end nel browser
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installa dipendenze
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+
+      - name: Test unitari
+        run: npm test
+
+      - name: Browser per i test end-to-end
+        run: npx playwright install --with-deps chromium
+
+      - name: Test end-to-end (onboarding, ascolto, coach, lingue)
+        run: npm run test:e2e
+
+  build:
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installa dipendenze
+        run: npm ci
+
+      # Il numero di build finisce nel programma (avviso di aggiornamento, tag build-N) e nella versione:
+      # 4.0.N cresce a ogni build, così l'aggiornamento automatico riconosce quella più nuova.
+      - name: Numero di build e versione
+        shell: bash
+        run: |
+          npm pkg set buildNumber=${{ github.run_number }}
+          npm pkg set version=$(node -p "require('./package.json').version.split('.').slice(0,2).join('.')").${{ github.run_number }}
+
+      # Firma del codice: si attiva da sola quando i secret WIN_CSC_LINK (certificato .pfx in base64)
+      # e WIN_CSC_KEY_PASSWORD sono configurati nel repository. Senza, l'exe resta non firmato.
+      - name: Crea installer e versione portatile
+        run: npx electron-builder --win --x64 --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+
+      # latest.yml (e il .blockmap per scaricare solo le differenze) servono all'aggiornamento automatico
+      - name: Controlla i file per l'aggiornamento automatico
+        shell: bash
+        run: |
+          ls -la dist
+          test -f dist/latest.yml
+          grep -q "ReadbackCopilot-Setup-" dist/latest.yml
+          cat dist/latest.yml
+
+      - name: Carica gli .exe come artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ReadbackCopilot-Windows
+          path: |
+            dist/*.exe
+            dist/*.blockmap
+            dist/latest.yml
+          if-no-files-found: error
+
+      - name: Pubblica nella pagina Releases
+        if: github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Readback Copilot – build ${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          prerelease: ${{ github.ref_name != 'main' }}
+          files: |
+            dist/*.exe
+            dist/*.blockmap
+            dist/latest.yml
+          body: |
+            **Come installare (Windows 10/11, 64 bit)** · **How to install**
+            - `ReadbackCopilot-Setup-*.exe`: installer con collegamento sul desktop · installer with desktop shortcut.
+            - `ReadbackCopilot-Portable-*.exe`: si avvia senza installazione · runs without installing.
+
+            Se Windows mostra "Windows ha protetto il PC" clicca **Ulteriori informazioni → Esegui comunque**.
+            If Windows shows "Windows protected your PC", click **More info → Run anyway**.
+
+            Commit: ${{ github.sha }} (`${{ github.ref_name }}`)
