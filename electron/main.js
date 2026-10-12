@@ -6,10 +6,12 @@ const { app, BrowserWindow, ipcMain, shell, globalShortcut, session, desktopCapt
 const path = require('path');
 const fs = require('fs');
 const server = require('./server');
+const { Store } = require('./store');
 
 let win = null;
 let origin = '';
 let normalBounds = null;
+let store = null;
 
 const HOTKEYS = {
   'CommandOrControl+Shift+L': 'toggle-listen',
@@ -33,7 +35,8 @@ if (!app.requestSingleInstanceLock()) {
 
 async function init() {
   Menu.setApplicationMenu(null);
-  const { port } = await server.start(path.join(__dirname, '..'), { desktop: true, version: app.getVersion() });
+  store = new Store(path.join(app.getPath('userData'), 'readback-copilot-data.json'));
+  const { port } = await server.start(path.join(__dirname, '..'), { desktop: true, version: app.getVersion(), build: buildInfo(), store });
   origin = `http://127.0.0.1:${port}`;
 
   const ses = session.defaultSession;
@@ -120,7 +123,19 @@ ipcMain.handle('save-text', async (e, { name, text }) => {
   return true;
 });
 
-ipcMain.handle('info', () => ({ version: app.getVersion(), origin }));
+ipcMain.handle('info', () => ({ version: app.getVersion(), origin, build: buildInfo() }));
 
-app.on('will-quit', () => globalShortcut.unregisterAll());
+// Archivio dati su file (vedi store.js)
+ipcMain.handle('store-load', () => ({ data: store.all(), isNew: store.isNew }));
+ipcMain.on('store-set', (e, key, value) => { store.set(String(key), value); });
+ipcMain.handle('store-merge', (e, obj) => store.merge(obj));
+
+function buildInfo() {
+  try { return require('../package.json').buildNumber || null; } catch (e) { return null; }
+}
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
+  try { if (store) store.flush(); } catch (e) { /* ignora */ }
+});
 app.on('window-all-closed', () => app.quit());

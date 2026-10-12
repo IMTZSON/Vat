@@ -91,7 +91,23 @@ function createHandler(root, opts) {
 
     const url = new URL(req.url, `http://127.0.0.1:${port}`);
 
-    if (url.pathname === '/api/ping') return send(res, 200, { ok: true, desktop: !!opts.desktop, version: opts.version || '' });
+    if (url.pathname === '/api/ping') return send(res, 200, { ok: true, desktop: !!opts.desktop, version: opts.version || '', store: !!opts.store });
+
+    // Dati dell'app condivisi con Chrome ("Apri in Chrome" ritrova nominativo e impostazioni).
+    // Scrittura solo con l'intestazione X-Readback-Copilot: una pagina di un altro sito non può
+    // mandarla senza un preflight CORS, che qui non viene mai autorizzato.
+    if (url.pathname === '/api/store' && opts.store) {
+      if (req.method === 'GET') return send(res, 200, { data: opts.store.all() });
+      if (req.method === 'PUT' && req.headers['x-readback-copilot'] === '1') {
+        try {
+          const { key, value } = JSON.parse((await readBody(req)).toString('utf8') || '{}');
+          return opts.store.set(String(key), value) ? send(res, 200, { ok: true }) : send(res, 400, { error: { message: 'Chiave non valida' } });
+        } catch (e) {
+          return send(res, 400, { error: { message: 'JSON non valido' } });
+        }
+      }
+      return send(res, 405, { error: { message: 'Metodo non consentito' } });
+    }
 
     const tm = url.pathname.match(/^\/api\/tile\/(light|dark)\/(\d{1,2})\/(\d{1,7})\/(\d{1,7})\.png$/);
     if (tm) return serveTile(res, tm, url.searchParams.get('k') || '', opts);

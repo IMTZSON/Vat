@@ -10,4 +10,9 @@ contextBridge.exposeInMainWorld('desktop', {
   saveText: (name, text) => ipcRenderer.invoke('save-text', { name: String(name), text: String(text) }),
   onHotkey: (fn) => ipcRenderer.on('hotkey', (_e, name) => fn(String(name))),
   info: () => ipcRenderer.invoke('info'),
+  store: {
+    load: () => ipcRenderer.invoke('store-load'),
+    set: (key, value) => ipcRenderer.send('store-set', String(key), value),
+    merge: (obj) => ipcRenderer.invoke('store-merge', obj),
+  },
 });

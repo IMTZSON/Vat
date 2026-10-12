@@ -36,16 +36,66 @@
     tab: 'listen',
   };
 
-  const storage = {
-    get(key, fallback) {
-      try { const v = localStorage.getItem(key); return v === null ? fallback : JSON.parse(v); } catch (e) { return fallback; }
+  /* Archivio dati. Backend scelto all'avvio (storage.init):
+     - 'file': programma per Windows, file nella cartella dati utente (electron/store.js);
+     - 'server': Chrome aperto dal programma, stesso file tramite il server locale;
+     - 'local': localStorage del browser.
+     Il localStorage resta come copia di sicurezza. Al primo avvio col file si importano i vecchi dati. */
+  const PREFIX = 'readback-copilot';
+  const local = {
+    get(key) { try { const v = localStorage.getItem(key); return v === null ? undefined : JSON.parse(v); } catch (e) { return undefined; } },
+    set(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* storage non disponibile */ } },
+    all() {
+      const out = {};
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith(PREFIX)) { const v = local.get(k); if (v !== undefined && v !== null) out[k] = v; }
+        }
+      } catch (e) { /* storage non disponibile */ }
+      return out;
     },
+  };
+  let cache = null;
+  const copy = (v) => (v === undefined ? v : JSON.parse(JSON.stringify(v)));
+
+  const storage = {
+    backend: 'local',
+
+    async init() {
+      const br = root.desktop && root.desktop.store;
+      try {
+        if (br) {
+          const { data, isNew } = await br.load();
+          cache = data || {};
+          if (isNew) {
+            const old = local.all();
+            if (Object.keys(old).length) { await br.merge(old); cache = { ...old, ...cache }; }
+          }
+          this.backend = 'file';
+        } else if (root.location && /^https?:$/.test(root.location.protocol)) {
+          const r = await fetch('api/store', { cache: 'no-store' });
+          if (r.ok) { cache = (await r.json()).data || {}; this.backend = 'server'; }
+        }
+      } catch (e) { cache = null; this.backend = 'local'; }
+    },
+
+    get(key, fallback) {
+      const v = cache ? copy(cache[key]) : local.get(key);
+      return v === undefined || v === null ? fallback : v;
+    },
+
+    // Restituisce una promessa che si risolve quando il dato è al sicuro
     set(key, value) {
-      try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* storage non disponibile */ }
+      local.set(key, value);
+      if (!cache) return Promise.resolve();
+      cache[key] = copy(value);
+      if (this.backend === 'file') { root.desktop.store.set(key, cache[key]); return Promise.resolve(); }
+      return fetch('api/store', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Readback-Copilot': '1' }, body: JSON.stringify({ key, value }) })
+        .then(() => {}, () => {});
     },
   };
 
-  const stored = storage.get(STORE_KEY, {});
   const listeners = {};
 
   // Ponte col programma per Windows (electron/preload.js); nel browser usa alternative.
@@ -76,10 +126,19 @@
     storage,
     desktop,
     defaults: DEFAULTS,
-    settings: { ...DEFAULTS, ...stored },
-    storedKeys: Object.keys(stored),
-    flight: storage.get('readback-copilot-flight', null),
+    settings: { ...DEFAULTS },
+    storedKeys: [],
+    flight: null,
     modules: [],
+
+    // Carica i dati salvati (prima di start)
+    async load() {
+      await storage.init();
+      const stored = storage.get(STORE_KEY, {});
+      this.settings = { ...DEFAULTS, ...stored };
+      this.storedKeys = Object.keys(stored);
+      this.flight = storage.get('readback-copilot-flight', null);
+    },
 
     save() { storage.set(STORE_KEY, this.settings); },
 
@@ -246,10 +305,10 @@
       if ('speechSynthesis' in root) speechSynthesis.onvoiceschanged = fillVoices;
       $('ttsTest').addEventListener('click', () => root.TTS.speak('Alitalia one two three, descend flight level eight zero, turn left heading two seven zero.'));
 
-      $('resetAll').addEventListener('click', () => {
-        if (!confirm('Ripristinare tutte le impostazioni? (la chiave Groq verrà cancellata)')) return;
-        storage.set(STORE_KEY, {});
-        location.reload();
+      $('resetAll').addEventListener('click', async () => {
+        if (!confirm(this.t('settings.resetConfirm'))) return;
+        await storage.set(STORE_KEY, {});
+        setTimeout(() => location.reload(), 150);
       });
 
       // Scorciatoie da tastiera (nel browser funzionano solo con la finestra attiva)

@@ -40,6 +40,9 @@
     'listen.ignoredNoise': ['Ignorato (rumore, non una chiamata): "{text}"', 'Ignored (noise, not a call): "{text}"'],
     'status.listening': ['In ascolto', 'Listening'],
 
+    // ------------------------------------------------------------------ impostazioni
+    'settings.resetConfirm': ['Ripristinare tutte le impostazioni? (la chiave Groq verrà cancellata)', 'Reset all settings? (your Groq key will be deleted)'],
+
     // ------------------------------------------------------------------ audio
     'audio.noSystemAudio': ['Nessun audio condiviso: scegli "Schermo intero" e spunta "Condividi audio di sistema".', 'No audio shared: pick "Entire screen" and tick "Share system audio".'],
   };
