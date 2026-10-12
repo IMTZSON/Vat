@@ -185,6 +185,32 @@
       return `<div class="radar-pop"><div class="pop-title">${esc(title)}</div>${approx ? `<div class="pop-note">${esc(t('radar.approx'))}</div>` : ''}${rows}</div>`;
     }
 
+    // Meteo nei popup degli aeroporti: segnaposto riempito all'apertura (METAR + prossime ore del TAF)
+    const wxSlot = (icao) => `<div class="pop-wx-slot" data-wx="${esc(icao)}"><span class="muted">${esc(t('flight.updating'))}</span></div>`;
+    // subito sotto il titolo (il primo </div> chiude .pop-title)
+    const withWx = (html, icao) => html.replace('</div>', `</div>${wxSlot(icao)}`);
+    map.on('popupopen', (e) => {
+      const el = e.popup.getElement() && e.popup.getElement().querySelector('[data-wx]');
+      if (!el || !root.AirportWx) return;
+      const icao = el.dataset.wx;
+      root.AirportWx.get(icao).then((info) => {
+        if (!el.isConnected) return;
+        // niente popup.update(): ridisegnerebbe il contenuto originale; il popup cresce verso l'alto da solo
+        el.innerHTML = root.AirportWx.compactHtml(info, root.World.airport(icao));
+        // se crescendo il popup finisce sotto la Live Activity in alto, sposta la mappa
+        const top = e.popup.getElement().getBoundingClientRect().top - map.getContainer().getBoundingClientRect().top;
+        if (top < 130) map.panBy([0, top - 130]);
+      }).catch(() => { el.remove(); });
+    });
+
+    // Popup di un aeroporto qualsiasi (dalla ricerca): nome, controllori online e meteo
+    function airportPopup(ap) {
+      const list = allAtc().filter((c) => c.callsign.startsWith(`${ap.icao}_`));
+      const html = list.length ? atcPopup(list, `${ap.icao} · ${ap.name}`) : `<div class="radar-pop"><div class="pop-title">${esc(`${ap.icao} · ${ap.name}`)}</div><div class="pop-sub">${esc(t('radar.noAtcHere'))}</div></div>`;
+      L.popup({ className: 'radar-popup', maxWidth: 320, autoPanPaddingTopLeft: L.point(20, 130) }).setLatLng([ap.lat, ap.lon]).setContent(withWx(html, ap.icao)).openOn(map);
+      App.emit('airport-open', ap.icao);
+    }
+
     function renderAtc() {
       const o = opts();
       if (!db) return;
@@ -252,7 +278,7 @@
           L.marker([a.center.lat, a.center.lon], {
             pane: 'labels',
             icon: L.divIcon({ className: 'apt-badge', html: `<span class="apt-code">${esc(a.icao)}</span><span class="apt-pos">${letters}</span>`, iconSize: null, iconAnchor: [0, 10] }),
-          }).bindPopup(() => atcPopup(a.list, `${a.icao} · ${a.name}`), { className: 'radar-popup', maxWidth: 320 }).on('popupopen', () => App.emit('airport-open', a.icao)).addTo(airportLayer);
+          }).bindPopup(() => withWx(atcPopup(a.list, `${a.icao} · ${a.name}`), a.icao), { className: 'radar-popup', maxWidth: 320 }).on('popupopen', () => App.emit('airport-open', a.icao)).addTo(airportLayer);
         }
       }
     }
@@ -463,7 +489,7 @@
       if (ap) {
         const li = document.createElement('li');
         li.innerHTML = `${root.Icons.svg('map')}<b>${esc(ap.icao)}</b><span>${esc(ap.name)}</span>`;
-        li.addEventListener('click', () => { map.flyTo([ap.lat, ap.lon], 10, { duration: 0.8 }); App.emit('airport-open', ap.icao); });
+        li.addEventListener('click', () => { map.flyTo([ap.lat, ap.lon], 10, { duration: 0.8 }); map.once('moveend', () => airportPopup(ap)); });
         ol.append(li);
       }
       for (const p of root.Networks.search(allPilots(), q, 6)) {

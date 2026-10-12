@@ -129,7 +129,7 @@
     'settings.map': ['Mappa', 'Map'],
     'settings.mapKey': ['Chiave MapTiler', 'MapTiler key'],
     'settings.optional': ['(opzionale)', '(optional)'],
-    'settings.mapFoot': ['La mappa funziona già senza chiavi (OpenStreetMap). Se vuoi uno stile più curato crea una chiave gratuita su <a href="https://cloud.maptiler.com/account/keys/" target="_blank" rel="noopener">maptiler.com</a> e incollala qui.', 'The map already works without keys (OpenStreetMap). For a nicer style create a free key at <a href="https://cloud.maptiler.com/account/keys/" target="_blank" rel="noopener">maptiler.com</a> and paste it here.'],
+    'settings.mapFoot': ['La mappa di base è inclusa nel programma e funziona anche offline. La mappa <b>dettagliata</b> (strade e città, dal pannello dei livelli) usa OpenStreetMap; per uno stile più curato crea una chiave gratuita su <a href="https://cloud.maptiler.com/account/keys/" target="_blank" rel="noopener">maptiler.com</a> e incollala qui.', 'The base map is built into the app and works offline too. The <b>detailed</b> map (roads and cities, from the layers panel) uses OpenStreetMap; for a nicer style create a free key at <a href="https://cloud.maptiler.com/account/keys/" target="_blank" rel="noopener">maptiler.com</a> and paste it here.'],
     'settings.voice': ['Voce', 'Voice'],
     'settings.englishVoice': ['Voce inglese', 'English voice'],
     'settings.automaticF': ['Automatica', 'Automatic'],
@@ -152,12 +152,12 @@
     'about.privacyTitle': ['Cosa succede ai tuoi dati', 'What happens to your data'],
     'about.p1': ['<b>Sul tuo PC:</b> impostazioni, chiave Groq, storico, logbook e note restano in un file nella tua cartella utente. Nessun account, nessuna statistica d\'uso.', '<b>On your PC:</b> settings, Groq key, history, logbook and notes stay in a file in your user folder. No account, no usage analytics.'],
     'about.p2': ['<b>Groq:</b> solo mentre ascolti, l\'audio di ogni chiamata ATC (e, col coach, del tuo readback) viene inviato a Groq per la trascrizione. Con un server Whisper <b>locale</b> l\'audio non esce dal PC.', '<b>Groq:</b> only while listening, the audio of each ATC call (and, with the coach, of your readback) is sent to Groq for transcription. With a <b>local</b> Whisper server the audio never leaves your PC.'],
-    'about.p3': ['<b>Dati pubblici:</b> feed VATSIM, METAR, SimBrief (solo col tuo nome utente), mappe OpenStreetMap/MapTiler e controllo aggiornamenti su GitHub.', '<b>Public data:</b> VATSIM feed, METAR, SimBrief (only with your username), OpenStreetMap/MapTiler maps and the update check on GitHub.'],
+    'about.p3': ['<b>Dati pubblici:</b> feed VATSIM e IVAO, METAR e TAF (VATSIM, aviationweather.gov), settori di controllo aggiornati da GitHub, SimBrief (solo col tuo nome utente), mappa dettagliata OpenStreetMap/MapTiler se la scegli, controllo aggiornamenti su GitHub.', '<b>Public data:</b> VATSIM and IVAO feeds, METAR and TAF (VATSIM, aviationweather.gov), control sectors refreshed from GitHub, SimBrief (only with your username), OpenStreetMap/MapTiler detailed map if you choose it, update check on GitHub.'],
     'about.creditsTitle': ['Dati e licenze', 'Data and licenses'],
     'about.c1': ['Aeroporti e piste: <b>OurAirports</b> (pubblico dominio).', 'Airports and runways: <b>OurAirports</b> (public domain).'],
     'about.c2': ['Nominativi radio delle compagnie: <b>OpenFlights</b> (ODbL 1.0).', 'Airline radio callsigns: <b>OpenFlights</b> (ODbL 1.0).'],
-    'about.c3': ['Centri di controllo: <b>VATSpy Data Project</b> (CC BY-SA 4.0).', 'Control centres: <b>VATSpy Data Project</b> (CC BY-SA 4.0).'],
-    'about.c4': ['Mappe © OpenStreetMap contributors, Leaflet (BSD-2), icone Lucide (ISC), font Inter (OFL).', 'Maps © OpenStreetMap contributors, Leaflet (BSD-2), Lucide icons (ISC), Inter font (OFL).'],
+    'about.c3': ['Centri di controllo e confini FIR/UIR: <b>VATSpy Data Project</b> (CC BY-SA 4.0); aree di avvicinamento: <b>SimAware TRACON Project</b> (dati della community).', 'Control centres and FIR/UIR boundaries: <b>VATSpy Data Project</b> (CC BY-SA 4.0); approach areas: <b>SimAware TRACON Project</b> (community data).'],
+    'about.c4': ['Mappa di base: <b>Natural Earth</b> (pubblico dominio) tramite world-atlas e topojson-client (ISC); mappa dettagliata © OpenStreetMap contributors. Meteo: METAR di VATSIM, TAF di NOAA aviationweather.gov. Leaflet (BSD-2), icone Lucide (ISC), font Inter (OFL).', 'Base map: <b>Natural Earth</b> (public domain) via world-atlas and topojson-client (ISC); detailed map © OpenStreetMap contributors. Weather: METAR from VATSIM, TAF from NOAA aviationweather.gov. Leaflet (BSD-2), Lucide icons (ISC), Inter font (OFL).'],
     'about.disclaimer': ['Strumento di allenamento per la simulazione di volo: non usarlo per il volo reale. In radio parli sempre tu; nel dubbio chiedi "say again".', 'A training tool for flight simulation: don\'t use it for real-world flying. You always do the talking on the radio; when in doubt, ask "say again".'],
     'tab.flight': ['Volo', 'Flight'],
     'tab.cabin': ['Bordo', 'Cabin'],
@@ -560,6 +560,9 @@
     'taf.cancelled': ['TAF cancellato.', 'TAF cancelled.'],
     'taf.now': ['Adesso', 'Now'],
     'taf.legend': ['Colore: categoria di volo (VFR, MVFR, IFR, LIFR). Il puntino indica un possibile peggioramento temporaneo.', 'Colour: flight category (VFR, MVFR, IFR, LIFR). The dot marks a possible temporary deterioration.'],
+
+    // ------------------------------------------------------------------ meteo nei popup della mappa
+    'radar.noAtcHere': ['Nessun controllore online qui.', 'No controller online here.'],
 
     // ------------------------------------------------------------------ motore readback
     'rb.badSquawk': ['Lo squawk {code} contiene 8 o 9: non è valido, chiedi "say again squawk".', 'Squawk {code} contains an 8 or 9: it is not valid, ask "say again squawk".'],

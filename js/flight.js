@@ -223,30 +223,18 @@
       el.innerHTML = html;
     }
 
-    async function loadAirport(icao) {
-      const info = {};
-      try {
-        const raw = (await root.Net.text(`https://metar.vatsim.net/${icao}`)).trim();
-        if (raw) info.metar = root.Metar.decode(raw.split('\n')[0]);
-        else info.metarError = t('flight.noMetarHere');
-      } catch (e) { info.metarError = t('flight.metarError', { msg: e.message }); }
-      try {
-        const raw = (await root.Net.text(root.Taf.URL(icao))).trim();
-        // la risposta può contenere più TAF o righe a capo: teniamo il primo, su una riga
-        const first = raw.split(/\n(?=TAF\b)/)[0].replace(/\s+/g, ' ');
-        if (first) info.taf = root.Taf.parse(first.startsWith('TAF') ? first : `TAF ${first}`);
-        if (!info.taf) info.tafError = t('taf.none');
-      } catch (e) { info.tafError = t('taf.error', { msg: e.message }); }
+    async function loadAirport(icao, force) {
+      const info = { ...(await root.AirportWx.get(icao, force ? 0 : undefined)) };
       try { info.atc = atcAt(await feed(), icao); } catch (e) { info.atcError = t('flight.vatsimError', { msg: e.message }); }
       return info;
     }
 
-    async function refreshWx() {
+    async function refreshWx(force) {
       const f = App.flight;
       renderSummary();
       if (!f) return;
       $('wxMsg').textContent = t('flight.updating');
-      const [dep, arr] = await Promise.all([loadAirport(f.dep), loadAirport(f.arr)]);
+      const [dep, arr] = await Promise.all([loadAirport(f.dep, force), loadAirport(f.arr, force)]);
       wx = { dep, arr };
       // QNH del METAR, usato dalle verifiche dei readback
       App.wx = { dep: dep.metar && dep.metar.qnh ? dep.metar.qnh.hpa : null, arr: arr.metar && arr.metar.qnh ? arr.metar.qnh.hpa : null, t: Date.now() };
@@ -259,7 +247,7 @@
       renderCalls();
       $('wxMsg').textContent = `${t('flight.updatedAt', { time: root.I18n.time(Date.now()) })}${root.Net.proxy ? '' : ` ${t('flight.browserLimit')}`}`;
     }
-    $('wxRefresh').addEventListener('click', refreshWx);
+    $('wxRefresh').addEventListener('click', () => refreshWx(true));
 
     // ------------------------------------------------------------ le tue chiamate
 

@@ -443,7 +443,7 @@
         <div class="group">
           <label class="row"><span class="row-label"><span data-i18n="settings.mapKey">Chiave MapTiler</span> <em class="opt" data-i18n="settings.optional">(opzionale)</em></span><input id="mapKey" data-setting="mapKey" class="row-input mono" data-i18n-placeholder="settings.notNeeded" placeholder="non serve" autocomplete="off" spellcheck="false"></label>
         </div>
-        <p class="footnote" data-i18n-html="settings.mapFoot">La mappa funziona già senza chiavi (OpenStreetMap). Se vuoi uno stile più curato crea una chiave gratuita su <a href="https://cloud.maptiler.com/account/keys/" target="_blank" rel="noopener">maptiler.com</a> e incollala qui.</p>
+        <p class="footnote" data-i18n-html="settings.mapFoot">La mappa di base è inclusa nel programma e funziona anche offline. La mappa <b>dettagliata</b> (strade e città, dal pannello dei livelli) usa OpenStreetMap; per uno stile più curato crea una chiave gratuita su <a href="https://cloud.maptiler.com/account/keys/" target="_blank" rel="noopener">maptiler.com</a> e incollala qui.</p>
 
         <div class="group-title" data-i18n="settings.voice">Voce</div>
         <div class="group">
@@ -483,7 +483,7 @@
             <li data-i18n-html="about.p1"><b>Sul tuo PC:</b> impostazioni, chiave Groq, storico, logbook e note restano in un file nella tua cartella utente. Nessun account, nessuna statistica d'uso.</li>
             <li data-i18n-html="about.p2"><b>Groq:</b> solo mentre ascolti, l'audio di ogni chiamata ATC (e, col coach, del tuo readback) viene inviato a Groq per la trascrizione. Con un server Whisper <b>locale</b> l'audio non esce dal PC.</li>
             <li data-i18n-html="about.p4"><b>Tasto PTT:</b> se lo imposti, il programma osserva la tastiera solo per riconoscere quel tasto. Nessun altro tasto viene registrato o inviato.</li>
-            <li data-i18n-html="about.p3"><b>Dati pubblici:</b> feed VATSIM, METAR, SimBrief (solo col tuo nome utente), mappe OpenStreetMap/MapTiler e controllo aggiornamenti su GitHub.</li>
+            <li data-i18n-html="about.p3"><b>Dati pubblici:</b> feed VATSIM e IVAO, METAR e TAF (VATSIM, aviationweather.gov), settori di controllo aggiornati da GitHub, SimBrief (solo col tuo nome utente), mappa dettagliata OpenStreetMap/MapTiler se la scegli, controllo aggiornamenti su GitHub.</li>
           </ul>
         </div>
         <div class="card about-card">
@@ -491,8 +491,8 @@
           <ul class="about-list small">
             <li data-i18n-html="about.c1">Aeroporti e piste: <b>OurAirports</b> (pubblico dominio).</li>
             <li data-i18n-html="about.c2">Nominativi radio delle compagnie: <b>OpenFlights</b> (ODbL 1.0).</li>
-            <li data-i18n-html="about.c3">Centri di controllo: <b>VATSpy Data Project</b> (CC BY-SA 4.0).</li>
-            <li data-i18n-html="about.c4">Mappe © OpenStreetMap contributors, Leaflet (BSD-2), icone Lucide (ISC), font Inter (OFL).</li>
+            <li data-i18n-html="about.c3">Centri di controllo e confini FIR/UIR: <b>VATSpy Data Project</b> (CC BY-SA 4.0); aree di avvicinamento: <b>SimAware TRACON Project</b> (dati della community).</li>
+            <li data-i18n-html="about.c4">Mappa di base: <b>Natural Earth</b> (pubblico dominio) tramite world-atlas e topojson-client (ISC); mappa dettagliata © OpenStreetMap contributors. Meteo: METAR di VATSIM, TAF di NOAA aviationweather.gov. Leaflet (BSD-2), icone Lucide (ISC), font Inter (OFL).</li>
           </ul>
           <p class="footnote" data-i18n="about.disclaimer">Strumento di allenamento per la simulazione di volo: non usarlo per il volo reale. In radio parli sempre tu; nel dubbio chiedi "say again".</p>
         </div>
@@ -630,6 +630,7 @@
   <script src="js/stt.js"></script>
   <script src="js/metar.js"></script>
   <script src="js/taf.js"></script>
+  <script src="js/wx.js"></script>
   <script src="js/simbrief.js"></script>
   <script src="js/scenarios.js"></script>
   <script src="js/world.js"></script>

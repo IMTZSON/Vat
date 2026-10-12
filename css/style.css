@@ -532,6 +532,15 @@ select.seg { display: none; }
 .fc-chip.ref { background: color-mix(in srgb, var(--accent) 14%, var(--fill)); outline: 1.5px solid var(--accent); outline-offset: -1.5px; }
 .fcLines li { margin: 4px 0; }
 .fcLines .badge { padding: 1px 6px; font-size: 10.5px; }
+.pop-wx { border-top: 0; padding: 0 0 8px; gap: 6px; border-bottom: 1px solid var(--separator); }
+.pw-now { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; color: var(--text); }
+.pw-now > div { min-width: 0; }
+.pw-now .wx-icon { color: var(--cat); }
+.pw-now .wx-icon .icon { width: 24px; height: 24px; }
+.pw-now b { color: var(--cat); font-weight: 800; }
+.pw-now code.metar { display: block; margin-top: 4px; font-size: 10.5px; white-space: normal; word-break: break-word; }
+.fc-strip.mini .fc-chip { min-width: 50px; padding: 5px 4px 8px; }
+.fc-strip.mini .fc-chip .icon { width: 18px; height: 18px; }
 .fc-legend { font-size: 11px; color: var(--text-3); margin: 6px 0 0; }
 .freqs { display: flex; flex-wrap: wrap; gap: 5px; }
 .freq-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; padding: 4px 8px; border-radius: 9px; background: var(--accent-soft); color: var(--accent); font-weight: 600; }

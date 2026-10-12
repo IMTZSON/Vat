@@ -34,10 +34,17 @@ Il centro è la **mappa** con il tuo volo; sopra, in vetro, il pannello con 5 sc
 - **Coach readback** (opzionale): dopo una chiamata per te ascolta il tuo microfono e ti dice cosa hai dimenticato, con le statistiche di ciò che sbagli più spesso. Con il **tasto PTT di vPilot** impostato (*Impostazioni → Coach readback*) registra esattamente la tua trasmissione, dalla pressione al rilascio; mentre trasmetti compare l'indicatore **TX**.
 - Bip per le chiamate per te, modalità compatta sopra il simulatore, storico esportabile.
 
+### 🗺️ Mappa radar
+- **Mappa di base inclusa** (Natural Earth, dettagliata da vicino): si apre subito e funziona anche senza rete. Mappa dettagliata OpenStreetMap/MapTiler opzionale.
+- **Tutto il traffico di VATSIM e IVAO** dal vivo, con filtri: rete, a terra / in volo / sopra FL245, solo i voli dei tuoi aeroporti, ricerca per nominativo, aeroporto o tipo di aereo. Clic su un aereo: piano di volo, livello, velocità, **Segui**.
+- **Controllori sui settori veri**: i centri (CTR/FSS) colorano il loro **FIR/UIR reale** (confini VATSpy, anche i settori come `LON_S_CTR`), gli avvicinamenti la loro **area TRACON** (SimAware), torri, ground e delivery come lettere **D G T A** sull'aeroporto. Niente cerchi finti: un cerchio tratteggiato compare solo per un APP senza area nei dati, e lo dice.
+- Clic su un aeroporto: controllori online e **meteo con previsione**.
+
 ### ✈️ Volo
-- Mappa con **tracking live** dal feed VATSIM: rotta, scia, fase del volo, livello, GS, NM rimanenti, ETA.
+- **Tracking live** dal feed VATSIM: rotta, scia, fase del volo, livello, GS, NM rimanenti, ETA.
 - Piano da **SimBrief** o a mano, **13.850 aeroporti** con piste in tutto il mondo.
-- **METAR** spiegato in chiaro, **ATC online** con frequenze e ATIS, **le tue chiamate** già compilate con i nomi radio giusti.
+- **Meteo come un'app**: METAR spiegato in chiaro e **previsione TAF** ora per ora (icone, vento, visibilità, colore per categoria VFR/MVFR/IFR/LIFR), con le condizioni previste **alla partenza e all'arrivo** (segue l'ETA del tracking) e i peggioramenti temporanei (TEMPO/PROB) in evidenza.
+- **ATC online** con frequenze e ATIS, **le tue chiamate** già compilate con i nomi radio giusti.
 
 ### 🛒 Bordo · 📋 Cockpit · ⋯ Altro
 - Simulazione del **servizio di bordo** con listino modificabile.
@@ -86,6 +93,8 @@ Pagina statica (`index.html`, `css/`, `js/`, `data/`) dentro una shell Electron 
 |---|---|
 | `js/readback.js` | Motore di readback: normalizzazione, regole ICAO, pronuncia, nominativi |
 | `js/precision.js`, `js/vatsim.js`, `js/world.js` | Verifiche (audio, eco/fantasmi, AI vs regole, dati live), FIR e aeroporti mondiali |
+| `js/sectors.js`, `js/networks.js`, `js/radar.js` | Nominativo → settore reale (FIR/UIR/TRACON), feed VATSIM e IVAO in un formato unico, mappa radar |
+| `js/metar.js`, `js/taf.js`, `js/wx.js` | METAR e TAF decodificati, condizioni a un'ora qualsiasi, icone meteo, cache condivisa |
 | `js/audio.js`, `js/audio-worklet.js` | Cattura (AudioWorklet) e rilevamento voce con soglia adattiva (`createVad`, funzione pura) |
 | `js/groq.js`, `js/stt.js`, `js/tts.js` | Whisper (Groq o server locale), LLM, riconoscimento e sintesi vocale |
 | `js/coach.js`, `js/scenarios.js` | Valutazione dei readback (coach in volo e allenamento) |
@@ -94,12 +103,12 @@ Pagina statica (`index.html`, `css/`, `js/`, `data/`) dentro una shell Electron 
 | `electron/ptt.js`, `electron/updater.js` | Tasto PTT di sistema (uiohook-napi, solo osservazione), aggiornamento automatico (electron-updater) |
 | `js/app.js`, `js/listen.js`, `js/flight.js`, `js/tracking.js`, … | Interfaccia |
 | `electron/main.js`, `electron/store.js`, `electron/server.js` | Finestra, archivio dati su file, server locale (proxy, mappe, archivio per Chrome) |
-| `scripts/build-data.js` | Rigenera `data/world.json` da OurAirports, OpenFlights e VATSpy |
+| `scripts/build-data.js` | Rigenera `data/world.json` e i dati della mappa (confini FIR, TRACON) da OurAirports, OpenFlights, VATSpy e SimAware |
 | `scripts/eval-audio.js` | Misura la precisione sui numeri con registrazioni ATC reali |
 
 ```
 npm install          # dipendenze (Electron, Playwright per i test e2e)
-npm test             # 350+ test unitari (corpus ATC, verifiche, VAD, dati, server, traduzioni)
+npm test             # 380+ test unitari (corpus ATC, verifiche, VAD, settori, reti, TAF, server, traduzioni)
 npm run test:e2e     # l'app vera in Chromium (npx playwright install chromium la prima volta)
 npm start            # avvia il programma
 npm run serve        # solo server: http://127.0.0.1:47800 in Chrome
@@ -115,9 +124,12 @@ node scripts/eval-audio.js cartella   # precisione su audio reali (GROQ_API_KEY 
 ### Licenze di terze parti
 - Aeroporti e piste: [OurAirports](https://ourairports.com/data/) (pubblico dominio)
 - Nominativi radio delle compagnie: [OpenFlights](https://openflights.org/data) (ODbL 1.0) — `data/world.json` → `airlines`
-- Centri di controllo e FIR: [VATSpy Data Project](https://github.com/vatsimnetwork/vatspy-data-project) (CC BY-SA 4.0) — `data/world.json` → `firs`, `firIds`
+- Centri di controllo e FIR: [VATSpy Data Project](https://github.com/vatsimnetwork/vatspy-data-project) (CC BY-SA 4.0) — `data/world.json` → `firs`, `firIds`; `data/vatspy.dat`, `data/fir-boundaries.json`
+- Aree di avvicinamento: [SimAware TRACON Project](https://github.com/vatsimnetwork/simaware-tracon-project) (dati aperti della community) — `data/tracon-boundaries.json`
+- Mappa di base: [Natural Earth](https://www.naturalearthdata.com/) (pubblico dominio) tramite [world-atlas](https://github.com/topojson/world-atlas) (ISC) — `data/basemap*.json`; topojson-client (ISC)
+- Previsioni TAF: [NOAA Aviation Weather Center](https://aviationweather.gov/data/api/) (dati pubblici)
 - Font Inter (SIL OFL), Leaflet (BSD-2), icone Lucide (ISC): vedi `css/fonts/` e `js/vendor/`
-- Mappe © OpenStreetMap contributors (opzionale: © MapTiler con chiave personale)
+- Mappa dettagliata (opzionale) © OpenStreetMap contributors (o © MapTiler con chiave personale)
 
 ---
 
@@ -133,8 +145,10 @@ node scripts/eval-audio.js cartella   # precisione su audio reali (GROQ_API_KEY 
 - **Readback coach** (opt-in): after a call for you it listens to your mic and tells you what you missed, with stats on what you miss most. Set your **vPilot PTT key** and it records exactly your transmission, with a **TX** indicator.
 - **One-click updates**: the installed app downloads new stable versions in the background and offers **"Restart and update"** — never a surprise restart mid-flight.
 - **Speech recognition**: Groq (free key at console.groq.com), a **local Whisper server** (OpenAI-compatible, audio never leaves your PC) or Chrome.
+- **Radar map**: built-in offline base map; **all VATSIM and IVAO traffic** live with filters (network, ground/airborne/above FL245, your airports, search); controllers drawn on their **real sectors** — centres on their actual FIR/UIR (VATSpy), approaches on their TRACON area (SimAware), towers/ground/delivery as **D G T A** letters, no fake circles.
+- **Weather like an app**: decoded METAR plus the **TAF forecast** hour by hour (icons, wind, visibility, colour by flight category), with the conditions expected **at departure and at arrival** (following the tracking ETA) and temporary deteriorations highlighted.
 - **Worldwide data**: 13,850 airports with runways, 860 airline callsigns, VATSIM centre names.
-- Live map tracking, SimBrief, decoded METAR, pre-filled calls, cabin service simulation, A320/737 checklists, CRAFT notes, automatic logbook, training with voice ATC, ICAO phrasebook.
+- Live flight tracking, SimBrief, pre-filled calls, cabin service simulation, A320/737 checklists, CRAFT notes, automatic logbook, training with voice ATC, ICAO phrasebook.
 - Data stays on your PC; see [PRIVACY.md](PRIVACY.md).
 
 **Shortcuts** (work with the simulator in front): `Ctrl+Shift+L` start/stop listening · `Ctrl+Shift+R` repeat the readback · `Ctrl+Shift+O` compact overlay.
