@@ -6,6 +6,8 @@
     const $ = App.$;
     const S = App.settings;
     const { CHECKLISTS } = root.ChecklistsData;
+    const t = App.t;
+    const L = (x) => root.I18n.pick(x);
     const STATE_KEY = 'readback-copilot-checklists';
     const NOTES_KEY = 'readback-copilot-notes';
     let state = App.storage.get(STATE_KEY, {});
@@ -36,8 +38,8 @@
         const b = document.createElement('button');
         const done = checks(cl.id).every(Boolean);
         b.className = `chip${cl.id === selected ? ' active' : ''}${done ? ' done' : ''}`;
-        b.textContent = `${done ? '✓ ' : ''}${cl.title}${cl.id === suggested && cl.id !== selected ? ' •' : ''}`;
-        b.title = cl.id === suggested ? 'Suggerita per la fase del volo' : '';
+        b.textContent = `${done ? '✓ ' : ''}${L(cl.title)}${cl.id === suggested && cl.id !== selected ? ' •' : ''}`;
+        b.title = cl.id === suggested ? t('cockpit.suggested') : '';
         b.addEventListener('click', () => { selected = cl.id; manualAt = Date.now(); render(); });
         box.append(b);
       }
@@ -47,7 +49,7 @@
       const cl = lists().find((x) => x.id === selected) || lists()[0];
       selected = cl.id;
       const c = checks(cl.id);
-      $('clTitle').textContent = cl.title;
+      $('clTitle').textContent = L(cl.title);
       const doneN = c.filter(Boolean).length;
       $('clCount').textContent = `${doneN}/${c.length}`;
       $('clRing').style.strokeDashoffset = String(326.73 * (1 - doneN / c.length));
@@ -58,13 +60,13 @@
         const li = document.createElement('li');
         li.className = c[k] ? 'done' : '';
         li.innerHTML = '<span class="box"></span><span class="item-label"></span><span class="item-value"></span>';
-        li.querySelector('.item-label').textContent = label;
-        li.querySelector('.item-value').textContent = value;
+        li.querySelector('.item-label').textContent = L(label);
+        li.querySelector('.item-value').textContent = L(value);
         li.addEventListener('click', () => {
           c[k] = !c[k];
           save();
           render();
-          if (c.every(Boolean)) App.toast(`Checklist "${cl.title}" completata ✓`);
+          if (c.every(Boolean)) App.toast(t('cockpit.done', { name: L(cl.title) }));
         });
         ul.append(li);
       });
@@ -126,13 +128,13 @@
       if (!isClr) return;
       lastClearance = item;
       // Compila da sola i campi ancora vuoti
-      if (!$('craftC').value && !$('craftT').value) { fillFrom(item); App.toast('Autorizzazione copiata nelle note (Cockpit › Note).'); }
+      if (!$('craftC').value && !$('craftT').value) { fillFrom(item); App.toast(t('cockpit.copied')); }
     });
     $('craftFill').addEventListener('click', () => {
-      if (!lastClearance || !fillFrom(lastClearance)) App.toast('Nessuna autorizzazione sentita finora.');
+      if (!lastClearance || !fillFrom(lastClearance)) App.toast(t('cockpit.noClearance'));
     });
     $('notesClear').addEventListener('click', () => {
-      if (!confirm('Pulire tutte le note e i campi CRAFT?')) return;
+      if (!confirm(t('cockpit.clearConfirm'))) return;
       for (const id of fields) { $(id).value = ''; notes[id] = ''; }
       App.storage.set(NOTES_KEY, notes);
     });

@@ -52,6 +52,12 @@
       return s;
     },
 
+    // Testo di contenuto bilingue: "testo" oppure ["italiano", "inglese"]
+    pick(x) {
+      if (!Array.isArray(x)) return x;
+      return x[LANGS.indexOf(this.lang)] || x[0];
+    },
+
     // Locale per date, ore e valute
     locale() { return this.lang === 'it' ? 'it-IT' : 'en-GB'; },
 

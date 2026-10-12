@@ -54,10 +54,8 @@
     return new Date((now || Date.now()) + (remainingNm / gsKt) * 3600000);
   }
 
-  const PHASES = {
-    parked: 'Al parcheggio', 'taxi-out': 'Rullaggio', takeoff: 'Decollo', climb: 'Salita', cruise: 'Crociera',
-    descent: 'Discesa', approach: 'Avvicinamento', landed: 'Atterrato', 'taxi-in': 'Rullaggio all\'arrivo', arrived: 'Arrivato',
-  };
+  // Fasi del volo (etichette tradotte in strings.js come fphase.<id>)
+  const PHASES = ['parked', 'taxi-out', 'takeoff', 'climb', 'cruise', 'descent', 'approach', 'landed', 'taxi-in', 'arrived'];
   const AIRBORNE = new Set(['takeoff', 'climb', 'cruise', 'descent', 'approach']);
   const BEFORE = new Set([null, undefined, 'parked', 'taxi-out']);
 

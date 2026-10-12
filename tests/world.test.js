@@ -72,3 +72,30 @@ test('build-data: compagnie attive con sigle maiuscole', () => {
   const dat = '1,"KLM Royal Dutch",\\N,"KL","KLM","KLM","Netherlands","Y"\n2,"Old","\\N","","OLD","OLDIE","X","N"\n3,"Easy","\\N","U2","EZY","EASY","UK","Y"\n';
   assert.deepStrictEqual(B.buildAirlines(dat), { EZY: 'Easy', KLM: 'KLM' });
 });
+
+test('FIR delle stazioni VATSIM, anche con prefissi non ICAO', () => {
+  assert.strictEqual(W.firOfStation('LON_S_CTR'), 'EGTT');
+  assert.strictEqual(W.firOfStation('EGLL_N_APP'), 'EGTT');
+  assert.strictEqual(W.firOfStation('NY_CTR'), 'KZNY');
+  assert.strictEqual(W.firOfStation('LIRR_CTR'), 'LIRR');
+  assert.strictEqual(W.firOfStation('XXXX'), null);
+});
+
+test('frequenze del volo: il centro di Londra copre Heathrow (bug del falso avviso)', () => {
+  const V = require('../js/vatsim.js');
+  const data = { controllers: [
+    { callsign: 'LON_S_CTR', facility: 6, frequency: '127.100' },
+    { callsign: 'EGLL_TWR', facility: 4, frequency: '118.500' },
+    { callsign: 'LFFF_CTR', facility: 6, frequency: '128.100' },
+  ], atis: [] };
+  const f = V.frequenciesFor(data, ['EGLL', 'LIRF']).map((x) => x.callsign);
+  assert.ok(f.includes('LON_S_CTR'));
+  assert.ok(f.includes('EGLL_TWR'));
+  assert.ok(!f.includes('LFFF_CTR'), 'Parigi non c\'entra con EGLL-LIRF');
+  const P = require('../js/precision.js');
+  const R = require('../js/readback.js');
+  const cs = R.parseCallsign('BAW123');
+  const t = 'Speedbird 123, contact London Control 127.1';
+  const r = P.check({ transcript: t, rules: R.generateReadback(t, { callsign: cs }), callsign: cs, live: { freqs: V.frequenciesFor(data, ['EGLL', 'LIRF']) } });
+  assert.strictEqual(r.status, 'ok', JSON.stringify(r.reasons));
+});

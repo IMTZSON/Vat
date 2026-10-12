@@ -69,6 +69,18 @@
       return `${place} ${SUFFIX[type] || ''}`.trim();
     },
 
+    // FIR a cui appartiene una stazione VATSIM: LON_S_CTR -> EGTT, EGLL_N_APP -> EGTT, NY_CTR -> KZNY
+    firOfStation(callsign) {
+      const head = String(callsign || '').toUpperCase().split('_').slice(0, -1);
+      if (!head.length || !data) return null;
+      for (let n = head.length; n > 0; n--) {
+        const id = data.firIds && data.firIds[head.slice(0, n).join('_')];
+        if (id) return id;
+      }
+      const ap = this.airport(head[0]) || (/^[A-Z]{3}$/.test(head[0]) ? this.airport(`K${head[0]}`) : null);
+      return ap && ap.fir ? ap.fir : null;
+    },
+
     // Distanza approssimativa per cercare gli aeroporti vicini (gradi, sufficiente per ordinare)
     nearest(lat, lon, n) {
       if (!data) return [];

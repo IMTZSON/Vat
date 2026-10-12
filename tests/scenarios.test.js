@@ -52,7 +52,7 @@ test('volo completo con valori coerenti', () => {
 test('METAR decodificato in italiano', () => {
   const m = Metar.decode('METAR LIRF 111450Z 24012G25KT 210V270 9999 -SHRA FEW030CB BKN045 18/12 Q1013 NOSIG');
   assert.strictEqual(m.station, 'LIRF');
-  assert.deepStrictEqual(m.wind, { dir: 240, speed: 12, gust: 25, unit: 'nodi', varFrom: 210, varTo: 270 });
+  assert.deepStrictEqual(m.wind, { dir: 240, speed: 12, gust: 25, unit: 'kt', varFrom: 210, varTo: 270 });
   assert.strictEqual(m.qnh.hpa, 1013);
   assert.strictEqual(m.temp, 18);
   assert.ok(m.lines.some((l) => l.includes('rovesci di pioggia leggera')));
@@ -66,4 +66,20 @@ test('METAR decodificato in italiano', () => {
   const cavok = Metar.decode('LIMC 111450Z VRB03KT CAVOK 22/10 Q1020');
   assert.ok(cavok.cavok);
   assert.ok(cavok.lines[0].includes('variabile'));
+});
+
+test('METAR decodificato in inglese', () => {
+  const I18n = require('../js/i18n.js');
+  I18n.lang = 'en';
+  try {
+    const m = Metar.decode('METAR LIRF 111450Z 24012G25KT 210V270 9999 -SHRA FEW030CB BKN045 18/12 Q1013 NOSIG');
+    assert.ok(m.lines.some((l) => l === 'Wind: from 240° at 12 kt, gusting 25 (varying between 210° and 270°)'), m.lines.join(' | '));
+    assert.ok(m.lines.some((l) => l.includes('light showers of rain')));
+    assert.ok(m.lines.some((l) => l.includes('cumulonimbus')));
+    assert.ok(m.lines.some((l) => l === 'Trend: no significant change'));
+    const ts = Metar.decode('LIRF 111450Z 24012KT 4000 +TSRA BR SCT020CB 18/17 Q1003');
+    assert.ok(ts.lines.some((l) => l.includes('heavy thunderstorm with rain')), ts.lines.join(' | '));
+  } finally {
+    I18n.lang = 'it';
+  }
 });

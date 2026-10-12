@@ -34,6 +34,12 @@
     cabSource: 'auto',
     cabMinutes: 90,
     tab: 'listen',
+    uiLang: 'auto',
+    sttProvider: 'groq',
+    localSttUrl: '',
+    coach: false,
+    checkUpdates: true,
+    onboarded: false,
   };
 
   /* Archivio dati. Backend scelto all'avvio (storage.init):
@@ -75,7 +81,8 @@
           this.backend = 'file';
         } else if (root.location && /^https?:$/.test(root.location.protocol)) {
           const r = await fetch('api/store', { cache: 'no-store' });
-          if (r.ok) { cache = (await r.json()).data || {}; this.backend = 'server'; }
+          const data = r.ok ? (await r.json()).data : null;
+          if (data) { cache = data; this.backend = 'server'; }
         }
       } catch (e) { cache = null; this.backend = 'local'; }
     },
@@ -138,6 +145,7 @@
       this.settings = { ...DEFAULTS, ...stored };
       this.storedKeys = Object.keys(stored);
       this.flight = storage.get('readback-copilot-flight', null);
+      root.I18n.setLang(this.settings.uiLang);
     },
 
     save() { storage.set(STORE_KEY, this.settings); },
@@ -154,6 +162,13 @@
     register(fn) { this.modules.push(fn); },
 
     t: (k, v) => root.I18n.t(k, v),
+
+    // Il riconoscimento vocale è configurato? (chiave Groq, server locale o modalità Chrome)
+    sttReady() {
+      const s = this.settings;
+      if (s.mode === 'free') return true;
+      return s.sttProvider === 'local' ? !!s.localSttUrl : !!s.groqKey;
+    },
 
     callsignInfo() { return root.Readback.parseCallsign(this.settings.callsign, this.settings.telephony); },
 
@@ -184,11 +199,12 @@
       const parent = view.dataset.parent || null;
       document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('active', b.dataset.tab === (parent || id)));
       document.querySelectorAll('.view').forEach((v) => { v.hidden = v !== view; });
-      $('topTitle').textContent = view.dataset.title || 'Readback Copilot';
+      const titleOf = (v) => (v.dataset.i18nTitleKey ? this.t(v.dataset.i18nTitleKey) : v.dataset.title);
+      $('topTitle').textContent = titleOf(view) || 'Readback Copilot';
       const back = $('backBtn');
       back.hidden = !parent;
       back.dataset.target = parent || '';
-      if (parent) back.querySelector('span').textContent = document.querySelector(`.view[data-view="${parent}"]`).dataset.title;
+      if (parent) back.querySelector('span').textContent = titleOf(document.querySelector(`.view[data-view="${parent}"]`));
       if (this.settings.tab !== id) this.set('tab', id);
       if ($('panelScroll')) $('panelScroll').scrollTop = 0;
       this.emit('tab', id);
@@ -227,19 +243,20 @@
         const inputs = await root.AudioCapture.listInputs();
         for (const id of ['device', 'micDevice']) {
           const sel = $(id);
-          sel.innerHTML = '<option value="">Predefinito</option>';
+          sel.innerHTML = '';
+          sel.append(new Option(this.t('settings.default'), ''));
           for (const d of inputs) {
             if (!d.deviceId || d.deviceId === 'default' || d.deviceId === 'communications') continue;
             const o = document.createElement('option');
             o.value = d.deviceId;
-            o.textContent = d.label || 'Dispositivo senza nome (premi ↻)';
+            o.textContent = d.label || this.t('app.unnamedDevice');
             sel.append(o);
           }
           sel.value = this.settings[id];
           if (sel.value !== this.settings[id]) sel.value = '';
         }
       } catch (e) {
-        this.toast(`Impossibile leggere i dispositivi audio: ${e.message}`);
+        this.toast(this.t('app.devicesError', { msg: e.message }));
       }
     },
 
@@ -260,13 +277,20 @@
       // Pulsante per uscire dalla modalità compatta (la barra in alto è nascosta)
       const exit = document.createElement('button');
       exit.className = 'fab compact-exit glass';
-      exit.title = 'Esci dalla modalità compatta (Ctrl+Shift+O)';
+      exit.title = this.t('app.exitCompact');
       exit.innerHTML = root.Icons.svg('maximize-2');
       exit.addEventListener('click', () => this.setCompact(false));
       document.body.append(exit);
 
       this.bindSettings();
       this.buildSegmented();
+      // Cambio lingua: si ricarica la pagina (tutti i testi si rigenerano nella nuova lingua)
+      this.on('setting:uiLang', () => setTimeout(() => location.reload(), 250));
+      // Groq o server Whisper locale: mostra solo i campi che servono
+      const sttUi = () => document.body.classList.toggle('stt-local', this.settings.sttProvider === 'local');
+      this.on('setting:sttProvider', sttUi);
+      sttUi();
+      document.querySelectorAll('[data-onboard]').forEach((b) => b.addEventListener('click', () => this.emit('onboard')));
       document.querySelectorAll('.tab').forEach((b) => b.addEventListener('click', () => this.switchTab(b.dataset.tab)));
       document.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => this.switchTab(b.dataset.go)));
       document.querySelectorAll('[data-tab-go]').forEach((b) => b.addEventListener('click', () => this.switchTab(b.dataset.tabGo)));
@@ -283,7 +307,7 @@
         if (this.settings[key] === model) return;
         const was = this.settings[key];
         this.set(key, model);
-        if (was) this.toast(`Il modello Groq "${was}" non è più disponibile: ora uso "${model}".`, 6000);
+        if (was) this.toast(this.t('app.modelRetired', { was, model }), 6000);
       };
 
       root.TTS.voiceName = this.settings.ttsVoice;
@@ -292,7 +316,8 @@
       this.on('setting:ttsRate', (v) => { root.TTS.rate = v; });
       const fillVoices = () => {
         const sel = $('ttsVoice');
-        sel.innerHTML = '<option value="">Automatica</option>';
+        sel.innerHTML = '';
+        sel.append(new Option(this.t('settings.automaticF'), ''));
         for (const v of root.TTS.voices()) {
           const o = document.createElement('option');
           o.value = v.name;
@@ -323,8 +348,9 @@
       const info = await desktop.info();
       if (info) {
         document.body.classList.add('is-desktop');
-        $('desktopInfo').textContent = `Programma per Windows, versione ${info.version}. Le scorciatoie funzionano anche con il simulatore in primo piano.`;
-        $('aboutLine').textContent = `Readback Copilot ${info.version} · programma per Windows`;
+        $('desktopInfo').textContent = this.t('app.desktopInfo', { version: info.version });
+        $('aboutLine').textContent = this.t('app.aboutLine', { version: info.version + (info.build ? ` (build ${info.build})` : '') });
+        this.version = info;
       }
 
       for (const init of this.modules) {
@@ -333,11 +359,13 @@
 
       // Card di benvenuto: 3 passi, sparisce quando sono fatti
       const welcome = () => {
-        const steps = [!!this.callsignInfo(), !!this.settings.groqKey, !!this.flight];
+        const s = this.settings;
+        const sttDone = s.mode === 'free' ? !!s.onboarded : this.sttReady();
+        const steps = [!!this.callsignInfo(), sttDone, !!this.flight];
         steps.forEach((ok, k) => $(`wStep${k + 1}`).classList.toggle('done', ok));
         $('welcome').hidden = steps.every(Boolean);
       };
-      for (const k of ['callsign', 'telephony', 'groqKey']) this.on(`setting:${k}`, welcome);
+      for (const k of ['callsign', 'telephony', 'groqKey', 'sttProvider', 'localSttUrl', 'mode', 'onboarded']) this.on(`setting:${k}`, welcome);
       this.on('flight', welcome);
       welcome();
       if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) this.refreshDevices(false);

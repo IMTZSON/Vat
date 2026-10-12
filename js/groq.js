@@ -14,22 +14,36 @@
 
   const Groq = { onModelChange: null };
   const picked = {};
+  const tr = (k, v) => (root.I18n ? root.I18n.t(k, v) : k);
 
-  async function call(path, key, init) {
+  // Indirizzo di un server compatibile OpenAI: "http://127.0.0.1:8080" -> "http://127.0.0.1:8080/v1"
+  function normalizeBase(url) {
+    let u = String(url || '').trim().replace(/\/+$/, '');
+    if (!u) return '';
+    if (!/^https?:\/\//i.test(u)) u = `http://${u}`;
+    u = u.replace(/\/audio\/transcriptions$/, '');
+    if (!/\/v\d+$/.test(u)) u += '/v1';
+    return u;
+  }
+
+  async function call(path, key, init, base) {
     let res;
-    const opts = { ...init, headers: { Authorization: `Bearer ${key}`, ...(init.headers || {}) } };
+    const url = (base || BASE) + path;
+    const headers = { ...(init.headers || {}) };
+    if (key) headers.Authorization = `Bearer ${key}`;
+    const opts = { ...init, headers };
     try {
-      res = root.Net ? await root.Net.fetch(BASE + path, opts) : await fetch(BASE + path, opts);
+      res = root.Net ? await root.Net.fetch(url, opts) : await fetch(url, opts);
     } catch (e) {
-      throw new Error('Impossibile contattare Groq (connessione assente o bloccata).');
+      throw new Error(base ? tr('groq.localUnreachable', { url: base }) : tr('groq.unreachable'));
     }
     if (!res.ok) {
       let detail = '';
       let code = '';
       try { const j = await res.json(); detail = j.error.message || ''; code = j.error.code || ''; } catch (e) { /* risposta non JSON */ }
       let msg = `${res.status} ${detail}`.trim();
-      if (res.status === 401) msg = 'Chiave Groq non valida (401).';
-      if (res.status === 429) msg = 'Limite gratuito Groq raggiunto (429): aspetta un minuto.';
+      if (res.status === 401) msg = tr('groq.badKey');
+      if (res.status === 429) msg = tr('groq.rateLimit');
       const err = new Error(msg);
       err.status = res.status;
       err.modelMissing = res.status === 404 || code === 'model_not_found' || code === 'model_decommissioned' || /model.*(does not exist|decommissioned|not found|not supported)/i.test(detail);
@@ -39,8 +53,8 @@
     return res.json();
   }
 
-  async function listModels(key) {
-    const data = await call('/models', key, { method: 'GET' });
+  async function listModels(key, base) {
+    const data = await call('/models', key, { method: 'GET' }, normalizeBase(base));
     return (data.data || []).filter((m) => m.active !== false).map((m) => m.id).sort();
   }
 
@@ -52,7 +66,7 @@
     let model = null;
     for (const re of prefs) { model = pool.find((m) => re.test(m)); if (model) break; }
     model = model || pool[0];
-    if (!model) throw new Error(kind === 'stt' ? 'Nessun modello Whisper disponibile sul tuo account Groq.' : 'Nessun modello AI disponibile sul tuo account Groq.');
+    if (!model) throw new Error(kind === 'stt' ? tr('groq.noWhisper') : tr('groq.noChat'));
     picked[kind] = model;
     if (Groq.onModelChange) Groq.onModelChange(kind, model);
     return model;
@@ -92,8 +106,12 @@
 
   // Restituisce { text, segments } (segments con avg_logprob ecc. per valutare la qualità).
   // context: nominativo e nomi delle stazioni del volo, per aiutare Whisper (mai numeri).
-  function transcribe(wavBlob, { key, model, callsign, context }) {
-    return withModel(key, 'stt', model, async (m) => {
+  // base: server Whisper locale (compatibile OpenAI). Lì non si interroga /models: si usa il modello
+  // indicato o "whisper-1", che whisper.cpp ignora e gli altri server mappano sul loro predefinito.
+  function transcribe(wavBlob, { key, model, callsign, context, base }) {
+    const local = normalizeBase(base);
+    const run = local ? (fn) => fn(model || 'whisper-1') : (fn) => withModel(key, 'stt', model, fn);
+    return run(async (m) => {
       const send = async (format) => {
         const form = new FormData();
         form.append('file', wavBlob, 'atc.wav');
@@ -102,13 +120,13 @@
         form.append('temperature', '0');
         form.append('response_format', format);
         form.append('prompt', buildPrompt(callsign, context));
-        return call('/audio/transcriptions', key, { method: 'POST', body: form });
+        return call('/audio/transcriptions', key, { method: 'POST', body: form }, local);
       };
       let data;
       try {
         data = await send('verbose_json');
       } catch (e) {
-        if (e.status !== 400 || e.modelMissing) throw e;
+        if (e.status !== 400 || (e.modelMissing && !local)) throw e;
         data = await send('json');
       }
       return { text: (data.text || '').trim(), segments: Array.isArray(data.segments) ? data.segments : [] };
@@ -134,7 +152,7 @@ Answer ONLY with JSON: {"for_us": boolean, "readback": string, "spoken": string 
   function parseJson(text) {
     try { return JSON.parse(text); } catch (e) { /* cerca il primo oggetto JSON nel testo */ }
     const m = String(text || '').match(/\{[\s\S]*\}/);
-    if (!m) throw new Error('Risposta AI non valida.');
+    if (!m) throw new Error(tr('groq.badAi'));
     return JSON.parse(m[0]);
   }
 
@@ -160,7 +178,7 @@ Answer ONLY with JSON: {"for_us": boolean, "readback": string, "spoken": string 
       }
       const text = data.choices && data.choices[0] && data.choices[0].message.content;
       const out = parseJson(text);
-      if (!out.readback) throw new Error('Risposta AI vuota.');
+      if (!out.readback) throw new Error(tr('groq.emptyAi'));
       const noPlaceholder = (x) => String(x || '').replace(/,?\s*\(?\b(unknown|not set|callsign)\b\)?\.?\s*$/i, '').trim();
       out.readback = noPlaceholder(out.readback);
       out.spoken = noPlaceholder(out.spoken);
@@ -169,6 +187,6 @@ Answer ONLY with JSON: {"for_us": boolean, "readback": string, "spoken": string 
     });
   }
 
-  Object.assign(Groq, { transcribe, readback, listModels, pickModel, buildPrompt, VOCAB });
+  Object.assign(Groq, { transcribe, readback, listModels, pickModel, buildPrompt, normalizeBase, VOCAB });
   root.Groq = Groq;
 })(this);

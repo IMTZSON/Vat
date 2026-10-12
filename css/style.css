@@ -707,3 +707,119 @@ body.compact .compact-exit { top: auto; bottom: 16px; right: 16px; width: 38px; 
   .map-canvas.tiles-osm .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.86) contrast(0.92) saturate(0.55); }
 }
 .opt { font-style: normal; color: var(--text-3); font-size: 12px; }
+
+/* ================================================================== 4.0: nuovi componenti */
+
+/* Groq o server Whisper locale: solo i campi che servono */
+body.stt-local .groq-only { display: none !important; }
+body:not(.stt-local) .local-only { display: none !important; }
+
+/* Righe impostazioni con sottotitolo, icone colorate */
+.row-label small.row-sub { display: block; font-size: 12px; color: var(--text-2); margin-top: 2px; line-height: 1.35; }
+.row-icon.green { background: var(--green); }
+.row-icon.gray { background: var(--text-3); }
+
+/* Soglia automatica accanto al livello */
+.meter-auto { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 650; color: var(--text-2); cursor: pointer; white-space: nowrap; }
+.meter-auto input { accent-color: var(--accent); margin: 0; }
+.meter-th.auto { background: repeating-linear-gradient(to bottom, var(--orange) 0 2px, transparent 2px 4px); transition: left 0.3s; }
+.meter-label input:disabled { opacity: 0.35; }
+
+/* Avviso di aggiornamento */
+.update-banner {
+  position: fixed; z-index: 30; right: var(--gap); top: var(--gap);
+  display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; border-radius: 999px;
+  font-size: 13.5px; font-weight: 600; max-width: min(420px, calc(100% - 2 * var(--gap))); animation: view-in 0.35s ease-out;
+}
+.update-banner > .icon { color: var(--accent); }
+.update-banner span { flex: 1; min-width: 0; }
+
+/* Coach: il tuo readback sotto quello corretto */
+.coach-out { border-top: 1px solid var(--separator); padding-top: 8px; display: grid; gap: 6px; font-size: 13.5px; }
+.coach-said { margin: 0; color: var(--text); }
+.coach-said .eyebrow { margin-right: 6px; }
+.coach-missed { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.coach-missed li { display: flex; gap: 8px; align-items: baseline; color: var(--red); font-weight: 600; }
+.coach-missed li::before { content: '✕'; font-size: 11px; }
+.coach-ok { margin: 0; color: var(--green); font-weight: 650; }
+.coach-weak { margin: 10px 2px 0; }
+body.compact .coach-out { border-color: rgba(255, 255, 255, 0.12); }
+body.compact .coach-said { color: rgba(255, 255, 255, 0.85); }
+
+/* Privacy e informazioni */
+.about-card h3 { font-size: 17px; font-weight: 740; letter-spacing: -0.01em; margin-bottom: 8px; }
+.about-list { margin: 0; padding-left: 18px; display: grid; gap: 8px; font-size: 14px; color: var(--text); }
+.about-list.small { font-size: 13px; color: var(--text-2); }
+
+/* ================================================================== configurazione guidata */
+.onboard { width: min(560px, 94vw); max-height: min(760px, 92vh); padding: 0; flex-direction: column; overflow: hidden; background: var(--glass-strong); }
+.onboard[open] { display: flex; }
+.ob-progress { height: 4px; background: var(--fill); flex: none; }
+.ob-progress span { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 60%, var(--green))); border-radius: 0 2px 2px 0; transition: width 0.45s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.ob-close { position: absolute; top: 14px; right: 14px; z-index: 2; }
+.ob-step { padding: 34px 32px 8px; overflow-y: auto; flex: 1; display: grid; align-content: start; gap: 14px; animation: view-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.ob-step h2 { font-size: 26px; font-weight: 780; letter-spacing: -0.03em; line-height: 1.15; padding-right: 30px; }
+.ob-lead { margin: -4px 0 4px; color: var(--text-2); font-size: 15px; }
+.ob-hero { width: 84px; height: 84px; border-radius: 24px; display: grid; place-items: center; box-shadow: 0 14px 34px var(--accent-glow); overflow: hidden; }
+.ob-hero img { width: 100%; height: 100%; display: block; }
+.ob-hero.done { background: var(--green); color: #fff; box-shadow: 0 14px 34px rgba(22, 163, 74, 0.35); border-radius: 50%; }
+.ob-hero.done .icon { width: 42px; height: 42px; stroke-width: 3; }
+.ob-field { display: grid; gap: 8px; }
+.ob-field > span { font-size: 12px; font-weight: 700; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.05em; }
+.ob-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ob-choices button, .ob-card {
+  position: relative; text-align: left; border: 1.5px solid var(--card-edge); background: var(--surface); color: var(--text);
+  border-radius: 18px; padding: 14px 16px; font: 650 15px var(--font); cursor: pointer; transition: border-color 0.15s, background 0.15s, transform 0.15s;
+}
+.ob-choices button:hover, .ob-card:hover { border-color: color-mix(in srgb, var(--accent) 45%, transparent); transform: translateY(-1px); }
+.ob-choices button.active, .ob-card.active { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 3px var(--accent-soft); }
+.ob-cards { display: grid; gap: 10px; }
+.ob-cards.two { grid-template-columns: 1fr 1fr; }
+.ob-card { display: grid; gap: 4px; }
+.ob-card b { display: flex; align-items: center; gap: 8px; font-size: 15.5px; }
+.ob-card span:not(.badge) { font-size: 13px; font-weight: 450; color: var(--text-2); }
+.ob-card.active::after { content: '✓'; position: absolute; top: 12px; right: 14px; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px; font-weight: 800; display: grid; place-items: center; }
+.ob-input {
+  width: 100%; border: 0; border-radius: var(--r-ctl); background: var(--fill); color: var(--text); padding: 14px 16px;
+  font: 600 17px var(--font); outline: none; transition: box-shadow 0.15s, background 0.15s;
+}
+.ob-input:focus { box-shadow: 0 0 0 3px var(--accent-soft); background: var(--surface-solid); }
+.ob-input.mono { font-family: var(--mono); letter-spacing: 0.06em; }
+#obCallsign { font-size: 26px; text-transform: uppercase; text-align: center; padding: 16px; letter-spacing: 0.12em; }
+.ob-input.small { font-size: 15px; font-weight: 500; }
+select.ob-input { appearance: none; font-size: 15px; cursor: pointer; }
+.ob-hint { margin: 0; font-size: 13.5px; color: var(--text-2); min-height: 1.3em; }
+.ob-hint.good { color: var(--green); font-weight: 600; }
+.ob-hint.bad { color: var(--red); font-weight: 600; }
+.ob-box { background: var(--fill); border-radius: 18px; padding: 14px; display: grid; gap: 10px; }
+.ob-steps { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 14px; }
+.ob-row { display: flex; gap: 8px; align-items: center; }
+.ob-row .ob-input { flex: 1; min-width: 0; }
+.ob-row .ob-input.mono { font-size: 15px; }
+.ob-meter { display: flex; align-items: center; gap: 12px; }
+.ob-meter-track { position: relative; flex: 1; height: 12px; border-radius: 6px; background: var(--fill-2); overflow: hidden; }
+.ob-meter-bar { height: 100%; width: 0; border-radius: 6px; background: var(--text-3); transition: width 0.08s linear; }
+.ob-meter-bar.on { background: var(--green); }
+.ob-meter-th { position: absolute; top: 0; bottom: 0; width: 2px; left: 13%; background: var(--orange); transition: left 0.3s; }
+#obAudioTest.recording { background: var(--red); color: #fff; }
+.ob-summary { list-style: none; margin: 4px 0; padding: 0; display: grid; gap: 2px; background: var(--surface); border: 1px solid var(--card-edge); border-radius: 18px; overflow: hidden; }
+.ob-summary li { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 12px 14px; font-size: 14px; }
+.ob-summary li + li { border-top: 1px solid var(--separator); }
+.ob-summary .icon { color: var(--accent); }
+.ob-summary span { color: var(--text-2); }
+.ob-summary b { text-align: right; font-weight: 650; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ob-foot { display: flex; align-items: center; gap: 12px; padding: 16px 24px 22px; flex: none; }
+.ob-foot .btn { min-width: 112px; }
+.ob-foot #obNext { margin-left: auto; }
+.ob-dots { display: flex; gap: 6px; flex: 1; justify-content: center; }
+.ob-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--fill-2); transition: all 0.3s; }
+.ob-dots i.past { background: color-mix(in srgb, var(--accent) 45%, transparent); }
+.ob-dots i.on { width: 22px; border-radius: 4px; background: var(--accent); }
+@media (max-width: 899px) {
+  .ob-step { padding: 28px 20px 6px; }
+  .ob-step h2 { font-size: 23px; }
+  .ob-cards.two, .ob-choices { grid-template-columns: 1fr; }
+  .ob-foot { padding: 12px 16px 18px; }
+  .ob-foot .btn { min-width: 0; }
+  .update-banner { top: auto; bottom: 96px; left: var(--gap); }
+}

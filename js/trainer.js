@@ -6,6 +6,8 @@
     const $ = App.$;
     const S = App.settings;
     const Sc = root.Scenarios;
+    const t = App.t;
+    const icoText = (icon, text) => { const sp = document.createElement('span'); sp.textContent = text; return `${root.Icons.svg(icon)} ${sp.innerHTML}`; };
     const STATS_KEY = 'readback-copilot-stats';
     let stats = App.storage.get(STATS_KEY, null) || { total: 0, sum: 0, perfect: 0, streak: 0, bestStreak: 0, byPhase: {} };
     let cur = null;
@@ -43,7 +45,7 @@
       const el = $('trainAtc');
       el.textContent = cur.atc;
       el.classList.toggle('hiddenText', !show);
-      $('trainReveal').innerHTML = show ? `${root.Icons.svg('eye-off')} Nascondi testo` : `${root.Icons.svg('eye')} Mostra testo`;
+      $('trainReveal').innerHTML = show ? icoText('eye-off', t('train.hide')) : icoText('eye', t('train.reveal'));
       el.dataset.shown = show ? '1' : '';
     }
 
@@ -56,37 +58,37 @@
           stepIdx = 0;
         }
         cur = flightSteps[stepIdx++];
-        $('trainStep').textContent = `Passo ${stepIdx}/${flightSteps.length}`;
+        $('trainStep').textContent = t('train.step', { n: stepIdx, total: flightSteps.length });
       } else {
         cur = Sc.generate(phase, { ...flightOpts(), difficulty: S.trainDifficulty });
         $('trainStep').textContent = '';
       }
       answered = false;
-      $('trainStation').innerHTML = `${root.Icons.svg('radio')} ${cur.station}`;
+      $('trainStation').innerHTML = icoText('radio', cur.station);
       $('trainStation').className = 'badge ai';
       showAtcText(!!S.trainShowText);
       $('trainResult').hidden = true;
       $('trainInput').value = '';
       $('trainLive').textContent = '';
       setEnabled(true);
-      $('trainNext').innerHTML = `${root.Icons.svg('play')} Prossima istruzione`;
+      $('trainNext').innerHTML = icoText('play', t('train.nextInstr'));
       root.TTS.speak(cur.atcSpoken);
     }
 
     function cancelSession() {
       if (session) { try { session.cancel(); } catch (e) { /* ignora */ } session = null; }
       $('trainMic').classList.remove('recording');
-      $('trainMic').innerHTML = `${root.Icons.svg('mic')} Parla`;
+      $('trainMic').innerHTML = icoText('mic', t('train.talk'));
     }
 
     async function micStart() {
       if (!cur || session) return;
       root.TTS.stop();
       try {
-        session = await root.STT.start(S, (txt) => { $('trainLive').textContent = `Sto sentendo: ${txt}`; });
+        session = await root.STT.start(S, (txt) => { $('trainLive').textContent = t('listen.hearing', { text: txt }); });
         $('trainMic').classList.add('recording');
-        $('trainMic').innerHTML = `${root.Icons.svg('square')} Fine`;
-        $('trainLive').textContent = 'Parla ora…';
+        $('trainMic').innerHTML = icoText('square', t('train.done'));
+        $('trainLive').textContent = t('train.speakNow');
       } catch (e) {
         session = null;
         $('trainLive').textContent = e.message;
@@ -98,11 +100,11 @@
       const s = session;
       session = null;
       $('trainMic').classList.remove('recording');
-      $('trainMic').innerHTML = `${root.Icons.svg('mic')} Parla`;
-      $('trainLive').textContent = 'Riconosco…';
+      $('trainMic').innerHTML = icoText('mic', t('train.talk'));
+      $('trainLive').textContent = t('train.recognizing');
       try {
         const text = await s.stop();
-        if (!text) { $('trainLive').textContent = 'Non ho sentito niente: riprova (parla dopo aver premuto 🎤).'; return; }
+        if (!text) { $('trainLive').textContent = t('train.heardNothing'); return; }
         $('trainLive').textContent = '';
         $('trainInput').value = text;
         evaluate(text);
@@ -124,7 +126,7 @@
       for (const it of res.items) {
         const li = document.createElement('li');
         li.className = it.ok ? 'ok' : 'no';
-        li.textContent = `${it.ok ? '✅' : '❌'} ${it.label}: ${it.expected}${!it.ok && it.missing.length ? ` (mancava: ${it.missing.join(', ')})` : ''}`;
+        li.textContent = `${it.ok ? '✅' : '❌'} ${it.label}: ${it.expected}${!it.ok && it.missing.length ? ` (${t('train.missing', { list: it.missing.join(', ') })})` : ''}`;
         ul.append(li);
       }
       $('trainCorrect').textContent = cur.expected.readback;
@@ -143,24 +145,24 @@
         App.storage.set(STATS_KEY, stats);
         renderStats();
       }
-      if (res.perfect) App.toast('Perfetto! 👏');
+      if (res.perfect) App.toast(t('train.perfect'));
     }
 
     function renderStats() {
       const el = $('trainStats');
-      if (!stats.total) { el.innerHTML = '<p class="hint">Ancora nessun esercizio. Inizia con "Nuova istruzione"!</p>'; return; }
+      if (!stats.total) { el.innerHTML = ''; const p = document.createElement('p'); p.className = 'hint'; p.textContent = t('train.noStats'); el.append(p); return; }
       const avg = Math.round(stats.sum / stats.total);
-      const label = (id) => (Sc.PHASES.find((p) => p.id === id) || { label: id }).label.split(' –')[0];
+      const label = (id) => (Sc.PHASES.find((p) => p.id === id) || { label: id }).label.split(' –')[0].split(' (')[0];
       const rows = Object.entries(stats.byPhase).map(([id, p]) => {
         const v = Math.round(p.sum / p.n);
         return `<div class="statRow"><span>${label(id)}</span><div class="bar"><div style="width:${v}%"></div></div><b>${v}%</b><span class="hint">${p.n}</span></div>`;
       }).join('');
       el.innerHTML = `
         <div class="kpis">
-          <div><b>${stats.total}</b><span>esercizi</span></div>
-          <div><b>${avg}%</b><span>media</span></div>
-          <div><b>${stats.perfect}</b><span>perfetti</span></div>
-          <div><b>${stats.bestStreak}</b><span>record di fila</span></div>
+          <div><b>${stats.total}</b><span>${t('train.kpiTotal')}</span></div>
+          <div><b>${avg}%</b><span>${t('train.kpiAvg')}</span></div>
+          <div><b>${stats.perfect}</b><span>${t('train.kpiPerfect')}</span></div>
+          <div><b>${stats.bestStreak}</b><span>${t('train.kpiStreak')}</span></div>
         </div>
         <div class="statRows">${rows}</div>`;
     }
@@ -180,7 +182,7 @@
       root.TTS.speak(cur.atcSpoken);
     });
     $('trainResetStats').addEventListener('click', () => {
-      if (!confirm('Azzerare i progressi?')) return;
+      if (!confirm(t('train.resetConfirm'))) return;
       stats = { total: 0, sum: 0, perfect: 0, streak: 0, bestStreak: 0, byPhase: {} };
       App.storage.set(STATS_KEY, stats);
       renderStats();

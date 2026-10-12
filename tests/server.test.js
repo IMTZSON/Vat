@@ -57,3 +57,42 @@ test('tile della mappa: OSM senza chiave, MapTiler con chiave, ripiego e cache',
   r = await get(port, '/api/tile/light/5/17/11.png', { host: 'evil.com' });
   assert.strictEqual(r.status, 403);
 });
+
+function request(port, p, headers) {
+  return new Promise((resolve, reject) => {
+    http.get({ host: '127.0.0.1', port, path: p, headers: { host: `127.0.0.1:${port}`, ...(headers || {}) } }, (res) => {
+      const chunks = [];
+      res.on('data', (c) => chunks.push(c));
+      res.on('end', () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString() }));
+    }).on('error', reject);
+  });
+}
+
+test('proxy: solo dall\'app (intestazione dedicata), solo destinazioni consentite', async (t) => {
+  const seen = [];
+  const prev = global.fetch;
+  global.fetch = async (url) => { seen.push(String(url)); return new Response('{"ok":true}', { status: 200, headers: { 'content-type': 'application/json' } }); };
+  const { server: srv, port } = await server.start(path.join(__dirname, '..'), { version: 'test', ports: [0] });
+  t.after(() => { srv.close(); global.fetch = prev; });
+  const q = (u) => `/api/proxy?url=${encodeURIComponent(u)}`;
+  const H = { 'x-readback-copilot': '1' };
+
+  assert.strictEqual((await request(port, q('https://data.vatsim.net/v3/vatsim-data.json'))).status, 403, 'senza intestazione');
+  assert.strictEqual((await request(port, q('https://data.vatsim.net/v3/vatsim-data.json'), { ...H, 'sec-fetch-site': 'cross-site' })).status, 403, 'da un altro sito');
+  assert.strictEqual((await request(port, q('https://data.vatsim.net/v3/vatsim-data.json'), H)).status, 200);
+  assert.strictEqual((await request(port, q('https://api.github.com/repos/IMTZSON/Vat/releases'), { ...H, 'sec-fetch-site': 'same-origin' })).status, 200);
+  assert.strictEqual((await request(port, q('https://evil.example/x'), H)).status, 403);
+  assert.strictEqual((await request(port, q('http://data.vatsim.net/x'), H)).status, 403, 'host pubblici solo in https');
+  // Server Whisper locale: sul PC o nella rete di casa
+  assert.strictEqual((await request(port, q('http://127.0.0.1:8080/v1/models'), H)).status, 200);
+  assert.strictEqual((await request(port, q('http://192.168.1.20:9000/v1/models'), H)).status, 200);
+  assert.strictEqual((await request(port, q('http://8.8.8.8/v1/models'), H)).status, 403);
+  assert.strictEqual((await request(port, q('file:///etc/passwd'), H)).status, 403);
+  assert.ok(seen.some((u) => u.startsWith('http://127.0.0.1:8080/')));
+  assert.ok(!seen.some((u) => u.includes('evil') || u.includes('8.8.8.8')));
+});
+
+test('indirizzi privati riconosciuti', () => {
+  for (const h of ['localhost', '127.0.0.1', '10.0.0.5', '192.168.0.10', '172.16.0.1', '172.31.255.1', '[::1]']) assert.ok(server.isPrivateHost(h), h);
+  for (const h of ['8.8.8.8', '172.32.0.1', 'example.com', '192.169.0.1', '']) assert.ok(!server.isPrivateHost(h), h);
+});

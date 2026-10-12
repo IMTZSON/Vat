@@ -125,6 +125,17 @@ function buildFirs(dat) {
   return Object.fromEntries(Object.keys(firs).sort().map((k) => [k, firs[k]]));
 }
 
+// Prefisso del nominativo VATSIM -> FIR di appartenenza (LON_S -> EGTT, NY -> KZNY), per sapere
+// quali centri controllano gli aeroporti del volo anche quando il nominativo non inizia con l'ICAO.
+function buildFirIds(dat) {
+  const out = {};
+  for (const [icao, , prefix, boundary] of vatspySection(dat, 'FIRs')) {
+    const fir = String(boundary || icao || '').trim().toUpperCase().split('-')[0];
+    for (const key of [String(prefix || '').trim().toUpperCase(), String(icao || '').trim().toUpperCase()]) if (key && fir && !out[key]) out[key] = fir;
+  }
+  return Object.fromEntries(Object.keys(out).sort().map((k) => [k, out[k]]));
+}
+
 async function main() {
   const dir = path.resolve(process.argv[2] || path.join(__dirname, '..', '.data-cache'));
   fs.mkdirSync(dir, { recursive: true });
@@ -150,6 +161,7 @@ async function main() {
     airports: buildAirports(read('airports.csv'), read('runways.csv'), firOfAirport(read('VATSpy.dat'))),
     airlines: buildAirlines(read('airlines.dat')),
     firs: buildFirs(read('VATSpy.dat')),
+    firIds: buildFirIds(read('VATSpy.dat')),
   };
   const out = path.join(__dirname, '..', 'data', 'world.json');
   fs.mkdirSync(path.dirname(out), { recursive: true });
@@ -158,4 +170,4 @@ async function main() {
 }
 
 if (require.main === module) main().catch((e) => { console.error(e.message); process.exit(1); });
-module.exports = { parseCsv, buildAirports, buildAirlines, buildFirs, radioName, firOfAirport };
+module.exports = { parseCsv, buildAirports, buildAirlines, buildFirs, buildFirIds, radioName, firOfAirport };

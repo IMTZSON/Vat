@@ -9,6 +9,7 @@
     const $ = App.$;
     const L = root.L;
     const ap = (icao) => root.World.airport(icao) || {};
+    const t = App.t;
     const TRAIL_KEY = 'readback-copilot-trail';
     let map = null;
     let tiles = null;
@@ -38,7 +39,7 @@
         attribution: `${key ? '© <a href="https://www.maptiler.com/copyright/">MapTiler</a> · ' : ''}© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>`,
       }).addTo(map);
       tiles.on('tileerror', () => {
-        if (key && !tiles._warned) { tiles._warned = true; App.toast('La chiave MapTiler non funziona: controlla in Impostazioni (intanto uso OpenStreetMap).', 6000); }
+        if (key && !tiles._warned) { tiles._warned = true; App.toast(t('map.badKey'), 6000); }
       });
     }
     App.on('setting:mapKey', () => setTiles());
@@ -82,7 +83,8 @@
       if (!map) return;
       const pad = App.mapPadding ? App.mapPadding() : { padding: [40, 40] };
       if (routeLine) map.fitBounds(routeLine.getBounds(), { ...pad, maxZoom: 8 });
-      else map.fitBounds([[36.5, 6.5], [47.2, 18.6]], pad); // Italia
+      else if (App.settings.mapView) map.setView(App.settings.mapView.c, App.settings.mapView.z);
+      else map.fitBounds(root.I18n.lang === 'it' ? [[36.5, 6.5], [47.2, 18.6]] : [[35, -12], [60, 30]], pad); // Italia o Europa
     }
 
     function initMap() {
@@ -98,9 +100,15 @@
       $('mapFit').addEventListener('click', fitRoute);
       $('mapLocate').addEventListener('click', () => {
         if (plane) map.flyTo(plane.getLatLng(), Math.max(map.getZoom(), 8), { duration: 0.8 });
-        else { App.toast('Premi "Segui volo" per vedere la tua posizione su VATSIM.'); fitRoute(); }
+        else { App.toast(t('map.pressFollow')); fitRoute(); }
       });
       App.on('layout', () => map.invalidateSize());
+      // Senza rotta, la mappa riapre dove l'avevi lasciata
+      let viewTimer = null;
+      map.on('moveend', () => {
+        clearTimeout(viewTimer);
+        viewTimer = setTimeout(() => { if (!routeLine) { const c = map.getCenter(); App.set('mapView', { c: [+c.lat.toFixed(3), +c.lng.toFixed(3)], z: map.getZoom() }); } }, 800);
+      });
     }
 
     function fmtAlt(ft) {
@@ -122,18 +130,18 @@
 
     async function poll() {
       const cs = App.callsignInfo();
-      if (!cs) { $('trackMsg').textContent = 'Imposta il tuo nominativo nella scheda ATC.'; return; }
+      if (!cs) { $('trackMsg').textContent = t('flight.setCallsign'); return; }
       let data;
       try {
         data = await root.Vatsim.feed(10000);
       } catch (e) {
-        $('trackMsg').textContent = `Dati VATSIM non disponibili: ${e.message}`;
+        $('trackMsg').textContent = t('flight.vatsimError', { msg: e.message });
         return;
       }
       const p = root.Vatsim.pilot(data, cs.code);
       if (!p) {
-        $('trackMsg').textContent = `Non risulti connesso come ${cs.code}: appena ti colleghi a VATSIM la posizione compare qui.`;
-        setPanel({ phase: 'Non connesso', alt: '—', gs: '—', remain: '—', eta: '—', pct: 0 });
+        $('trackMsg').textContent = t('track.notConnected', { cs: cs.code });
+        setPanel({ phase: t('track.offline'), alt: '—', gs: '—', remain: '—', eta: '—', pct: 0 });
         return;
       }
       $('trackMsg').textContent = '';
@@ -168,13 +176,13 @@
 
       const etaDate = root.Geo.eta(remaining, p.groundspeed, now);
       setPanel({
-        phase: root.Geo.PHASES[phase],
+        phase: t(`fphase.${phase}`),
         alt: fmtAlt(p.altitude),
         gs: `${p.groundspeed} kt`,
         remain: remaining !== null ? `${Math.round(remaining)} NM` : '—',
-        eta: etaDate ? etaDate.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : '—',
+        eta: etaDate ? root.I18n.time(etaDate) : '—',
         pct: prog ? prog.pct : 0,
-        updated: `aggiornato ${new Date(now).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`,
+        updated: t('track.updated', { time: root.I18n.time(now, true) }),
       });
 
       if (map) {
@@ -201,7 +209,7 @@
     function start() {
       if (timer) return;
       App.set('tracking', true);
-      $('trackToggle').innerHTML = `${root.Icons.svg('square')} Stop`;
+      $('trackToggle').innerHTML = `${root.Icons.svg('square')} <span>${t('track.stop')}</span>`;
       $('trackToggle').classList.add('stop');
       poll();
       timer = setInterval(poll, 15000);
@@ -210,7 +218,7 @@
       clearInterval(timer);
       timer = null;
       App.set('tracking', false);
-      $('trackToggle').innerHTML = `${root.Icons.svg('navigation')} Segui volo`;
+      $('trackToggle').innerHTML = `${root.Icons.svg('navigation')} <span>${t('hud.follow')}</span>`;
       $('trackToggle').classList.remove('stop');
     }
 

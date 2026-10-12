@@ -21,6 +21,8 @@
   root.App.register((App) => {
     const $ = App.$;
     const { SECTIONS, GLOSSARY } = root.PhrasebookData;
+    const t = App.t;
+    const L = (x) => root.I18n.pick(x);
     const cs = () => App.callsignInfo();
 
     const personalize = (s) => {
@@ -32,7 +34,7 @@
       const b = document.createElement('button');
       b.className = 'icon-btn';
       b.innerHTML = root.Icons.svg('volume-2');
-      b.title = 'Ascolta';
+      b.title = t('common.listen');
       b.addEventListener('click', () => root.TTS.speak(speakable(text.replace(/^\(.*?\)\s*/, ''))));
       return b;
     }
@@ -42,13 +44,13 @@
       const box = $('phrasebook');
       box.innerHTML = '';
       for (const sec of SECTIONS) {
-        const items = sec.items.filter((it) => !q || [it.when, it.atc, it.pilot, it.note].join(' ').toLowerCase().includes(q));
+        const items = sec.items.filter((it) => !q || [L(it.when), it.atc, L(it.pilot), L(it.note)].join(' ').toLowerCase().includes(q));
         if (!items.length) continue;
         const panel = document.createElement('details');
         panel.className = 'disclosure';
         panel.open = !!q || sec === SECTIONS[0];
         const sum = document.createElement('summary');
-        sum.textContent = `${sec.title} (${items.length})`;
+        sum.textContent = `${L(sec.title)} (${items.length})`;
         panel.append(sum);
         const ul = document.createElement('ul');
         ul.className = 'phrases';
@@ -56,7 +58,7 @@
           const li = document.createElement('li');
           const h = document.createElement('div');
           h.className = 'phWhen';
-          h.textContent = it.when;
+          h.textContent = L(it.when);
           li.append(h);
           const line = (who, text, cls) => {
             const row = document.createElement('div');
@@ -71,11 +73,11 @@
             li.append(row);
           };
           if (it.atc) line('ATC', it.atc, 'atc');
-          line('TU', it.pilot, 'pilot');
+          line(t('phrases.you'), L(it.pilot), 'pilot');
           if (it.note) {
             const n = document.createElement('div');
             n.className = 'hint';
-            n.textContent = `💡 ${it.note}`;
+            n.textContent = `💡 ${L(it.note)}`;
             li.append(n);
           }
           ul.append(li);
@@ -83,7 +85,7 @@
         panel.append(ul);
         box.append(panel);
       }
-      if (!box.children.length) box.innerHTML = '<div class="card glass hint">Nessuna frase trovata.</div>';
+      if (!box.children.length) { const d = document.createElement('div'); d.className = 'card glass hint'; d.textContent = t('phrases.none'); box.append(d); }
     }
 
     $('phraseSearch').addEventListener('input', (e) => render(e.target.value));
@@ -101,16 +103,17 @@
     for (const [n, word, tip] of NUMBER_TIPS) {
       const b = document.createElement('button');
       b.className = 'alpha';
-      b.innerHTML = `<b>${n}</b><span>${word}</span><small>${tip}</small>`;
+      // La pronuncia "all'italiana" aiuta solo chi parla italiano
+      b.innerHTML = `<b>${n}</b><span>${word}</span>${root.I18n.lang === 'it' ? `<small>${tip}</small>` : ''}`;
       b.addEventListener('click', () => root.TTS.speak(word));
       nums.append(b);
     }
     const dl = $('glossary');
     for (const [term, def] of GLOSSARY) {
       const dt = document.createElement('dt');
-      dt.textContent = term;
+      dt.textContent = L(term);
       const dd = document.createElement('dd');
-      dd.textContent = def;
+      dd.textContent = L(def);
       dl.append(dt, dd);
     }
     render('');

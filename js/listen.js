@@ -1,4 +1,5 @@
-/* Scheda Ascolto: sente l'ATC, trascrive e mostra il readback. */
+/* Scheda Ascolto: sente l'ATC, trascrive e mostra il readback.
+   Con il coach attivo, dopo una chiamata per te ascolta il tuo microfono e valuta il tuo readback. */
 (function (root) {
   'use strict';
 
@@ -11,17 +12,17 @@
     'Alitalia 123, reduce speed 180 knots, contact Roma Director 119.2',
   ];
 
-  const CHIP_LABEL = {
-    level: 'Quota', heading: 'Prua', speed: 'Velocità', squawk: 'Squawk', qnh: 'Altimetro',
-    frequency: 'Frequenza', runway: 'Pista', taxi: 'Rullaggio', clearance: 'Autorizzazione',
-    approach: 'Avvicinamento', arrival: 'Arrivo', direct: 'Diretto', ground: 'Terra',
-  };
+  const CHIP_TYPES = ['level', 'heading', 'speed', 'squawk', 'qnh', 'frequency', 'runway', 'taxi', 'clearance', 'approach', 'arrival', 'direct', 'ground'];
+  const COACH_WINDOW_MS = 25000;
 
   root.App.register((App) => {
     const $ = App.$;
     const S = App.settings;
+    const t = App.t;
     const HISTORY_KEY = 'readback-copilot-history';
+    const COACH_KEY = 'readback-copilot-coach';
     const history = App.storage.get(HISTORY_KEY, []);
+    let coachStats = App.storage.get(COACH_KEY, null) || root.Coach.emptyStats();
     let current = null;
     let running = false;
     let recognition = null;
@@ -29,30 +30,36 @@
     let order = Promise.resolve();
     let pending = 0;
 
+    // Trascrizione: Groq o server Whisper locale (stessa API)
+    const sttOpts = () => (S.sttProvider === 'local'
+      ? { key: '', model: S.whisperModel, base: S.localSttUrl }
+      : { key: S.groqKey, model: S.whisperModel });
+    const transcribe = (wav, extra) => root.Groq.transcribe(wav, { ...sttOpts(), ...extra });
+
     // ------------------------------------------------------------ nominativo e modalità
 
     function updateCallsignHint() {
       const cs = App.callsignInfo();
       const hint = $('csHint');
-      if (!cs) hint.textContent = 'Prima scrivi il tuo nominativo qui sotto.';
-      else if (cs.type === 'unknown') hint.textContent = 'Compagnia non in elenco: scrivi il nominativo radio.';
-      else { hint.textContent = `L'ATC ti chiama "${cs.display}"`; hint.title = `Pronuncia: ${cs.spoken}`; }
+      hint.title = '';
+      if (!cs) hint.textContent = t('listen.csFirst');
+      else if (cs.type === 'unknown') hint.textContent = t('listen.csUnknown');
+      else { hint.textContent = t('listen.csCalls', { name: cs.display }); hint.title = t('listen.csSpoken', { spoken: cs.spoken }); }
     }
 
     function updateModeUI() {
       $('meterWrap').hidden = !(S.mode === 'groq' && running);
       $('desktopFree').hidden = !(root.Net.desktop && S.mode === 'free');
+      $('threshold').disabled = !!S.autoThreshold;
     }
 
     App.on('setting:callsign', updateCallsignHint);
     App.on('setting:telephony', updateCallsignHint);
     App.on('setting:mode', () => { if (running) stop(); updateModeUI(); });
     App.on('setting:threshold', (v) => { if (recorder) recorder.threshold = v; drawThreshold(); });
-    App.on('setting:autoThreshold', (v) => { if (recorder) recorder.auto = v; $('threshold').disabled = !!v; drawThreshold(); });
+    App.on('setting:autoThreshold', (v) => { if (recorder) recorder.auto = v; updateModeUI(); drawThreshold(); });
 
     $('openChrome').addEventListener('click', () => App.desktop.openExternal(`${location.origin}/`));
-
-    // ------------------------------------------------------------ visualizzazione
 
     // ------------------------------------------------------------ Live Activity (in alto sulla mappa)
     const activity = $('activity');
@@ -65,6 +72,8 @@
     }
     $('activityToggle').addEventListener('click', () => setExpanded(activity.classList.contains('collapsed')));
     setExpanded(false);
+
+    const badge = (el, text, cls) => { el.textContent = text; el.className = `badge ${cls}`; };
 
     function render(item, fresh) {
       current = item;
@@ -81,36 +90,34 @@
       $('heard').textContent = item.heard || '—';
 
       const forUs = $('forUs');
-      if (r.forUs === true) { forUs.textContent = 'Per te'; forUs.className = 'badge ok'; }
-      else if (r.forUs === 'maybe') { forUs.textContent = 'Forse per te: controlla'; forUs.className = 'badge maybe'; }
-      else if (r.forUs === false) { forUs.textContent = 'Non per te'; forUs.className = 'badge no'; }
-      else { forUs.textContent = 'Nominativo non impostato'; forUs.className = 'badge muted'; }
+      if (r.forUs === true) badge(forUs, t('listen.forYou'), 'ok');
+      else if (r.forUs === 'maybe') badge(forUs, t('listen.maybeYou'), 'maybe');
+      else if (r.forUs === false) badge(forUs, t('listen.notYou'), 'no');
+      else badge(forUs, t('listen.noCallsign'), 'muted');
 
       const src = $('srcBadge');
-      if (item.aiPending) { src.textContent = 'AI in corso…'; src.className = 'badge ai'; }
-      else if (r.source === 'AI') { src.textContent = 'AI'; src.className = 'badge ai'; }
-      else { src.textContent = 'Regole'; src.className = 'badge muted'; }
+      if (item.aiPending) badge(src, t('listen.aiPending'), 'ai');
+      else if (r.source === 'AI') badge(src, 'AI', 'ai');
+      else badge(src, t('listen.rules'), 'muted');
 
       const chips = $('chips');
       chips.innerHTML = '';
       for (const p of r.parts || []) {
-        if (!CHIP_LABEL[p.type]) continue;
+        if (!CHIP_TYPES.includes(p.type)) continue;
         const c = document.createElement('span');
         c.className = 'chip';
         const b = document.createElement('b');
-        b.textContent = CHIP_LABEL[p.type];
+        b.textContent = p.type === 'qnh' ? t('listen.altimeter') : root.Scenarios.partLabel(p.type);
         c.append(b, p.display);
         chips.append(c);
       }
 
       const v = item.verify;
       const vb = $('verify');
-      if (vb) {
-        if (!v || item.aiPending) { vb.textContent = ''; vb.className = 'badge muted'; }
-        else if (v.status === 'ok') { vb.textContent = '✅ Verificato'; vb.className = 'badge ok'; }
-        else if (v.status === 'warn') { vb.textContent = '⚠️ Controlla'; vb.className = 'badge maybe'; }
-        else { vb.textContent = '⛔ Audio non chiaro'; vb.className = 'badge no'; }
-      }
+      if (!v || item.aiPending) badge(vb, '', 'muted');
+      else if (v.status === 'ok') badge(vb, `✅ ${t('listen.verified')}`, 'ok');
+      else if (v.status === 'warn') badge(vb, `⚠️ ${t('listen.check')}`, 'maybe');
+      else badge(vb, `⛔ ${t('listen.unclear')}`, 'no');
       rb.classList.toggle('doubt', !!v && v.status === 'bad');
 
       const warn = $('warnings');
@@ -118,17 +125,62 @@
       const fromVerify = v ? v.reasons.map((x) => x.text) : [];
       const notes = [...fromVerify, ...(r.warnings || []).filter((w) => !fromVerify.includes(w))];
       for (const n of r.info || []) if (!notes.includes(n)) notes.push(n);
-      if (r.noReadbackNeeded && r.source !== 'AI' && !r.special) notes.push('Nessuna istruzione da ripetere: basta un "Roger" (o "Wilco" se ti chiede di riportare).');
+      if (r.noReadbackNeeded && r.source !== 'AI' && !r.special) notes.push(t('listen.justRoger'));
       if (r.note) notes.push(r.note);
       for (const n of notes) {
         const li = document.createElement('li');
         li.textContent = n;
         warn.append(li);
       }
+      renderCoach(item);
+    }
+
+    // Risultato del coach sotto il readback (e badge in alto)
+    function renderCoach(item) {
+      const box = $('coachOut');
+      const b = $('coachBadge');
+      const c = item.coach;
+      if (!c) { box.hidden = true; b.hidden = true; return; }
+      b.hidden = false;
+      if (c.state === 'listening') {
+        badge(b, `🎙️ ${t('coach.listening')}`, 'ai');
+        box.hidden = true;
+        return;
+      }
+      if (c.state === 'missed') { badge(b, t('coach.noReply'), 'muted'); box.hidden = true; return; }
+      if (c.state === 'error') { badge(b, t('coach.error'), 'muted'); box.hidden = false; box.textContent = c.error; return; }
+      badge(b, `🎯 ${c.score}%`, c.score === 100 ? 'ok' : c.score >= 60 ? 'maybe' : 'no');
+      box.hidden = false;
+      box.innerHTML = '';
+      const said = document.createElement('p');
+      said.className = 'coach-said';
+      const lbl = document.createElement('span');
+      lbl.className = 'eyebrow';
+      lbl.textContent = t('coach.youSaid');
+      said.append(lbl, ` ${c.said}`);
+      box.append(said);
+      if (c.missed && c.missed.length) {
+        const ul = document.createElement('ul');
+        ul.className = 'coach-missed';
+        for (const m of c.missed) {
+          const li = document.createElement('li');
+          li.textContent = `${root.Scenarios.partLabel(m.type)}: ${m.expected}`;
+          ul.append(li);
+        }
+        box.append(ul);
+      } else {
+        const ok = document.createElement('p');
+        ok.className = 'coach-ok';
+        ok.textContent = t('coach.perfect');
+        box.append(ok);
+      }
     }
 
     function saveHistory() {
-      App.storage.set(HISTORY_KEY, history.slice(0, 100).map((h) => ({ heard: h.heard, time: h.time, date: h.date, coach: h.coach, result: { readback: h.result.readback, spoken: h.result.spoken, forUs: h.result.forUs, source: h.result.source, parts: h.result.parts, warnings: h.result.warnings, info: h.result.info, special: h.result.special, note: h.result.note } })));
+      App.storage.set(HISTORY_KEY, history.slice(0, 100).map((h) => ({
+        heard: h.heard, time: h.time, date: h.date, coach: h.coach && h.coach.state === 'done' ? h.coach : undefined,
+        result: { readback: h.result.readback, spoken: h.result.spoken, forUs: h.result.forUs, source: h.result.source, parts: h.result.parts, warnings: h.result.warnings, info: h.result.info, special: h.result.special, note: h.result.note },
+      })));
     }
 
     // Conversazione a fumetti: ATC a sinistra, il tuo readback a destra
@@ -136,7 +188,8 @@
       const ol = $('history');
       ol.innerHTML = '';
       if (!history.length) {
-        ol.innerHTML = `<li class="empty">${root.Icons.svg('message-circle')}Qui comparirà la conversazione con l'ATC.</li>`;
+        ol.innerHTML = `<li class="empty">${root.Icons.svg('message-circle')}</li>`;
+        ol.firstChild.append(t('listen.emptyChat'));
         return;
       }
       for (const item of history.slice(0, 30).reverse()) {
@@ -153,22 +206,27 @@
         me.innerHTML = '<div class="bubble"></div><div class="meta"></div>';
         me.querySelector('.bubble').textContent = r.readback;
         const tags = [];
-        if (r.forUs === false) tags.push('non per te');
-        else if (v) tags.push(v.status === 'ok' ? '✓ verificato' : v.status === 'warn' ? '⚠ controlla' : '⛔ audio non chiaro');
+        if (r.forUs === false) tags.push(t('listen.tagNotYou'));
+        else if (v) tags.push(v.status === 'ok' ? `✓ ${t('listen.tagVerified')}` : v.status === 'warn' ? `⚠ ${t('listen.tagCheck')}` : `⛔ ${t('listen.tagUnclear')}`);
         if (r.source === 'AI') tags.push('AI');
+        if (item.coach && item.coach.state === 'done') tags.push(`🎯 ${item.coach.score}%`);
         me.querySelector('.meta').textContent = tags.join(' · ');
         for (const li of [atc, me]) { li.addEventListener('click', () => render(item, true)); ol.append(li); }
       }
     }
 
     $('exportHistory').addEventListener('click', async () => {
-      if (!history.length) { App.toast('Lo storico è vuoto.'); return; }
-      const lines = history.slice().reverse().map((h) => `[${h.date || ''} ${h.time}]${h.result.forUs === false ? ' (non per me)' : ''}\nATC:  ${h.heard}\nIO:   ${h.result.readback}\n`);
+      if (!history.length) { App.toast(t('listen.historyEmpty')); return; }
+      const lines = history.slice().reverse().map((h) => {
+        const head = `[${h.date || ''} ${h.time}]${h.result.forUs === false ? ` (${t('listen.tagNotYou')})` : ''}`;
+        const coach = h.coach && h.coach.state === 'done' ? `\n${t('export.said')}  ${h.coach.said} (${h.coach.score}%)` : '';
+        return `${head}\nATC:  ${h.heard}\n${t('export.me')}  ${h.result.readback}${coach}\n`;
+      });
       const ok = await App.desktop.saveText(`readback-${new Date().toISOString().slice(0, 10)}.txt`, lines.join('\n'));
-      if (ok) App.toast('Storico esportato.');
+      if (ok) App.toast(t('listen.historyExported'));
     });
     $('clearHistory').addEventListener('click', () => {
-      if (!confirm('Svuotare lo storico?')) return;
+      if (!confirm(t('listen.historyClearConfirm'))) return;
       history.length = 0;
       saveHistory();
       renderHistory();
@@ -193,10 +251,8 @@
     // ------------------------------------------------------------ contesto live per le verifiche
 
     let live = null;
-    const stationName = (callsign) => root.World.stationName(callsign);
     async function refreshLive() {
       const f = App.flight;
-      const cs = App.callsignInfo();
       const next = { freqs: [], runways: [], qnh: [], whisper: '' };
       const ctx = [];
       if (f && f.dep && f.arr) {
@@ -209,7 +265,7 @@
           const data = await root.Vatsim.feed(60000);
           next.freqs = root.Vatsim.frequenciesFor(data, [f.dep, f.arr]);
           // Solo i nomi delle stazioni (mai le frequenze: vedi Groq.buildPrompt)
-          const st = [...new Set(next.freqs.filter((x) => x.callsign !== 'UNICOM').slice(0, 10).map((x) => stationName(x.callsign)))];
+          const st = [...new Set(next.freqs.filter((x) => x.callsign !== 'UNICOM').slice(0, 10).map((x) => root.World.stationName(x.callsign)))];
           if (st.length) ctx.push(st.join(', '));
         } catch (e) { /* senza dati VATSIM si saltano i controlli sulle frequenze */ }
       }
@@ -224,6 +280,62 @@
     function verify(item, aiText) {
       const cs = App.callsignInfo();
       return root.Precision.check({ transcript: item.heard, rules: item.rules, ai: aiText || null, callsign: cs, audio: item.audio, live, prompt: item.prompt });
+    }
+
+    // ------------------------------------------------------------ coach: ascolta il tuo readback
+
+    let coachRec = null;
+    let coachTimer = null;
+    function coachCancel() {
+      clearTimeout(coachTimer);
+      if (coachRec) { const r = coachRec; coachRec = null; r.stop(); }
+    }
+
+    async function coachListen(item) {
+      coachCancel();
+      item.coach = { state: 'listening' };
+      if (current === item) renderCoach(item);
+      const finish = (data) => {
+        clearTimeout(coachTimer);
+        item.coach = data;
+        if (current === item) renderCoach(item);
+        renderHistory();
+        saveHistory();
+      };
+      let got = false;
+      const rec = new root.AudioCapture.SegmentRecorder({
+        auto: true,
+        threshold: 0.02,
+        silenceMs: 900,
+        minMs: 600,
+        maxMs: 15000,
+        onSegment: async (wav) => {
+          if (got) return;
+          got = true;
+          if (coachRec === rec) coachCancel();
+          try {
+            const cs = App.callsignInfo();
+            const r = await transcribe(wav, { callsign: cs ? cs.display : '' });
+            if (!r.text || root.Precision.phantom(r.text)) { finish({ state: 'missed' }); return; }
+            const ev = root.Coach.evaluate(item.rules, r.text);
+            coachStats = root.Coach.record(coachStats, ev);
+            App.storage.set(COACH_KEY, coachStats);
+            App.emit('coach', coachStats);
+            finish({ state: 'done', score: ev.score, said: ev.said, missed: ev.missed.map((m) => ({ type: m.type, expected: m.expected })) });
+          } catch (e) {
+            finish({ state: 'error', error: e.message });
+          }
+        },
+      });
+      coachRec = rec;
+      try {
+        await rec.start('device', S.micDevice);
+      } catch (e) {
+        coachRec = null;
+        finish({ state: 'error', error: t('coach.micError', { msg: e.message }) });
+        return;
+      }
+      coachTimer = setTimeout(() => { if (coachRec === rec && !got) { coachCancel(); finish({ state: 'missed' }); } }, COACH_WINDOW_MS);
     }
 
     // ------------------------------------------------------------ elaborazione
@@ -241,20 +353,22 @@
         rules: result,
         audio: audio || null,
         prompt: prompt || '',
-        date: now.toLocaleDateString('it-IT'),
-        time: now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        date: root.I18n.date(now),
+        time: root.I18n.time(now, true),
       };
       item.verify = verify(item);
       history.unshift(item);
       if (history.length > 100) history.pop();
 
       const show = origin === 'prova' || !(S.hideOthers && result.forUs === false);
-      const wantAI = S.mode === 'groq' && S.useAI && S.groqKey && show;
+      const wantAI = S.mode === 'groq' && S.sttProvider !== 'local' && S.useAI && S.groqKey && show;
       if (wantAI) item.aiPending = true;
       if (show) {
         render(item, true);
         if (origin !== 'prova' && result.forUs === true) beep();
       }
+      // Coach: solo in ascolto reale, per chiamate per te con qualcosa da ripetere
+      if (S.coach && origin === 'whisper' && result.forUs === true && root.Coach.worthScoring(result)) coachListen(item);
       renderHistory();
       saveHistory();
 
@@ -267,7 +381,7 @@
             ? { ...result, note: ai.note || '' }
             : { ...result, readback: ai.readback, spoken: ai.spoken || '', note: ai.note || '', source: 'AI' };
         } catch (e) {
-          item.result = { ...result, warnings: [...result.warnings, `AI non disponibile (${e.message}): mostro il readback a regole.`] };
+          item.result = { ...result, warnings: [...result.warnings, t('listen.aiDown', { msg: e.message })] };
         }
         item.aiPending = false;
         if (current === item) render(item);
@@ -280,9 +394,9 @@
     // ------------------------------------------------------------ ascolto
 
     function startFree() {
-      if (root.Net.desktop) throw new Error('La modalità Gratis funziona solo in Chrome o Edge: premi "Apri l\'app in Chrome", oppure usa la modalità Groq.');
+      if (root.Net.desktop) throw new Error(t('listen.freeDesktop'));
       const SR = root.SpeechRecognition || root.webkitSpeechRecognition;
-      if (!SR) throw new Error('Questo browser non ha il riconoscimento vocale: usa Google Chrome o Microsoft Edge.');
+      if (!SR) throw new Error(t('listen.noWebSpeech'));
       recognition = new SR();
       recognition.lang = S.lang;
       recognition.continuous = true;
@@ -294,17 +408,17 @@
           if (res.isFinal) handleTranscript(res[0].transcript, 'chrome');
           else interim += res[0].transcript;
         }
-        $('live').textContent = interim ? `Sto sentendo: ${interim}` : '';
+        $('live').textContent = interim ? t('listen.hearing', { text: interim }) : '';
       };
       recognition.onerror = (e) => {
         if (e.error === 'no-speech' || e.error === 'aborted') return;
         if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
           stop();
-          App.setStatus('Microfono negato', 'error');
-          $('live').textContent = 'Permetti l\'accesso al microfono a questa pagina (icona nella barra degli indirizzi).';
+          App.setStatus(t('listen.micDenied'), 'error');
+          $('live').textContent = t('listen.micAllow');
           return;
         }
-        $('live').textContent = `Errore riconoscimento: ${e.error}`;
+        $('live').textContent = t('listen.srError', { error: e.error });
       };
       recognition.onend = () => {
         if (running && recognition) setTimeout(() => { try { recognition.start(); } catch (err) { /* già avviato */ } }, 250);
@@ -312,10 +426,10 @@
       recognition.start();
     }
 
-    async function startGroq() {
-      if (!S.groqKey) {
-        App.switchTab('settings');
-        throw new Error('Inserisci la chiave Groq nelle Impostazioni (è gratuita su console.groq.com).');
+    async function startWhisper() {
+      if (!App.sttReady()) {
+        App.emit('onboard', 'stt');
+        throw new Error(S.sttProvider === 'local' ? t('listen.needLocal') : t('listen.needKey'));
       }
       recorder = new root.AudioCapture.SegmentRecorder({
         threshold: S.threshold,
@@ -336,18 +450,17 @@
           const context = live && live.whisper;
           const prompt = root.Groq.buildPrompt(csName, context);
           pending++;
-          App.setStatus(App.t('listen.transcribing'), 'busy');
-          const job = root.Groq.transcribe(wav, { key: S.groqKey, model: S.whisperModel, callsign: csName, context, base: S.sttBase })
-            .then((r) => ({ r }), (e) => ({ e }));
+          App.setStatus(t('listen.transcribing'), 'busy');
+          const job = transcribe(wav, { callsign: csName, context }).then((r) => ({ r }), (e) => ({ e }));
           order = order.then(async () => {
             const { r, e } = await job;
             try {
               if (e) $('live').textContent = e.message;
-              else if (r.text && root.Precision.phantom(r.text)) $('live').textContent = App.t('listen.ignoredNoise', { text: r.text });
+              else if (r.text && root.Precision.phantom(r.text)) $('live').textContent = t('listen.ignoredNoise', { text: r.text });
               else if (r.text) await handleTranscript(r.text, 'whisper', root.Precision.audioConfidence(r.segments), prompt);
             } finally {
               pending--;
-              if (running && !pending) App.setStatus(App.t('status.listening'), 'listening');
+              if (running && !pending) App.setStatus(t('status.listening'), 'listening');
             }
           });
         },
@@ -361,30 +474,31 @@
       try {
         running = true;
         refreshLive();
-        if (S.mode === 'groq') await startGroq();
+        if (S.mode === 'groq') await startWhisper();
         else startFree();
-        App.setStatus('In ascolto', 'listening');
+        App.setStatus(t('status.listening'), 'listening');
         $('toggle').classList.add('on');
-        $('toggle').setAttribute('aria-label', 'Ferma ascolto');
-        $('toggleLabel').textContent = 'In ascolto…';
+        $('toggle').setAttribute('aria-label', t('listen.stop'));
+        $('toggleLabel').textContent = t('listen.on');
         activity.classList.add('listening');
         updateModeUI();
       } catch (e) {
         stop();
-        App.setStatus('Errore', 'error');
+        App.setStatus(t('status.error'), 'error');
         $('live').textContent = e.message || String(e);
       }
     }
 
     function stop() {
       running = false;
+      coachCancel();
       if (recognition) { recognition.onend = null; try { recognition.stop(); } catch (e) { /* ignora */ } recognition = null; }
       if (recorder) { recorder.stop(); recorder = null; }
-      App.setStatus('Fermo', 'idle');
+      App.setStatus(t('status.idle'), 'idle');
       $('toggle').classList.remove('on');
       $('toggle').style.setProperty('--lvl', 0);
-      $('toggle').setAttribute('aria-label', 'Avvia ascolto');
-      $('toggleLabel').textContent = 'Ascolto spento';
+      $('toggle').setAttribute('aria-label', t('listen.start'));
+      $('toggleLabel').textContent = t('listen.off');
       activity.classList.remove('listening');
       updateModeUI();
     }
@@ -405,23 +519,21 @@
       if (name === 'toggle-listen') (running ? stop() : start());
       if (name === 'speak') speakCurrent();
     });
+    App.isListening = () => running;
 
-    // ------------------------------------------------------------ Groq: modelli e verifica
+    // ------------------------------------------------------------ modelli e verifica del servizio
 
     $('loadModels').addEventListener('click', async () => {
       const msg = $('modelsMsg');
-      if (!S.groqKey) { msg.textContent = 'Prima inserisci la chiave.'; return; }
-      msg.textContent = 'Carico…';
+      const local = S.sttProvider === 'local';
+      if (local ? !S.localSttUrl : !S.groqKey) { msg.textContent = t(local ? 'settings.needUrl' : 'settings.needKey'); return; }
+      msg.textContent = t('common.loading');
       try {
-        const models = await root.Groq.listModels(S.groqKey);
+        const models = await root.Groq.listModels(local ? '' : S.groqKey, local ? S.localSttUrl : '');
         const list = $('modelList');
         list.innerHTML = '';
-        for (const m of models) {
-          const o = document.createElement('option');
-          o.value = m;
-          list.append(o);
-        }
-        msg.textContent = `${models.length} modelli disponibili: sceglili dai campi sopra.`;
+        for (const m of models) list.append(new Option(m, m));
+        msg.textContent = t('settings.modelsFound', { n: models.length });
       } catch (e) {
         msg.textContent = e.message;
       }
@@ -429,15 +541,29 @@
 
     $('testGroq').addEventListener('click', async () => {
       const msg = $('modelsMsg');
-      if (!S.groqKey) { msg.textContent = 'Prima inserisci la chiave.'; return; }
-      msg.textContent = 'Verifico…';
-      try {
-        const ai = await root.Groq.readback('Alitalia 123, descend flight level 80, turn left heading 270', { key: S.groqKey, model: S.llmModel, callsign: 'Alitalia 123' });
-        msg.textContent = `✅ Funziona! Modello ${ai.model}. Risposta AI: "${ai.readback}"`;
-      } catch (e) {
-        msg.textContent = `❌ ${e.message}`;
-      }
+      msg.textContent = t('common.checking');
+      const r = await App.testStt();
+      msg.textContent = r.ok ? `✅ ${r.message}` : `❌ ${r.message}`;
     });
+
+    // Prova del servizio di trascrizione (usata anche dalla configurazione guidata)
+    App.testStt = async (opts) => {
+      const o = { provider: S.sttProvider, key: S.groqKey, url: S.localSttUrl, ...(opts || {}) };
+      try {
+        if (o.provider === 'local') {
+          if (!o.url) return { ok: false, message: t('settings.needUrl') };
+          // Un secondo di silenzio: il server deve rispondere con una trascrizione (anche vuota)
+          const wav = root.AudioCapture.encodeWav(new Float32Array(16000), 16000);
+          await root.Groq.transcribe(wav, { base: o.url, model: S.whisperModel });
+          return { ok: true, message: t('settings.localOk', { url: root.Groq.normalizeBase(o.url) }) };
+        }
+        if (!o.key) return { ok: false, message: t('settings.needKey') };
+        const ai = await root.Groq.readback('Alitalia 123, descend flight level 80, turn left heading 270', { key: o.key, model: S.llmModel, callsign: 'Alitalia 123' });
+        return { ok: true, message: t('settings.groqOk', { model: ai.model, readback: ai.readback }) };
+      } catch (e) {
+        return { ok: false, message: e.message };
+      }
+    };
 
     // ------------------------------------------------------------ prova
 
@@ -458,10 +584,49 @@
       $('examples').append(b);
     }
 
+    // ------------------------------------------------------------ statistiche del coach (scheda Allenamento)
+
+    function renderCoachStats() {
+      const el = $('coachStats');
+      const s = coachStats;
+      if (!s.total) {
+        el.innerHTML = '';
+        const p = document.createElement('p');
+        p.className = 'hint';
+        p.textContent = S.coach ? t('coach.statsEmpty') : t('coach.statsOff');
+        el.append(p);
+        return;
+      }
+      const avg = Math.round(s.sum / s.total);
+      el.innerHTML = `
+        <div class="kpis">
+          <div><b>${s.total}</b><span>${t('coach.kpiTotal')}</span></div>
+          <div><b>${avg}%</b><span>${t('train.kpiAvg')}</span></div>
+          <div><b>${s.perfect}</b><span>${t('train.kpiPerfect')}</span></div>
+          <div><b>${s.bestStreak}</b><span>${t('train.kpiStreak')}</span></div>
+        </div>`;
+      const weak = root.Coach.weakest(s, 3);
+      if (weak.length) {
+        const p = document.createElement('p');
+        p.className = 'hint coach-weak';
+        p.textContent = t('coach.weakest', { list: weak.map((w) => `${w.label} (${w.ok}/${w.n})`).join(', ') });
+        el.append(p);
+      }
+    }
+    App.on('coach', renderCoachStats);
+    App.on('setting:coach', renderCoachStats);
+    $('coachResetStats').addEventListener('click', () => {
+      if (!confirm(t('train.resetConfirm'))) return;
+      coachStats = root.Coach.emptyStats();
+      App.storage.set(COACH_KEY, coachStats);
+      renderCoachStats();
+    });
+
     updateCallsignHint();
     drawThreshold();
     updateModeUI();
     renderHistory();
+    renderCoachStats();
     if (history.length) render(history[0]);
   });
 })(this);

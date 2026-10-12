@@ -7,7 +7,7 @@
 
   const STT = {
     available(settings) {
-      if (settings.groqKey) return 'groq';
+      if (settings.sttProvider === 'local' ? settings.localSttUrl : settings.groqKey) return 'groq';
       if (hasWebSpeech() && !(root.Net && root.Net.desktop)) return 'chrome';
       return null;
     },
@@ -23,7 +23,8 @@
             const wav = rec.stop();
             if (!wav) return '';
             const cs = root.Readback.parseCallsign(settings.callsign, settings.telephony);
-            const r = await root.Groq.transcribe(wav, { key: settings.groqKey, model: settings.whisperModel, callsign: cs ? cs.display : '' });
+            const local = settings.sttProvider === 'local';
+            const r = await root.Groq.transcribe(wav, { key: local ? '' : settings.groqKey, base: local ? settings.localSttUrl : '', model: settings.whisperModel, callsign: cs ? cs.display : '' });
             return r.text;
           },
           cancel() { rec.stop(); },
@@ -55,7 +56,7 @@
           cancel() { rec.abort(); },
         };
       }
-      throw new Error('Per rispondere a voce serve la chiave Groq (Impostazioni). Intanto puoi scrivere la risposta.');
+      throw new Error(root.I18n.t('train.needStt'));
     },
   };
 

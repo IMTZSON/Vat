@@ -3,12 +3,13 @@
 (function (root) {
   'use strict';
 
-  const euro = (v) => (Number(v) || 0).toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
+  const euro = (v) => root.I18n.money(v);
 
   root.App.register((App) => {
     const $ = App.$;
     const S = App.settings;
     const C = root.CabinSim;
+    const t = App.t;
     const CAT_KEY = 'readback-copilot-catalog';
     const SIM_KEY = 'readback-copilot-cabin';
     let catalogs = App.storage.get(CAT_KEY, null) || JSON.parse(JSON.stringify(C.DEFAULT_CATALOG));
@@ -39,17 +40,17 @@
       box.innerHTML = '';
       const head = document.createElement('div');
       head.className = 'item head';
-      head.innerHTML = '<span>Prodotto</span><span style="text-align:right">Prezzo €</span><span style="text-align:right">Scorta</span><span></span>';
+      head.innerHTML = `<span>${t('cabin.product')}</span><span style="text-align:right">${t('cabin.price')}</span><span style="text-align:right">${t('cabin.stock')}</span><span></span>`;
       box.append(head);
       catalog().forEach((it, k) => {
         const row = document.createElement('div');
         row.className = 'item';
-        row.innerHTML = `<div><input class="name" aria-label="Nome prodotto"><div class="cat">${C.CATS[it.cat] || ''}</div></div>
-          <input class="num price" inputmode="decimal" aria-label="Prezzo"><input class="num stock" inputmode="numeric" aria-label="Scorta">
-          <button class="icon-btn" title="Elimina">${root.Icons.svg('trash-2')}</button>`;
+        row.innerHTML = `<div><input class="name" aria-label="${t('cabin.productName')}"><div class="cat">${C.CATS[it.cat] || ''}</div></div>
+          <input class="num price" inputmode="decimal" aria-label="${t('cabin.price')}"><input class="num stock" inputmode="numeric" aria-label="${t('cabin.stock')}">
+          <button class="icon-btn" title="${t('common.delete')}">${root.Icons.svg('trash-2')}</button>`;
         const [name, price, stock] = [row.querySelector('.name'), row.querySelector('.price'), row.querySelector('.stock')];
         name.value = it.name;
-        price.value = String(it.price).replace('.', ',');
+        price.value = root.I18n.lang === 'it' ? String(it.price).replace('.', ',') : String(it.price);
         stock.value = it.stock;
         name.addEventListener('change', () => { it.name = name.value; saveCatalog(); });
         price.addEventListener('change', () => { it.price = Math.max(0, Number(price.value.replace(',', '.')) || 0); saveCatalog(); });
@@ -59,17 +60,17 @@
       });
     }
     $('cabAddItem').addEventListener('click', () => {
-      const name = prompt('Nome del prodotto:');
+      const name = prompt(t('cabin.promptName'));
       if (!name) return;
-      const cat = (prompt('Categoria: bevande, snack, pasti o duty free?', 'snack') || 'snack').toLowerCase();
-      const map = { bevande: 'drink', bevanda: 'drink', snack: 'snack', pasti: 'meal', pasto: 'meal', 'duty free': 'duty', duty: 'duty' };
-      const price = Number((prompt('Prezzo in €:', '3,00') || '0').replace(',', '.')) || 0;
+      const cat = (prompt(t('cabin.promptCat'), 'snack') || 'snack').toLowerCase().trim();
+      const map = { bevande: 'drink', bevanda: 'drink', drink: 'drink', drinks: 'drink', snack: 'snack', snacks: 'snack', pasti: 'meal', pasto: 'meal', meal: 'meal', meals: 'meal', 'duty free': 'duty', duty: 'duty' };
+      const price = Number((prompt(t('cabin.promptPrice'), root.I18n.lang === 'it' ? '3,00' : '3.00') || '0').replace(',', '.')) || 0;
       catalog().push({ id: `x${Date.now()}`, name, cat: map[cat] || 'snack', price, stock: 20, pop: 0.6 });
       saveCatalog();
       renderCatalog();
     });
     $('cabResetCatalog').addEventListener('click', () => {
-      if (!confirm('Ripristinare il listino predefinito?')) return;
+      if (!confirm(t('cabin.resetConfirm'))) return;
       catalogs[S.aircraft] = JSON.parse(JSON.stringify(C.DEFAULT_CATALOG[S.aircraft]));
       saveCatalog();
       renderCatalog();
@@ -78,12 +79,12 @@
 
     // ------------------------------------------------------------ simulazione
     function stateLabel() {
-      if (!run) return 'Non iniziato';
-      if (run.done) return 'Terminato';
+      if (!run) return t('cabin.notStarted');
+      if (run.done) return t('cabin.ended');
       const p = run.progress || 0;
-      if (p < C.WINDOW[0] || run.closed) return S.cabSource === 'timer' || p < C.WINDOW[0] ? 'In attesa (salita)' : 'Chiuso';
-      if (p > C.WINDOW[1]) return 'Chiuso (discesa)';
-      return 'In corso';
+      if (p < C.WINDOW[0] || run.closed) return S.cabSource === 'timer' || p < C.WINDOW[0] ? t('cabin.waitClimb') : t('cabin.closed');
+      if (p > C.WINDOW[1]) return t('cabin.closedDescent');
+      return t('cabin.open');
     }
 
     const CAT_ICON = { drink: 'coffee', snack: 'cookie', meal: 'sandwich', duty: 'gift' };
@@ -100,26 +101,26 @@
       $('cabProgress').style.width = `${Math.round(p * 100)}%`;
       $('cabRing').style.strokeDashoffset = String(RING * (1 - Math.min(1, p)));
       $('cabHint').textContent = !run
-        ? (S.cabSource === 'auto' ? 'Il servizio segue il tuo volo su VATSIM: parte da solo dopo la salita (attiva "Segui volo" sulla mappa).' : `Timer: il servizio dura ${durationMin()} minuti in tempo reale.`)
-        : (run.done ? 'Volo chiuso: il riepilogo è nel logbook (Cockpit › Logbook).' : '');
+        ? (S.cabSource === 'auto' ? t('cabin.hintAuto') : t('cabin.hintTimer', { min: durationMin() }))
+        : (run.done ? t('cabin.hintDone') : '');
       const btn = $('cabStart');
-      if (run && !run.done) { btn.innerHTML = `${root.Icons.svg('square')} Ferma servizio`; btn.classList.add('stop'); }
-      else { btn.innerHTML = `${root.Icons.svg('play')} Inizia servizio`; btn.classList.remove('stop'); }
+      if (run && !run.done) { btn.innerHTML = `${root.Icons.svg('square')} <span>${t('cabin.stop')}</span>`; btn.classList.add('stop'); }
+      else { btn.innerHTML = `${root.Icons.svg('play')} <span>${t('cabin.start')}</span>`; btn.classList.remove('stop'); }
 
       const feed = $('cabFeed');
       const sales = sim ? sim.sales.slice(-40).reverse() : [];
-      feed.innerHTML = sales.length ? '' : '<li class="empty">Le vendite compariranno qui durante il servizio.</li>';
+      feed.innerHTML = sales.length ? '' : `<li class="empty">${t('cabin.feedEmpty')}</li>`;
       for (const s of sales) {
         const li = document.createElement('li');
         li.innerHTML = `<span class="cat-ico">${root.Icons.svg(CAT_ICON[s.cat] || 'package')}</span><span class="what"><span class="nm"></span><small></small></span><span class="amt"></span>`;
         li.querySelector('.nm').textContent = `${s.qty > 1 ? `${s.qty}× ` : ''}${s.name}`;
-        li.querySelector('small').textContent = `${C.CATS[s.cat] || ''} · +${s.minute}′ dall'inizio`;
+        li.querySelector('small').textContent = `${C.CATS[s.cat] || ''} · ${t('cabin.sinceStart', { min: s.minute })}`;
         li.querySelector('.amt').textContent = euro(s.amount);
         feed.append(li);
       }
       const top = sim ? C.summary(sim).top.slice(0, 6) : [];
       const tl = $('cabTop');
-      tl.innerHTML = top.length ? '' : '<li class="empty">Ancora nessuna vendita.</li>';
+      tl.innerHTML = top.length ? '' : `<li class="empty">${t('cabin.noSales')}</li>`;
       const max = top.length ? top[0].qty : 1;
       for (const t of top) {
         const li = document.createElement('li');
@@ -171,7 +172,7 @@
         sim: C.create({ catalog: catalog(), pax: paxDefault(), durationMin: durationMin() }),
         startedAt: Date.now(), lastT: Date.now(), source: S.cabSource, progress: 0, done: false,
       };
-      if (run.source === 'auto' && !(App.isTracking && App.isTracking())) App.toast('Attiva "Segui il volo" nella scheda Volo: il servizio partirà dopo la salita.', 6000);
+      if (run.source === 'auto' && !(App.isTracking && App.isTracking())) App.toast(t('cabin.needTracking'), 6000);
       saveRun();
       if (run.source === 'timer') timer = setInterval(tickTimer, 3000);
       renderStats();
@@ -190,16 +191,16 @@
       renderCatalog();
       renderStats();
       App.emit('cabin-summary', s);
-      App.toast(`Servizio chiuso: ${s.sold} prodotti venduti, incasso ${euro(s.revenue)}.`, 6000);
+      App.toast(t('cabin.summary', { sold: s.sold, revenue: euro(s.revenue) }), 6000);
     }
 
     $('cabStart').addEventListener('click', () => {
-      if (run && !run.done) { if (confirm('Fermare la simulazione e chiudere il servizio?')) finish(); return; }
+      if (run && !run.done) { if (confirm(t('cabin.stopConfirm'))) finish(); return; }
       start();
     });
     $('cabEnd').addEventListener('click', () => {
       if (run && !run.done) { finish(); return; }
-      if (run && run.done && confirm('Iniziare un nuovo volo? Le vendite di questo volo verranno azzerate (il riepilogo resta nel logbook).')) { run = null; saveRun(); renderStats(); }
+      if (run && run.done && confirm(t('cabin.newConfirm'))) { run = null; saveRun(); renderStats(); }
     });
     $('cabPax').addEventListener('input', renderStats);
     App.on('flight', (f) => { if (f && f.pax && !$('cabPax').value) $('cabPax').placeholder = `${f.pax} (SimBrief)`; renderStats(); });

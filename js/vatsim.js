@@ -3,8 +3,9 @@
   'use strict';
 
   const FEED_URL = 'https://data.vatsim.net/v3/vatsim-data.json';
-  const FACILITY = { 1: 'FSS', 2: 'Delivery', 3: 'Ground', 4: 'Tower', 5: 'Approach / Radar', 6: 'Centro (CTR)' };
+  const FACILITY = { 1: 'FSS', 2: 'Delivery', 3: 'Ground', 4: 'Tower', 5: 'Approach / Radar', 6: 'Centre (CTR)' };
   let cache = null;
+  const World = () => ((typeof require === 'function' && typeof module !== 'undefined') ? require('./world.js') : root.World);
   let pending = null;
 
   const Vatsim = {
@@ -35,11 +36,14 @@
       return { ctrls, centers, atis };
     },
 
-    // Frequenze plausibili per il volo: controllori di partenza/arrivo e dei centri della stessa zona.
+    // Frequenze plausibili per il volo: controllori di partenza/arrivo e dei centri della stessa zona
+    // (stesso prefisso ICAO o stessa FIR secondo VATSpy: LON_S_CTR copre EGLL anche se non inizia con "EG").
     frequenciesFor(data, icaos) {
       const list = [];
       const seen = new Set();
       const prefixes = new Set(icaos.filter(Boolean).map((x) => x.slice(0, 2)));
+      const W = World();
+      const firs = new Set(W ? icaos.map((x) => (W.airport(x) || {}).fir).filter(Boolean) : []);
       const add = (freq, callsign) => {
         const f = Number(freq);
         if (!f || f === 199.998 || seen.has(`${f}|${callsign}`)) return;
@@ -50,7 +54,8 @@
         if (c.facility <= 0) continue;
         const local = icaos.some((x) => this.matchesAirport(c.callsign, x));
         const area = [...prefixes].some((p) => c.callsign.startsWith(p));
-        if (local || area) add(c.frequency, c.callsign);
+        const fir = firs.size && firs.has(W.firOfStation(c.callsign));
+        if (local || area || fir) add(c.frequency, c.callsign);
       }
       for (const a of data.atis || []) if (icaos.some((x) => this.matchesAirport(a.callsign, x))) add(a.frequency, a.callsign);
       add('122.800', 'UNICOM');
@@ -63,5 +68,6 @@
     },
   };
 
-  root.Vatsim = Vatsim;
+  if (typeof module !== 'undefined' && module.exports) module.exports = Vatsim;
+  else root.Vatsim = Vatsim;
 })(this);

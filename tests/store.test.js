@@ -74,9 +74,13 @@ test('server: Chrome legge e scrive lo stesso archivio, gli altri siti no', asyn
   assert.strictEqual(badKey.status, 400);
 });
 
-test('server senza archivio (npm run serve): niente /api/store', async (t) => {
+test('server senza archivio (npm run serve): /api/store risponde "nessun archivio"', async (t) => {
   const { server: srv, port } = await server.start(path.join(__dirname, '..'), { version: 'test', ports: [0] });
   t.after(() => srv.close());
   const r = await req(port, 'GET', '/api/store');
-  assert.strictEqual(r.status, 404);
+  assert.strictEqual(r.status, 200);
+  assert.strictEqual(r.json.data, null);
+  const w = await req(port, 'PUT', '/api/store', JSON.stringify({ key: 'readback-copilot-x', value: 1 }), { 'x-readback-copilot': '1' });
+  assert.strictEqual(w.status, 200);
+  assert.strictEqual(w.json.data, null, 'nessuna scrittura senza archivio');
 });

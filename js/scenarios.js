@@ -3,18 +3,14 @@
 (function (root) {
   'use strict';
 
-  const R = (typeof require === 'function' && typeof module !== 'undefined') ? require('./readback.js') : root.Readback;
+  const isNode = typeof require === 'function' && typeof module !== 'undefined';
+  const R = isNode ? require('./readback.js') : root.Readback;
+  const I18n = isNode ? require('./i18n.js') : root.I18n;
+  const tr = (k, v) => (I18n ? I18n.t(k, v) : k);
 
-  const PHASES = [
-    { id: 'delivery', label: 'Delivery – autorizzazione' },
-    { id: 'ground', label: 'Ground – push e rullaggio' },
-    { id: 'tower', label: 'Tower – decollo e atterraggio' },
-    { id: 'departure', label: 'Partenza – radar' },
-    { id: 'cruise', label: 'Crociera – controllo d\'area' },
-    { id: 'approach', label: 'Avvicinamento' },
-    { id: 'mixed', label: 'Misto (tutte le fasi)' },
-    { id: 'full', label: 'Volo completo (in sequenza)' },
-  ];
+  // Etichette tradotte al momento della lettura (la lingua può cambiare)
+  const PHASES = ['delivery', 'ground', 'tower', 'departure', 'cruise', 'approach', 'mixed', 'full']
+    .map((id) => ({ id, get label() { return tr(`phase.${id}`); } }));
 
   const AIRPORTS = {
     LIRF: { city: 'Roma', name: 'Roma Fiumicino', rwys: ['16L', '34R', '16R', '34L', '07', '25'], acc: 'Roma', lat: 41.8003, lon: 12.2389 },
@@ -250,10 +246,9 @@
     return out;
   }
 
-  const LABELS = {
-    level: 'Quota', heading: 'Prua', speed: 'Velocità', squawk: 'Squawk', qnh: 'QNH', frequency: 'Frequenza', runway: 'Pista',
-    taxi: 'Rullaggio', clearance: 'Autorizzazione', approach: 'Avvicinamento', arrival: 'Arrivo', direct: 'Diretto', ground: 'Push/Start', phrase: 'Istruzione',
-  };
+  // Tipi di voce del readback con etichetta tradotta (part.*); gli altri valgono "Istruzione"
+  const PART_TYPES = ['level', 'heading', 'speed', 'squawk', 'qnh', 'frequency', 'runway', 'taxi', 'clearance', 'approach', 'arrival', 'direct', 'ground', 'phrase', 'callsign'];
+  const partLabel = (type) => tr(`part.${PART_TYPES.includes(type) ? type : 'phrase'}`);
 
   function essentials(part) {
     return canon(part.display).filter((t) => /\d/.test(t) || KEY_WORDS.has(t) || /^[a-z]$/.test(t));
@@ -264,16 +259,17 @@
     const items = expected.parts.filter((p) => p.type !== 'ack').map((p) => {
       const need = essentials(p);
       const missing = need.filter((t) => !said.has(t));
-      return { label: LABELS[p.type] || 'Istruzione', expected: p.display, ok: missing.length === 0, missing };
+      const type = PART_TYPES.includes(p.type) ? p.type : 'phrase';
+      return { type, label: partLabel(type), expected: p.display, ok: missing.length === 0, missing };
     });
     const cs = expected.callsign;
     const csOk = cs ? R.detectForUs(R.tokenize(userText), cs) === true : true;
-    items.push({ label: 'Nominativo', expected: cs ? cs.display : '', ok: csOk, missing: [] });
+    items.push({ type: 'callsign', label: partLabel('callsign'), expected: cs ? cs.display : '', ok: csOk, missing: [] });
     const ok = items.filter((x) => x.ok).length;
     return { items, score: Math.round((ok / items.length) * 100), perfect: ok === items.length };
   }
 
-  const api = { PHASES, AIRPORTS, generate, fullFlight, score, canon, essentials, makeContext };
+  const api = { PHASES, AIRPORTS, generate, fullFlight, score, canon, essentials, makeContext, partLabel };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Scenarios = api;
 })(this);

@@ -17,7 +17,17 @@ const MIME = {
   '.ico': 'image/x-icon',
 };
 
-const ALLOWED_HOSTS = new Set(['api.groq.com', 'www.simbrief.com', 'metar.vatsim.net', 'data.vatsim.net']);
+const ALLOWED_HOSTS = new Set(['api.groq.com', 'www.simbrief.com', 'metar.vatsim.net', 'data.vatsim.net', 'api.github.com']);
+
+// Server Whisper locale (whisper.cpp, faster-whisper-server…): sul PC o nella rete di casa, anche in http.
+function isPrivateHost(host) {
+  const h = String(host || '').replace(/^\[|\]$/g, '').toLowerCase();
+  if (h === 'localhost' || h === '::1') return true;
+  const m = h.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  if (!m) return false;
+  const [a, b] = [Number(m[1]), Number(m[2])];
+  return a === 127 || a === 10 || (a === 192 && b === 168) || (a === 172 && b >= 16 && b <= 31);
+}
 const MAX_BODY = 25 * 1024 * 1024;
 
 function send(res, status, body, type) {
@@ -96,6 +106,7 @@ function createHandler(root, opts) {
     // Dati dell'app condivisi con Chrome ("Apri in Chrome" ritrova nominativo e impostazioni).
     // Scrittura solo con l'intestazione X-Readback-Copilot: una pagina di un altro sito non può
     // mandarla senza un preflight CORS, che qui non viene mai autorizzato.
+    if (url.pathname === '/api/store' && !opts.store) return send(res, 200, { data: null });
     if (url.pathname === '/api/store' && opts.store) {
       if (req.method === 'GET') return send(res, 200, { data: opts.store.all() });
       if (req.method === 'PUT' && req.headers['x-readback-copilot'] === '1') {
@@ -113,9 +124,17 @@ function createHandler(root, opts) {
     if (tm) return serveTile(res, tm, url.searchParams.get('k') || '', opts);
 
     if (url.pathname === '/api/proxy') {
+      // Solo dall'app: intestazione dedicata (un altro sito non può mandarla senza preflight CORS)
+      // e, nei browser che la inviano, richiesta dalla stessa origine.
+      const site = req.headers['sec-fetch-site'];
+      if (req.headers['x-readback-copilot'] !== '1' || (site && !['same-origin', 'none'].includes(site))) {
+        return send(res, 403, { error: { message: 'Richiesta non consentita' } });
+      }
       let target;
       try { target = new URL(url.searchParams.get('url') || ''); } catch (e) { return send(res, 400, { error: { message: 'URL non valido' } }); }
-      if (target.protocol !== 'https:' || !ALLOWED_HOSTS.has(target.hostname)) return send(res, 403, { error: { message: 'Destinazione non consentita' } });
+      const publicOk = target.protocol === 'https:' && ALLOWED_HOSTS.has(target.hostname);
+      const privateOk = /^https?:$/.test(target.protocol) && isPrivateHost(target.hostname);
+      if (!publicOk && !privateOk) return send(res, 403, { error: { message: 'Destinazione non consentita' } });
       try {
         const body = ['GET', 'HEAD'].includes(req.method) ? undefined : await readBody(req);
         const headers = { 'User-Agent': `ReadbackCopilot/${opts.version || 'dev'}` };
@@ -159,7 +178,7 @@ function start(root, opts) {
   });
 }
 
-module.exports = { start, ALLOWED_HOSTS, TILE_CACHE };
+module.exports = { start, ALLOWED_HOSTS, TILE_CACHE, isPrivateHost };
 
 if (require.main === module) {
   const pkg = require('../package.json');

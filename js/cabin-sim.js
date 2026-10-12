@@ -3,35 +3,39 @@
 (function (root) {
   'use strict';
 
-  const CATS = { drink: 'Bevande', snack: 'Snack', meal: 'Pasti', duty: 'Duty free' };
+  const isNode = typeof require === 'function' && typeof module !== 'undefined';
+  const I18n = isNode ? require('./i18n.js') : root.I18n;
+  const pick = (x) => (I18n ? I18n.pick(x) : (Array.isArray(x) ? x[0] : x));
+  const CAT_NAMES = { drink: ['Bevande', 'Drinks'], snack: ['Snack', 'Snacks'], meal: ['Pasti', 'Meals'], duty: ['Duty free', 'Duty free'] };
   // Acquisti medi per passeggero per ora di servizio
   const RATE = { drink: 0.42, snack: 0.24, meal: 0.13, duty: 0.035 };
   const SEATS = { A320: 180, B737: 189 };
   const WINDOW = [0.12, 0.85]; // il servizio si apre dopo la salita e si chiude prima dell'avvicinamento
 
   const BASE = [
-    { id: 'water', name: 'Acqua naturale 50cl', cat: 'drink', price: 2.5, stock: 80, pop: 1.0 },
+    { id: 'water', name: ['Acqua naturale 50cl', 'Still water 50cl'], cat: 'drink', price: 2.5, stock: 80, pop: 1.0 },
     { id: 'cola', name: 'Coca-Cola 33cl', cat: 'drink', price: 3.5, stock: 60, pop: 0.9 },
-    { id: 'coffee', name: 'Caffè espresso', cat: 'drink', price: 2.8, stock: 70, pop: 1.0 },
-    { id: 'juice', name: 'Succo d\'arancia', cat: 'drink', price: 3.0, stock: 40, pop: 0.6 },
-    { id: 'tea', name: 'Tè caldo', cat: 'drink', price: 2.5, stock: 30, pop: 0.35 },
-    { id: 'beer', name: 'Birra 33cl', cat: 'drink', price: 5.5, stock: 30, pop: 0.45 },
-    { id: 'wine', name: 'Vino rosso 18,7cl', cat: 'drink', price: 7.5, stock: 20, pop: 0.25 },
-    { id: 'chips', name: 'Patatine', cat: 'snack', price: 2.8, stock: 40, pop: 0.8 },
-    { id: 'cookies', name: 'Biscotti', cat: 'snack', price: 2.5, stock: 40, pop: 0.7 },
-    { id: 'choco', name: 'Barretta al cioccolato', cat: 'snack', price: 2.5, stock: 40, pop: 0.75 },
-    { id: 'taralli', name: 'Taralli', cat: 'snack', price: 2.5, stock: 30, pop: 0.5 },
-    { id: 'panino', name: 'Panino prosciutto e formaggio', cat: 'meal', price: 7.5, stock: 25, pop: 0.9 },
-    { id: 'piadina', name: 'Piadina vegetariana', cat: 'meal', price: 7.0, stock: 15, pop: 0.5 },
-    { id: 'pasta', name: 'Insalata di pasta', cat: 'meal', price: 8.5, stock: 12, pop: 0.4 },
-    { id: 'perfume', name: 'Profumo 50ml', cat: 'duty', price: 49, stock: 6, pop: 0.5 },
-    { id: 'model', name: 'Modellino aereo', cat: 'duty', price: 25, stock: 8, pop: 0.6 },
-    { id: 'watch', name: 'Orologio', cat: 'duty', price: 89, stock: 4, pop: 0.2 },
+    { id: 'coffee', name: ['Caffè espresso', 'Espresso'], cat: 'drink', price: 2.8, stock: 70, pop: 1.0 },
+    { id: 'juice', name: ['Succo d\'arancia', 'Orange juice'], cat: 'drink', price: 3.0, stock: 40, pop: 0.6 },
+    { id: 'tea', name: ['Tè caldo', 'Hot tea'], cat: 'drink', price: 2.5, stock: 30, pop: 0.35 },
+    { id: 'beer', name: ['Birra 33cl', 'Beer 33cl'], cat: 'drink', price: 5.5, stock: 30, pop: 0.45 },
+    { id: 'wine', name: ['Vino rosso 18,7cl', 'Red wine 18.7cl'], cat: 'drink', price: 7.5, stock: 20, pop: 0.25 },
+    { id: 'chips', name: ['Patatine', 'Crisps'], cat: 'snack', price: 2.8, stock: 40, pop: 0.8 },
+    { id: 'cookies', name: ['Biscotti', 'Cookies'], cat: 'snack', price: 2.5, stock: 40, pop: 0.7 },
+    { id: 'choco', name: ['Barretta al cioccolato', 'Chocolate bar'], cat: 'snack', price: 2.5, stock: 40, pop: 0.75 },
+    { id: 'taralli', name: ['Taralli', 'Pretzels'], cat: 'snack', price: 2.5, stock: 30, pop: 0.5 },
+    { id: 'panino', name: ['Panino prosciutto e formaggio', 'Ham and cheese sandwich'], cat: 'meal', price: 7.5, stock: 25, pop: 0.9 },
+    { id: 'piadina', name: ['Piadina vegetariana', 'Veggie wrap'], cat: 'meal', price: 7.0, stock: 15, pop: 0.5 },
+    { id: 'pasta', name: ['Insalata di pasta', 'Pasta salad'], cat: 'meal', price: 8.5, stock: 12, pop: 0.4 },
+    { id: 'perfume', name: ['Profumo 50ml', 'Perfume 50ml'], cat: 'duty', price: 49, stock: 6, pop: 0.5 },
+    { id: 'model', name: ['Modellino aereo', 'Model aircraft'], cat: 'duty', price: 25, stock: 8, pop: 0.6 },
+    { id: 'watch', name: ['Orologio', 'Watch'], cat: 'duty', price: 89, stock: 4, pop: 0.2 },
   ];
-  const DEFAULT_CATALOG = {
-    A320: BASE.map((x) => ({ ...x })),
-    B737: BASE.map((x) => ({ ...x, stock: Math.round(x.stock * 1.1) })),
-  };
+  // Listino predefinito nella lingua attuale (si genera ogni volta: la lingua può cambiare)
+  const defaultCatalog = () => ({
+    A320: BASE.map((x) => ({ ...x, name: pick(x.name) })),
+    B737: BASE.map((x) => ({ ...x, name: pick(x.name), stock: Math.round(x.stock * 1.1) })),
+  });
 
   function rng(seed) {
     let s = (seed === undefined ? Math.floor(Math.random() * 2 ** 31) : seed) >>> 0;
@@ -74,7 +78,7 @@
   }
 
   function create(opts) {
-    const items = (opts.catalog || DEFAULT_CATALOG.A320).map((x) => ({ ...x, stock: Number(x.stock) || 0, price: Number(x.price) || 0, pop: Number(x.pop) || 0.5, sold: 0 }));
+    const items = (opts.catalog || defaultCatalog().A320).map((x) => ({ ...x, stock: Number(x.stock) || 0, price: Number(x.price) || 0, pop: Number(x.pop) || 0.5, sold: 0 }));
     return { pax: Math.max(0, Math.round(opts.pax || 0)), durationMin: Math.max(10, opts.durationMin || 90), items, sales: [], revenue: 0, sold: 0, missed: 0, minute: 0, seed: opts.seed };
   }
 
@@ -122,7 +126,9 @@
     return { revenue: sim.revenue, sold: sim.sold, missed: sim.missed, top, byCat, perPax: sim.pax ? Math.round((sim.revenue / sim.pax) * 100) / 100 : 0 };
   }
 
-  const api = { CATS, SEATS, WINDOW, DEFAULT_CATALOG, create, step, summary, rng };
+  const api = { SEATS, WINDOW, create, step, summary, rng };
+  Object.defineProperty(api, 'DEFAULT_CATALOG', { enumerable: true, get: defaultCatalog });
+  Object.defineProperty(api, 'CATS', { enumerable: true, get: () => Object.fromEntries(Object.entries(CAT_NAMES).map(([k, v]) => [k, pick(v)])) });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.CabinSim = api;
 })(this);

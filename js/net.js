@@ -26,16 +26,18 @@
     },
 
     async fetch(target, init) {
+      const opts = { ...(init || {}) };
+      if (this.proxy) opts.headers = { ...(opts.headers || {}), 'X-Readback-Copilot': '1' };
       try {
-        return await fetch(this.url(target), init);
+        return await fetch(this.url(target), opts);
       } catch (e) {
-        throw new Error(`Connessione non riuscita (${new URL(target).host}).`);
+        throw new Error(root.I18n ? root.I18n.t('net.failed', { host: new URL(target).host }) : `Connection failed (${new URL(target).host}).`);
       }
     },
 
     async text(target) {
       const r = await this.fetch(target, { cache: 'no-store' });
-      if (!r.ok) throw new Error(`Errore ${r.status} da ${new URL(target).host}`);
+      if (!r.ok) throw new Error(root.I18n ? root.I18n.t('net.status', { status: r.status, host: new URL(target).host }) : `Error ${r.status} from ${new URL(target).host}`);
       return r.text();
     },
 
