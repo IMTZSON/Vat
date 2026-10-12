@@ -127,7 +127,7 @@
       back.dataset.target = parent || '';
       if (parent) back.querySelector('span').textContent = document.querySelector(`.view[data-view="${parent}"]`).dataset.title;
       if (this.settings.tab !== id) this.set('tab', id);
-      root.scrollTo({ top: 0 });
+      if ($('panelScroll')) $('panelScroll').scrollTop = 0;
       this.emit('tab', id);
     },
 
@@ -196,7 +196,7 @@
       root.Icons.hydrate(document);
       // Pulsante per uscire dalla modalità compatta (la barra in alto è nascosta)
       const exit = document.createElement('button');
-      exit.className = 'icon-btn compact-exit glass';
+      exit.className = 'fab compact-exit glass';
       exit.title = 'Esci dalla modalità compatta (Ctrl+Shift+O)';
       exit.innerHTML = root.Icons.svg('maximize-2');
       exit.addEventListener('click', () => this.setCompact(false));
@@ -206,6 +206,7 @@
       this.buildSegmented();
       document.querySelectorAll('.tab').forEach((b) => b.addEventListener('click', () => this.switchTab(b.dataset.tab)));
       document.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => this.switchTab(b.dataset.go)));
+      document.querySelectorAll('[data-tab-go]').forEach((b) => b.addEventListener('click', () => this.switchTab(b.dataset.tabGo)));
       $('backBtn').addEventListener('click', () => this.switchTab($('backBtn').dataset.target || 'more'));
       $('overlayBtn').addEventListener('click', () => this.setCompact(!document.body.classList.contains('compact')));
       document.querySelectorAll('.refreshDevices').forEach((b) => b.addEventListener('click', () => this.refreshDevices(true)));
@@ -266,6 +267,16 @@
       for (const init of this.modules) {
         try { init(this); } catch (e) { console.error(e); }
       }
+
+      // Card di benvenuto: 3 passi, sparisce quando sono fatti
+      const welcome = () => {
+        const steps = [!!this.callsignInfo(), !!this.settings.groqKey, !!this.flight];
+        steps.forEach((ok, k) => $(`wStep${k + 1}`).classList.toggle('done', ok));
+        $('welcome').hidden = steps.every(Boolean);
+      };
+      for (const k of ['callsign', 'telephony', 'groqKey']) this.on(`setting:${k}`, welcome);
+      this.on('flight', welcome);
+      welcome();
       if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) this.refreshDevices(false);
       this.switchTab(this.settings.tab || 'listen');
     },

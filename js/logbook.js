@@ -58,17 +58,18 @@
       const totBlock = list.reduce((n, x) => n + (x.blockMin || x.airMin || 0), 0);
       const totAir = list.reduce((n, x) => n + (x.airMin || 0), 0);
       const totRev = list.reduce((n, x) => n + (Number(x.revenue) || 0), 0);
+      const I = root.Icons.svg;
       $('logStats').innerHTML = `
-        <div><span>Voli</span><b>${list.length}</b></div>
-        <div><span>Ore blocco</span><b>${hhmm(totBlock)}</b></div>
-        <div><span>Ore volo</span><b>${hhmm(totAir)}</b></div>
-        <div><span>Incasso bordo</span><b>${euro(totRev)}</b></div>`;
+        <div class="tile">${I('plane')}<b>${list.length}</b><span>voli</span></div>
+        <div class="tile">${I('clock')}<b>${hhmm(totBlock)}</b><span>ore blocco</span></div>
+        <div class="tile">${I('plane-takeoff')}<b>${hhmm(totAir)}</b><span>ore di volo</span></div>
+        <div class="tile">${I('euro')}<b>${euro(totRev)}</b><span>incasso bordo</span></div>`;
       const ol = $('logList');
       ol.innerHTML = '';
       if (current && (current.offBlock || current.takeoff)) {
         const li = document.createElement('li');
         li.className = 'log-item';
-        li.innerHTML = `<div class="route-line">${esc(current.dep)} → ${esc(current.arr)} <span class="badge ai">in corso</span></div>
+        li.innerHTML = `<div class="route-line-txt">${esc(current.dep)} → ${esc(current.arr)} <span class="badge ai">in corso</span></div>
           <div class="meta">Off-block ${time(current.offBlock)} · Decollo ${time(current.takeoff)}</div>`;
         ol.append(li);
       }
@@ -76,7 +77,7 @@
       for (const x of list) {
         const li = document.createElement('li');
         li.className = 'log-item';
-        li.innerHTML = `<div class="route-line">${esc(x.dep)} → ${esc(x.arr)} <span class="hint">${esc(x.callsign || '')} · ${esc(x.aircraft || '')}</span></div>
+        li.innerHTML = `<div class="route-line-txt">${esc(x.dep)} → ${esc(x.arr)} <span class="hint">${esc(x.callsign || '')} · ${esc(x.aircraft || '')}</span></div>
           <div class="meta">${esc(new Date(x.date).toLocaleDateString('it-IT'))} · Blocco ${hhmm(x.blockMin)} · Volo ${hhmm(x.airMin)} · Off ${time(x.offBlock)} · On ${time(x.onBlock)}${x.revenue ? ` · Bordo ${euro(x.revenue)}` : ''}${x.auto ? '' : ' · inserito a mano'}</div>
           ${x.notes ? `<div class="meta">${esc(x.notes)}</div>` : ''}
           <div class="actions"><button class="icon-btn" data-del="${esc(x.id)}" title="Elimina">${root.Icons.svg('trash-2')}</button></div>`;

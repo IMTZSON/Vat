@@ -86,43 +86,57 @@
       return 'In corso';
     }
 
+    const CAT_ICON = { drink: 'coffee', snack: 'cookie', meal: 'sandwich', duty: 'gift' };
+    const RING = 326.73;
+
     function renderStats() {
       const sim = run && run.sim;
+      const p = (run && run.progress) || 0;
       $('cabRevenue').textContent = euro(sim ? sim.revenue : 0);
       $('cabSold').textContent = sim ? sim.sold : 0;
       $('cabPaxView').textContent = sim ? sim.pax : paxDefault();
+      $('cabPerPax').textContent = sim && sim.pax ? euro(sim.revenue / sim.pax) : '—';
       $('cabState').textContent = stateLabel();
-      $('cabProgress').style.width = `${Math.round(((run && run.progress) || 0) * 100)}%`;
+      $('cabProgress').style.width = `${Math.round(p * 100)}%`;
+      $('cabRing').style.strokeDashoffset = String(RING * (1 - Math.min(1, p)));
       $('cabHint').textContent = !run
-        ? (S.cabSource === 'auto' ? 'Con "Volo VATSIM" il servizio segue il tuo volo reale: attiva "Segui il volo" nella scheda Volo.' : `Timer: il servizio dura ${durationMin()} minuti in tempo reale.`)
-        : (run.done ? `Volo chiuso. Incasso medio ${euro(sim.pax ? sim.revenue / sim.pax : 0)} a passeggero.` : '');
+        ? (S.cabSource === 'auto' ? 'Il servizio segue il tuo volo su VATSIM: parte da solo dopo la salita (attiva "Segui volo" sulla mappa).' : `Timer: il servizio dura ${durationMin()} minuti in tempo reale.`)
+        : (run.done ? 'Volo chiuso: il riepilogo è nel logbook (Cockpit › Logbook).' : '');
       const btn = $('cabStart');
-      if (run && !run.done) { btn.innerHTML = `${root.Icons.svg('square')} Ferma simulazione`; btn.classList.add('stop'); }
-      else { btn.innerHTML = `${root.Icons.svg('play')} Inizia simulazione`; btn.classList.remove('stop'); }
+      if (run && !run.done) { btn.innerHTML = `${root.Icons.svg('square')} Ferma servizio`; btn.classList.add('stop'); }
+      else { btn.innerHTML = `${root.Icons.svg('play')} Inizia servizio`; btn.classList.remove('stop'); }
 
       const feed = $('cabFeed');
       const sales = sim ? sim.sales.slice(-40).reverse() : [];
       feed.innerHTML = sales.length ? '' : '<li class="empty">Le vendite compariranno qui durante il servizio.</li>';
       for (const s of sales) {
         const li = document.createElement('li');
-        li.innerHTML = '<span class="t"></span><span class="what"></span><span class="amt"></span>';
-        li.querySelector('.t').textContent = `+${s.minute}′`;
-        li.querySelector('.what').textContent = `${s.qty > 1 ? `${s.qty}× ` : ''}${s.name}`;
+        li.innerHTML = `<span class="cat-ico">${root.Icons.svg(CAT_ICON[s.cat] || 'package')}</span><span class="what"><span class="nm"></span><small></small></span><span class="amt"></span>`;
+        li.querySelector('.nm').textContent = `${s.qty > 1 ? `${s.qty}× ` : ''}${s.name}`;
+        li.querySelector('small').textContent = `${C.CATS[s.cat] || ''} · +${s.minute}′ dall'inizio`;
         li.querySelector('.amt').textContent = euro(s.amount);
         feed.append(li);
       }
       const top = sim ? C.summary(sim).top.slice(0, 6) : [];
       const tl = $('cabTop');
-      tl.innerHTML = top.length ? '' : '<li class="empty">—</li>';
+      tl.innerHTML = top.length ? '' : '<li class="empty">Ancora nessuna vendita.</li>';
+      const max = top.length ? top[0].qty : 1;
       for (const t of top) {
         const li = document.createElement('li');
-        li.className = 'row-between';
-        li.innerHTML = '<span></span><b></b>';
+        li.innerHTML = '<span></span><b></b><div class="bar"><div></div></div>';
         li.querySelector('span').textContent = `${t.qty}× ${t.name}`;
         li.querySelector('b').textContent = euro(t.amount);
+        li.querySelector('.bar div').style.width = `${Math.round((t.qty / max) * 100)}%`;
         tl.append(li);
       }
     }
+
+    $('cabEditCatalog').addEventListener('click', () => { renderCatalog(); $('catalogSheet').showModal(); });
+    $('catalogClose').addEventListener('click', () => $('catalogSheet').close());
+    $('catalogSheet').addEventListener('click', (e) => {
+      const r = $('catalogSheet').getBoundingClientRect();
+      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) $('catalogSheet').close();
+    });
 
     function advance(dtMin, progress, open) {
       if (!run || run.done || dtMin <= 0) return;

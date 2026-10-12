@@ -48,8 +48,10 @@
       selected = cl.id;
       const c = checks(cl.id);
       $('clTitle').textContent = cl.title;
-      $('clCount').textContent = `${c.filter(Boolean).length}/${c.length}`;
-      $('clCount').className = `badge ${c.every(Boolean) ? 'ok' : 'muted'}`;
+      const doneN = c.filter(Boolean).length;
+      $('clCount').textContent = `${doneN}/${c.length}`;
+      $('clRing').style.strokeDashoffset = String(326.73 * (1 - doneN / c.length));
+      $('clRing').style.stroke = doneN === c.length ? 'var(--green)' : '';
       const ul = $('clItems');
       ul.innerHTML = '';
       cl.items.forEach(([label, value], k) => {

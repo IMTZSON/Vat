@@ -45,7 +45,7 @@
         const items = sec.items.filter((it) => !q || [it.when, it.atc, it.pilot, it.note].join(' ').toLowerCase().includes(q));
         if (!items.length) continue;
         const panel = document.createElement('details');
-        panel.className = 'group glass disclosure';
+        panel.className = 'disclosure';
         panel.open = !!q || sec === SECTIONS[0];
         const sum = document.createElement('summary');
         sum.textContent = `${sec.title} (${items.length})`;

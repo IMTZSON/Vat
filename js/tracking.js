@@ -25,7 +25,7 @@
     function setTiles() {
       if (!map) return;
       if (tiles) tiles.remove();
-      tiles = L.tileLayer(`https://{s}.basemaps.cartocdn.com/${dark() ? 'dark_all' : 'light_all'}/{z}/{x}/{y}{r}.png`, {
+      tiles = L.tileLayer(`https://{s}.basemaps.cartocdn.com/${dark() ? 'dark_all' : 'rastertiles/voyager'}/{z}/{x}/{y}{r}.png`, {
         maxZoom: 12,
         subdomains: 'abcd',
         attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a>',
@@ -52,26 +52,43 @@
       const pts = routePoints();
       if (pts.length < 2) return;
       const latlngs = pts.map((p) => [p.lat, p.lon]);
-      routeLine = L.polyline(latlngs, { color: getComputedStyle(document.documentElement).getPropertyValue('--blue').trim() || '#0a84ff', weight: 3, opacity: 0.75, dashArray: '6 6' }).addTo(map);
+      const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#3b82f6';
+      routeLine = L.polyline(latlngs, { color: accent, weight: 3.5, opacity: 0.85, dashArray: '2 8', lineCap: 'round' }).addTo(map);
       for (const p of [pts[0], pts[pts.length - 1]]) {
-        fixMarkers.push(L.circleMarker([p.lat, p.lon], { radius: 6, color: '#fff', weight: 2, fillColor: '#0a84ff', fillOpacity: 1 }).bindTooltip(p.ident, { permanent: true, direction: 'top', className: 'fix-label', offset: [0, -6] }).addTo(map));
+        fixMarkers.push(L.circleMarker([p.lat, p.lon], { radius: 7, color: '#fff', weight: 3, fillColor: accent, fillOpacity: 1 }).bindTooltip(p.ident, { permanent: true, direction: 'top', className: 'fix-label', offset: [0, -10] }).addTo(map));
       }
-      if (!plane) map.fitBounds(routeLine.getBounds(), { padding: [30, 30] });
+      if (!plane) fitRoute();
     }
 
     function drawTrail() {
       if (!map) return;
       if (trailLine) trailLine.remove();
-      if (trail.length > 1) trailLine = L.polyline(trail.map((p) => [p[0], p[1]]), { color: '#30d158', weight: 3, opacity: 0.9 }).addTo(map);
+      if (trail.length > 1) trailLine = L.polyline(trail.map((p) => [p[0], p[1]]), { color: getComputedStyle(document.documentElement).getPropertyValue('--green').trim() || '#16a34a', weight: 4, opacity: 0.75, lineCap: 'round' }).addTo(map);
+    }
+
+    function fitRoute() {
+      if (!map) return;
+      const pad = App.mapPadding ? App.mapPadding() : { padding: [40, 40] };
+      if (routeLine) map.fitBounds(routeLine.getBounds(), { ...pad, maxZoom: 8 });
+      else map.fitBounds([[36.5, 6.5], [47.2, 18.6]], pad); // Italia
     }
 
     function initMap() {
       if (map || !L) return;
-      map = L.map('map', { zoomControl: true, attributionControl: true, worldCopyJump: true }).setView([42.5, 12.5], 5);
+      map = L.map('map', { zoomControl: false, attributionControl: true, worldCopyJump: true, zoomSnap: 0.25 }).setView([42.5, 12.5], 6);
       setTiles();
       drawRoute();
       drawTrail();
-      if (root.matchMedia) root.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', setTiles);
+      if (!routeLine) setTimeout(fitRoute, 50);
+      if (root.matchMedia) root.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { setTiles(); drawRoute(); drawTrail(); });
+      $('mapZoomIn').addEventListener('click', () => map.zoomIn());
+      $('mapZoomOut').addEventListener('click', () => map.zoomOut());
+      $('mapFit').addEventListener('click', fitRoute);
+      $('mapLocate').addEventListener('click', () => {
+        if (plane) map.flyTo(plane.getLatLng(), Math.max(map.getZoom(), 8), { duration: 0.8 });
+        else { App.toast('Premi "Segui volo" per vedere la tua posizione su VATSIM.'); fitRoute(); }
+      });
+      App.on('layout', () => map.invalidateSize());
     }
 
     function fmtAlt(ft) {
@@ -85,7 +102,9 @@
       $('trkGs').textContent = o.gs;
       $('trkRemain').textContent = o.remain;
       $('trkEta').textContent = o.eta;
-      $('trkProgress').style.width = `${Math.round((o.pct || 0) * 100)}%`;
+      const pct = `${Math.round((o.pct || 0) * 100)}%`;
+      $('trkProgress').style.width = pct;
+      $('trkProgress').parentElement.style.setProperty('--p', pct);
       $('trkUpdated').textContent = o.updated || '';
     }
 
@@ -147,13 +166,18 @@
       });
 
       if (map) {
-        const icon = L.divIcon({ className: 'plane-icon', html: `<div style="transform: rotate(${p.heading}deg)">${PLANE_SVG}</div>`, iconSize: [30, 30], iconAnchor: [15, 15] });
-        if (!plane) { plane = L.marker([pos.lat, pos.lon], { icon }).addTo(map); map.setView([pos.lat, pos.lon], Math.max(map.getZoom(), 7)); }
+        const icon = L.divIcon({ className: 'plane-icon', html: `<div class="plane-wrap"><div style="transform: rotate(${p.heading}deg); display: grid">${PLANE_SVG}</div></div>`, iconSize: [34, 34], iconAnchor: [17, 17] });
+        if (!plane) {
+          plane = L.marker([pos.lat, pos.lon], { icon }).addTo(map);
+          // prima posizione: inquadra rotta + aereo insieme
+          const b = routeLine ? routeLine.getBounds().extend([pos.lat, pos.lon]) : L.latLngBounds([[pos.lat, pos.lon], [pos.lat, pos.lon]]);
+          map.fitBounds(b.pad(0.05), { ...(App.mapPadding ? App.mapPadding() : {}), maxZoom: 8 });
+        }
         else {
           plane.setLatLng([pos.lat, pos.lon]);
           plane.setIcon(icon);
           // La mappa segue l'aereo quando esce dalla zona visibile
-          if (!map.getBounds().pad(-0.15).contains([pos.lat, pos.lon])) map.panTo([pos.lat, pos.lon]);
+          map.panInside([pos.lat, pos.lon], App.mapPadding ? App.mapPadding() : {});
         }
         drawTrail();
       }
@@ -165,7 +189,7 @@
     function start() {
       if (timer) return;
       App.set('tracking', true);
-      $('trackToggle').innerHTML = `${root.Icons.svg('square')} Smetti di seguire`;
+      $('trackToggle').innerHTML = `${root.Icons.svg('square')} Stop`;
       $('trackToggle').classList.add('stop');
       poll();
       timer = setInterval(poll, 15000);
@@ -174,7 +198,7 @@
       clearInterval(timer);
       timer = null;
       App.set('tracking', false);
-      $('trackToggle').innerHTML = `${root.Icons.svg('navigation')} Segui il volo su VATSIM`;
+      $('trackToggle').innerHTML = `${root.Icons.svg('navigation')} Segui volo`;
       $('trackToggle').classList.remove('stop');
     }
 
@@ -192,11 +216,7 @@
         drawTrail();
       }
     });
-    App.on('tab', (id) => {
-      if (id !== 'flight') return;
-      initMap();
-      setTimeout(() => map && map.invalidateSize(), 50);
-    });
+    initMap();
     App.isTracking = () => !!timer;
     if (App.settings.tracking) start();
   });

@@ -20,7 +20,12 @@ Disponibile come **programma per Windows (.exe)** e come pagina web.
 
 ## Cosa fa
 
-L'interfaccia è in stile iOS (vetro sfocato, tab bar in basso) e il tema chiaro/scuro segue Windows. Ci sono 5 schede.
+L'interfaccia è in stile iOS. Il **centro è la mappa**, a tutto schermo con il tuo volo. Sopra ci sono, in vetro:
+- un **pannello** a sinistra con 5 schede (sugli schermi stretti diventa un foglio trascinabile dal basso);
+- la **Live Activity ATC** in alto, con l'ultimo readback;
+- l'**HUD del volo** in basso a destra.
+
+Il tema chiaro/scuro segue Windows.
 
 ### 🎧 ATC (in volo)
 - Ascolta la radio di vPilot, trascrive l'ATC e mostra il **readback corretto** con la **pronuncia ICAO**.

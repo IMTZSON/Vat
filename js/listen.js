@@ -32,9 +32,9 @@
     function updateCallsignHint() {
       const cs = App.callsignInfo();
       const hint = $('csHint');
-      if (!cs) hint.textContent = 'Inserisci il tuo nominativo: così l\'app riconosce le chiamate per te e lo aggiunge in fondo al readback.';
-      else if (cs.type === 'unknown') hint.textContent = 'Compagnia non in elenco: scrivi come ti chiama l\'ATC nel campo "Nominativo radio" (es. "Alitalia").';
-      else hint.textContent = `L'ATC ti chiamerà: ${cs.display} — pronuncia: "${cs.spoken}"`;
+      if (!cs) hint.textContent = 'Prima scrivi il tuo nominativo qui sotto.';
+      else if (cs.type === 'unknown') hint.textContent = 'Compagnia non in elenco: scrivi il nominativo radio.';
+      else { hint.textContent = `L'ATC ti chiama "${cs.display}"`; hint.title = `Pronuncia: ${cs.spoken}`; }
     }
 
     function updateModeUI() {
@@ -51,14 +51,29 @@
 
     // ------------------------------------------------------------ visualizzazione
 
-    function render(item) {
+    // ------------------------------------------------------------ Live Activity (in alto sulla mappa)
+    const activity = $('activity');
+    let collapseTimer = null;
+    function setExpanded(on, auto) {
+      activity.classList.toggle('collapsed', !on);
+      clearTimeout(collapseTimer);
+      // dopo una nuova chiamata torna compatta da sola, ma solo se nessuno la sta guardando col mouse
+      if (on && auto) collapseTimer = setTimeout(() => { if (!activity.matches(':hover')) setExpanded(false); }, 25000);
+    }
+    $('activityToggle').addEventListener('click', () => setExpanded(activity.classList.contains('collapsed')));
+    setExpanded(false);
+
+    function render(item, fresh) {
       current = item;
       const r = item.result;
       const rb = $('readback');
       rb.textContent = r.readback || '—';
-      rb.classList.remove('flash');
-      void rb.offsetWidth;
-      rb.classList.add('flash');
+      if (fresh) {
+        activity.classList.remove('pop');
+        void activity.offsetWidth;
+        activity.classList.add('pop');
+        setExpanded(true, true);
+      }
       $('spoken').textContent = r.spoken ? `"${r.spoken}"` : '';
       $('heard').textContent = item.heard || '—';
 
@@ -112,28 +127,33 @@
       App.storage.set(HISTORY_KEY, history.slice(0, 100).map((h) => ({ heard: h.heard, time: h.time, date: h.date, result: { readback: h.result.readback, spoken: h.result.spoken, forUs: h.result.forUs, source: h.result.source, parts: h.result.parts, warnings: h.result.warnings, note: h.result.note } })));
     }
 
+    // Conversazione a fumetti: ATC a sinistra, il tuo readback a destra
     function renderHistory() {
       const ol = $('history');
       ol.innerHTML = '';
       if (!history.length) {
-        ol.innerHTML = '<li class="empty">Nessuna trasmissione ancora.</li>';
+        ol.innerHTML = `<li class="empty">${root.Icons.svg('message-circle')}Qui comparirà la conversazione con l'ATC.</li>`;
         return;
       }
-      for (const item of history.slice(0, 40)) {
-        const li = document.createElement('li');
-        if (item.result.forUs === false) li.className = 'other';
-        const t = document.createElement('div');
-        t.className = 't';
-        t.textContent = `${item.time}${item.result.forUs === false ? ' · non per te' : ''}${item.result.source === 'AI' ? ' · AI' : ''}`;
-        const rb = document.createElement('div');
-        rb.className = 'rb';
-        rb.textContent = item.result.readback;
-        const atc = document.createElement('div');
-        atc.className = 'atc';
-        atc.textContent = `ATC: ${item.heard}`;
-        li.append(t, rb, atc);
-        li.addEventListener('click', () => render(item));
-        ol.append(li);
+      for (const item of history.slice(0, 30).reverse()) {
+        const r = item.result;
+        const v = item.verify;
+        const atc = document.createElement('li');
+        atc.className = 'msg atc';
+        atc.innerHTML = '<div class="bubble"></div><div class="meta"></div>';
+        atc.querySelector('.bubble').textContent = item.heard;
+        atc.querySelector('.meta').textContent = `ATC · ${item.time}`;
+        const me = document.createElement('li');
+        const state = v && v.status === 'bad' ? 'bad' : (v && v.status === 'warn' ? 'warn' : '');
+        me.className = `msg me ${r.forUs === false ? 'other' : state}`;
+        me.innerHTML = '<div class="bubble"></div><div class="meta"></div>';
+        me.querySelector('.bubble').textContent = r.readback;
+        const tags = [];
+        if (r.forUs === false) tags.push('non per te');
+        else if (v) tags.push(v.status === 'ok' ? '✓ verificato' : v.status === 'warn' ? '⚠ controlla' : '⛔ audio non chiaro');
+        if (r.source === 'AI') tags.push('AI');
+        me.querySelector('.meta').textContent = tags.join(' · ');
+        for (const li of [atc, me]) { li.addEventListener('click', () => render(item, true)); ol.append(li); }
       }
     }
 
@@ -231,7 +251,7 @@
       const wantAI = S.mode === 'groq' && S.useAI && S.groqKey && show;
       if (wantAI) item.aiPending = true;
       if (show) {
-        render(item);
+        render(item, true);
         if (origin !== 'prova' && result.forUs === true) beep();
       }
       renderHistory();
@@ -302,6 +322,7 @@
           const bar = $('meterBar');
           bar.style.width = `${Math.min(100, (rms / 0.15) * 100)}%`;
           bar.classList.toggle('on', speaking);
+          $('toggle').style.setProperty('--lvl', Math.min(1, rms / 0.08).toFixed(2));
         },
         onEnded: () => { if (running) stop(); },
         onSegment: async (wav) => {
@@ -328,8 +349,10 @@
         if (S.mode === 'groq') await startGroq();
         else startFree();
         App.setStatus('In ascolto', 'listening');
-        $('toggle').innerHTML = `${root.Icons.svg('square')} Ferma ascolto`;
-        $('toggle').classList.add('stop');
+        $('toggle').classList.add('on');
+        $('toggle').setAttribute('aria-label', 'Ferma ascolto');
+        $('toggleLabel').textContent = 'In ascolto…';
+        activity.classList.add('listening');
         updateModeUI();
       } catch (e) {
         stop();
@@ -343,8 +366,11 @@
       if (recognition) { recognition.onend = null; try { recognition.stop(); } catch (e) { /* ignora */ } recognition = null; }
       if (recorder) { recorder.stop(); recorder = null; }
       App.setStatus('Fermo', 'idle');
-      $('toggle').innerHTML = `${root.Icons.svg('play')} Avvia ascolto`;
-      $('toggle').classList.remove('stop');
+      $('toggle').classList.remove('on');
+      $('toggle').style.setProperty('--lvl', 0);
+      $('toggle').setAttribute('aria-label', 'Avvia ascolto');
+      $('toggleLabel').textContent = 'Ascolto spento';
+      activity.classList.remove('listening');
       updateModeUI();
     }
 

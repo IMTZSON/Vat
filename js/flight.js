@@ -49,62 +49,82 @@
       return `${Math.floor(sec / 3600)}h ${String(Math.round((sec % 3600) / 60)).padStart(2, '0')}m`;
     }
 
+    // Card del percorso in stile Flighty: codici grandi, linea con l'aereo, dati essenziali
     function renderSummary() {
       const f = App.flight;
       const el = $('flightSummary');
-      if (!f) { el.innerHTML = ''; return; }
-      const cell = (label, value) => (value ? `<div><span>${label}</span><b>${esc(value)}</b></div>` : '');
+      const I = root.Icons.svg;
+      if (!f) {
+        el.innerHTML = `<div class="route-empty">${I('plane')}<b>Nessun volo caricato</b><span>Carica il piano da SimBrief o inseriscilo a mano: rotta, meteo e chiamate si preparano da soli.</span></div>`;
+        $('planCard').open = true;
+        return;
+      }
+      const city = (icao, name) => (AIRPORTS[icao] ? AIRPORTS[icao].city : (name || '').split(/[\s/-]+/)[0]);
+      const meta = [];
+      if (f.cruise) meta.push(`<span>Crociera <b>FL${f.cruise}</b></span>`);
+      if (f.aircraft) meta.push(`<span><b>${esc(f.aircraft)}</b>${f.reg ? ` · ${esc(f.reg)}` : ''}</span>`);
+      if (f.ete) meta.push(`<span>Durata <b>${fmtDur(f.ete)}</b></span>`);
+      if (f.pax) meta.push(`<span><b>${f.pax}</b> pax</span>`);
+      if (f.depRwy || f.arrRwy) meta.push(`<span>Piste <b>${esc([f.depRwy, f.arrRwy].filter(Boolean).join(' → '))}</b></span>`);
+      if (f.sid || f.star) meta.push(`<span>${esc([f.sid, f.star].filter(Boolean).join(' / '))}</span>`);
+      if (f.fuel) meta.push(`<span>Fuel <b>${esc(f.fuel)}</b> ${esc(f.units || '')}</span>`);
+      if (f.altn) meta.push(`<span>Alt. <b>${esc(f.altn)}</b></span>`);
+      const pct = App.track && App.track.progress ? Math.round(App.track.progress.pct * 100) : 0;
       el.innerHTML = `
-        <div class="fs-head"><b>${esc(f.callsign || '')}</b> ${esc(f.dep)} → ${esc(f.arr)} <span class="hint">(${esc(f.source)})</span></div>
-        <div class="fs-grid">
-          ${cell('Partenza', `${f.dep} ${f.depName || ''}`)}
-          ${cell('Arrivo', `${f.arr} ${f.arrName || ''}`)}
-          ${cell('Alternato', f.altn)}
-          ${cell('Aereo', [f.aircraft, f.reg].filter(Boolean).join(' · '))}
-          ${cell('Crociera', f.cruise ? `FL${f.cruise}` : '')}
-          ${cell('Piste previste', [f.depRwy, f.arrRwy].filter(Boolean).join(' → '))}
-          ${cell('SID / STAR', [f.sid, f.star].filter(Boolean).join(' / '))}
-          ${cell('Durata', f.ete ? fmtDur(f.ete) : '')}
-          ${cell('Carburante', f.fuel ? `${f.fuel} ${f.units}` : '')}
-          ${cell('ZFW / TOW', f.zfw ? `${f.zfw} / ${f.tow} ${f.units}` : '')}
+        <div class="route-top"><span class="cs">${esc(f.callsign || '')}</span><span class="badge ai">${esc(f.source || '')}</span></div>
+        <div class="route-codes">
+          <div class="ap"><b>${esc(f.dep)}</b><span>${esc(city(f.dep, f.depName))}</span></div>
+          <div class="route-line" id="routeLine" style="--p: ${pct}%"><div class="done"></div>${I('plane')}</div>
+          <div class="ap right"><b>${esc(f.arr)}</b><span>${esc(city(f.arr, f.arrName))}</span></div>
         </div>
-        ${f.route ? `<div class="route"><span>Rotta</span><code>${esc(f.route)}</code></div>` : ''}`;
+        <div class="route-meta">${meta.join('')}</div>
+        ${f.route ? `<div class="route-text">${esc(f.route)}</div>` : ''}`;
+      $('planCard').open = false;
     }
+    App.on('track', (e) => {
+      const line = document.getElementById('routeLine');
+      if (line && e.progress) line.style.setProperty('--p', `${Math.round(e.progress.pct * 100)}%`);
+    });
 
     // ------------------------------------------------------------ meteo e ATC
 
     const feed = (maxAge) => root.Vatsim.feed(maxAge);
     const atcAt = (data, icao) => root.Vatsim.atcAt(data, icao);
 
+    // Widget meteo + ATC per un aeroporto
     function renderAirport(elId, title, icao, info) {
       const el = $(elId);
-      if (!icao) { el.innerHTML = `<h3>${title}</h3><p class="hint">Carica un piano di volo.</p>`; return; }
+      const I = root.Icons.svg;
+      if (!icao) { el.innerHTML = `<div class="wx-head"><div><span class="eyebrow">${title}</span><b>—</b></div></div><span class="muted">Carica un volo.</span>`; return; }
       const ap = AIRPORTS[icao];
-      let html = `<h3>${title} · ${esc(icao)} <span class="hint">${esc(ap ? ap.name : '')}</span>`;
-      if (info && info.metar && info.metar.category) html += ` <span class="badge cat-${info.metar.category}">${info.metar.category}</span>`;
-      html += '</h3>';
-      if (!info) { el.innerHTML = `${html}<p class="hint">Premi "Aggiorna meteo e ATC".</p>`; return; }
-      if (info.metar) {
-        html += `<code class="metar">${esc(info.metar.raw)}</code><ul class="wxLines">${info.metar.lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>`;
+      const m = info && info.metar;
+      let html = `<div class="wx-head"><div><span class="eyebrow">${title}</span><b>${esc(icao)}</b><span class="name">${esc(ap ? ap.name : '')}</span></div>${m && m.category ? `<span class="badge cat-${m.category}">${m.category}</span>` : ''}</div>`;
+      if (!info) { el.innerHTML = `${html}<span class="muted">Premi aggiorna per meteo e ATC.</span>`; return; }
+      if (m) {
+        const w = m.wind;
+        const wind = !w ? '—' : (w.speed === 0 ? 'Calmo' : `${w.dir === null ? 'VRB' : String(w.dir).padStart(3, '0')}° / ${w.speed} kt${w.gust ? ` raff. ${w.gust}` : ''}`);
+        const vis = m.cavok ? 'CAVOK' : (m.visibility ? (m.visibility >= 9999 ? '10 km+' : `${m.visibility} m`) : '—');
+        html += `<div class="wx-big"><b>${m.qnh ? m.qnh.hpa : '—'}</b><span>hPa QNH</span></div>
+          <div class="wx-line">${I('wind')} ${esc(wind)}</div>
+          <div class="wx-line">${I('eye')} ${esc(vis)}${m.temp !== null ? ` · ${I('thermometer')} ${m.temp}°` : ''}</div>
+          <details><summary>METAR</summary><code class="metar">${esc(m.raw)}</code><ul class="wxLines">${m.lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></details>`;
       } else {
-        html += `<p class="hint">${esc(info.metarError || 'METAR non disponibile.')}</p>`;
+        html += `<span class="muted">${esc(info.metarError || 'METAR non disponibile.')}</span>`;
       }
       if (info.atc) {
         const { ctrls, centers, atis } = info.atc;
-        if (ctrls.length || atis.length) {
-          html += '<div class="label">ATC online su VATSIM</div><ul class="atcList">';
-          for (const c of ctrls) html += `<li><b>${esc(c.frequency)}</b> ${esc(root.Vatsim.FACILITY[c.facility] || '')} <span class="hint">${esc(c.callsign)}</span></li>`;
-          for (const a of atis) html += `<li><b>${esc(a.frequency)}</b> ATIS ${a.atis_code ? `<span class="badge ai">${esc(a.atis_code)}</span>` : ''} <span class="hint">${esc(a.callsign)}</span></li>`;
-          html += '</ul>';
-          for (const a of atis) {
-            if (a.text_atis && a.text_atis.length) html += `<details><summary class="hint">Testo ATIS</summary><p class="atisText">${esc(a.text_atis.join(' '))}</p></details>`;
-          }
-        } else {
-          html += '<p class="hint">Nessun controllore online in questo aeroporto: su VATSIM si usa <b>UNICOM 122.800</b> (via messaggi di testo) per annunciare le proprie intenzioni.</p>';
-        }
-        if (centers.length) html += `<div class="label">Centri in zona (indicativo)</div><ul class="atcList">${centers.map((c) => `<li><b>${esc(c.frequency)}</b> <span class="hint">${esc(c.callsign)}</span></li>`).join('')}</ul>`;
+        const short = (cs) => cs.split('_').pop();
+        const chips = [
+          ...atis.map((a) => `<span class="freq-chip atis" title="${esc(a.callsign)}">ATIS ${a.atis_code ? `<b>${esc(a.atis_code)}</b>` : ''} ${esc(a.frequency)}</span>`),
+          ...ctrls.map((c) => `<span class="freq-chip" title="${esc(c.callsign)}"><b>${esc(c.frequency)}</b> ${esc(short(c.callsign))}</span>`),
+          ...centers.slice(0, 2).map((c) => `<span class="freq-chip" title="${esc(c.callsign)} (centro in zona)"><b>${esc(c.frequency)}</b> ${esc(c.callsign.split('_')[0])}</span>`),
+        ];
+        const shown = chips.slice(0, 4);
+        if (chips.length > 4) shown.push(`<span class="freq-chip more" title="${esc([...ctrls, ...centers].map((c) => `${c.callsign} ${c.frequency}`).join(' · '))}">+${chips.length - 4}</span>`);
+        html += chips.length ? `<div class="freqs">${shown.join('')}</div>` : '<span class="muted">Nessun ATC: UNICOM 122.800 (testo)</span>';
+        for (const a of atis) if (a.text_atis && a.text_atis.length) html += `<details><summary>Testo ATIS</summary><p class="atisText">${esc(a.text_atis.join(' '))}</p></details>`;
       } else if (info.atcError) {
-        html += `<p class="hint">${esc(info.atcError)}</p>`;
+        html += `<span class="muted">${esc(info.atcError)}</span>`;
       }
       el.innerHTML = html;
     }
@@ -217,10 +237,8 @@
 
     renderSummary();
     renderCalls();
-    if (App.flight) {
-      renderAirport('apDep', 'Partenza', App.flight.dep, null);
-      renderAirport('apArr', 'Arrivo', App.flight.arr, null);
-    }
+    renderAirport('apDep', 'Partenza', App.flight && App.flight.dep, null);
+    renderAirport('apArr', 'Arrivo', App.flight && App.flight.arr, null);
     App.on('tab', (id) => { if (id === 'flight' && App.flight && !wx.dep) refreshWx(); });
   });
 })(this);
