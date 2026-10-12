@@ -31,6 +31,13 @@ async function fakeWav(dir) {
   return file;
 }
 
+// TAF valido da adesso per 24 ore, con un temporale temporaneo tra 2 e 6 ore
+function tafNow(icao) {
+  const p2 = (n) => String(n).padStart(2, '0');
+  const dh = (h) => { const d = new Date(Date.now() + h * 3600e3); return `${p2(d.getUTCDate())}${p2(d.getUTCHours())}`; };
+  return `TAF ${icao} ${dh(0)}00Z ${dh(0)}/${dh(24)} 22008KT 9999 FEW030 TEMPO ${dh(2)}/${dh(6)} 3000 TSRA BKN015CB BECMG ${dh(8)}/${dh(10)} VRB03KT CAVOK=`;
+}
+
 // Groq, VATSIM, GitHub e mappe finti
 async function mockNetwork(page, state) {
   await page.route('**/api/tile/**', (route) => route.fulfill({ body: PNG, contentType: 'image/png' }));
@@ -52,7 +59,7 @@ async function mockNetwork(page, state) {
     if (u.includes('metar.vatsim.net')) return route.fulfill({ body: 'EGLL 121250Z 24008KT 9999 FEW030 18/10 Q1013 NOSIG', contentType: 'text/plain' });
     if (u.includes('api.github.com')) return route.fulfill({ json: [] });
     if (u.includes('api.ivao.aero')) return route.fulfill({ json: { clients: { pilots: [], atcs: [] } } });
-    if (u.includes('aviationweather.gov')) return route.fulfill({ body: '', contentType: 'text/plain' });
+    if (u.includes('aviationweather.gov')) return route.fulfill({ body: tafNow(u.match(/ids=(\w+)/)[1]), contentType: 'text/plain' });
     return route.fulfill({ status: 404, body: 'not mocked' });
   });
 }
@@ -176,6 +183,26 @@ test('app nel browser: telefono, tema chiaro, utente della 3.x', { skip: !chromi
     await page.waitForTimeout(150);
   }
   assert.strictEqual(await page.textContent('#topTitle'), 'Altro');
+
+  // Meteo con previsione TAF: striscia oraria, condizioni all'arrivo, TAF decodificato
+  await page.evaluate(() => App.setFlight({ callsign: 'AZA123', dep: 'LIRF', arr: 'EGLL', source: 'test', out: Math.round(Date.now() / 1000) + 1800, ete: 3 * 3600 }));
+  await page.click('.tab[data-tab="flight"]');
+  await page.click('#wxRefresh');
+  await page.waitForSelector('#apArr .fc-strip .fc-chip');
+  const fc = await page.evaluate(() => ({
+    chips: document.querySelectorAll('#apArr .fc-chip').length,
+    ref: document.querySelectorAll('#apArr .fc-chip.ref').length,
+    key: document.querySelector('#apArr .fc-key').textContent.replace(/\s+/g, ' '),
+    tempoDot: document.querySelectorAll('#apDep .fc-chip .dot').length,
+    lines: document.querySelectorAll('#apArr .fcLines li').length,
+    overflow: document.documentElement.scrollWidth > window.innerWidth,
+  }));
+  assert.ok(fc.chips >= 6, `chip orari: ${fc.chips}`);
+  assert.strictEqual(fc.ref, 1, "l'ora dell'arrivo è evidenziata");
+  assert.match(fc.key, /All'arrivo/);
+  assert.ok(fc.tempoDot >= 1, 'il temporale temporaneo è segnalato');
+  assert.strictEqual(fc.lines, 3);
+  assert.strictEqual(fc.overflow, false);
   assert.deepStrictEqual(errors, []);
 });
 

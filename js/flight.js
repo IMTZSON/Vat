@@ -83,15 +83,101 @@
         ${f.route ? `<div class="route-text">${esc(f.route)}</div>` : ''}`;
       $('planCard').open = false;
     }
+    let lastEta = 0;
     App.on('track', (e) => {
       const line = document.getElementById('routeLine');
       if (line && e.progress) line.style.setProperty('--p', `${Math.round(e.progress.pct * 100)}%`);
+      // la previsione all'arrivo segue l'ETA del tracking (ridisegno solo se cambia di oltre 10 minuti)
+      if (e.eta && wx.arr && App.flight && Math.abs(+e.eta - lastEta) > 10 * 60e3) {
+        lastEta = +e.eta;
+        renderAirport('apArr', t('flight.arr'), App.flight.arr, wx.arr);
+      }
     });
 
     // ------------------------------------------------------------ meteo e ATC
 
     const feed = (maxAge) => root.Vatsim.feed(maxAge);
     const atcAt = (data, icao) => root.Vatsim.atcAt(data, icao);
+
+    // ------------------------------------------------------------ previsione TAF
+
+    const Z2 = (n) => String(n).padStart(2, '0');
+    const zHour = (ms) => `${Z2(new Date(ms).getUTCHours())}Z`;
+    const zTime = (ms, refDay) => {
+      const d = new Date(ms);
+      const hm = `${Z2(d.getUTCHours())}${Z2(d.getUTCMinutes())}Z`;
+      return refDay !== undefined && d.getUTCDate() !== refDay ? `${Z2(d.getUTCDate())}/${hm}` : hm;
+    };
+    // Istante di riferimento: partenza (orario SimBrief se nel futuro) o arrivo (ETA del tracking o orario pianificato)
+    function refTime(role) {
+      const f = App.flight || {};
+      const out = f.out ? f.out * 1000 : null;
+      if (role === 'dep') return out && out > Date.now() - 30 * 60e3 ? out : null;
+      if (App.track && App.track.eta) return +App.track.eta;
+      return out && f.ete ? out + f.ete * 1000 : null;
+    }
+
+    function forecastHtml(info, a, role) {
+      const Taf = root.Taf;
+      const I = root.Icons.svg;
+      const head = `<div class="fc-head">${I('calendar-clock')}<b>${esc(t('taf.title'))}</b>`;
+      if (info.tafError) return { key: '', body: `<div class="fc">${head}</div><span class="muted">${esc(info.tafError)}</span></div>` };
+      const taf = info.taf;
+      if (!taf) return { key: '', body: '' };
+      if (taf.cancelled || !taf.periods.length) return { key: '', body: `<div class="fc">${head}</div><span class="muted">${esc(t('taf.cancelled'))}</span></div>` };
+      const day = new Date(taf.from).getUTCDate();
+      let key = '';
+      let html = `<div class="fc">${head}<span>${esc(t('taf.valid', { a: zTime(taf.from), b: zTime(taf.to, day) }))}</span></div>`;
+
+      const cond = (c) => c && (c.full || c);
+      const ref = refTime(role);
+      if (ref) {
+        const x = Taf.at(taf, ref);
+        const label = t(role === 'arr' ? 'taf.atArr' : 'taf.atDep', { time: zTime(ref) });
+        if (!x || !x.inside) key = `<div class="fc-key cat-NA"><div><span class="eyebrow">${esc(label)}</span><span class="fc-desc">${esc(t('taf.outside'))}</span></div></div>`;
+        else {
+          const icon = Taf.icon(x.main, Taf.isNight(ref, a.lat, a.lon));
+          const worse = x.worst && x.worst !== x.main.category ? x.changes.find((c) => c.category === x.worst) : null;
+          key = `<div class="fc-key cat-${x.main.category || 'NA'}"><span class="wx-icon">${I(icon)}</span><div><span class="eyebrow">${esc(label)}</span>
+            <span class="fc-main"><b>${esc(x.main.category || '—')}</b> ${esc(Taf.windShort(x.main.wind))} · ${esc(Taf.visShort(x.main))}</span>
+            ${worse ? `<span class="fc-worse cat-${worse.category}" title="${esc(Taf.describe(cond(worse)))}">${esc(t('taf.possible', { cat: worse.category }))} (${esc(worse.prob ? `PROB${worse.prob}` : worse.kind)})</span>` : ''}
+            <span class="fc-desc">${esc(Taf.describe(x.main))}</span></div></div>`;
+        }
+      }
+
+      // Striscia oraria "da app meteo": ogni 3 ore dall'ora attuale (o dall'inizio della validità)
+      const steps = Taf.timeline(taf, Date.now(), 3, 10);
+      const near = ref ? steps.reduce((best, s, k) => (Math.abs(s.t - ref) < Math.abs(steps[best].t - ref) ? k : best), 0) : -1;
+      if (steps.length) {
+        html += `<div class="fc-strip" role="list">${steps.map((s, k) => {
+          const night = Taf.isNight(s.t, a.lat, a.lon);
+          const tip = [Taf.describe(s.main), ...s.changes.map((c) => `${c.prob ? `PROB${c.prob} ` : ''}${c.tempo || c.kind === 'TEMPO' ? 'TEMPO' : c.kind}: ${Taf.describe(cond(c))}`)].filter(Boolean).join(' · ');
+          const worse = s.worst && s.worst !== s.main.category;
+          return `<div class="fc-chip cat-${s.main.category || 'NA'}${k === near ? ' ref' : ''}" role="listitem" title="${esc(tip)}">
+            <span class="h">${k === 0 && s.t - Date.now() < 3600e3 ? esc(t('taf.now')) : zHour(s.t)}</span>${I(Taf.icon(s.main, night))}
+            <b>${esc(Taf.windShort(s.main.wind))}</b><span class="v">${esc(Taf.visShort(s.main))}</span>
+            <i class="bar"></i>${worse ? `<em class="dot cat-${s.worst}" aria-label="${esc(t('taf.possible', { cat: s.worst }))}"></em>` : ''}</div>`;
+        }).join('')}</div>`;
+      }
+
+      // TAF decodificato, gruppo per gruppo
+      const line = (p) => {
+        const v = { a: zTime(p.from, day), b: zTime(p.to, day), p: p.prob };
+        const what = p.kind === 'BASE' ? t('taf.base', v) : p.kind === 'FM' ? t('taf.fm', v) : p.kind === 'BECMG' ? t('taf.becmg', v)
+          : p.kind === 'TEMPO' ? t('taf.tempo', v) : (p.tempo ? t('taf.probTempo', v) : t('taf.prob', v));
+        const parts = [];
+        if (p.wind) parts.push(t('taf.wind', { w: `${Taf.windShort(p.wind)} kt` }));
+        if (p.cavok) parts.push('CAVOK');
+        else {
+          if (p.visibility !== null && p.visibility !== undefined) parts.push(Taf.visShort(p));
+          const d = Taf.describe({ wx: p.wx || [], clouds: p.clouds || [] });
+          if (d) parts.push(d);
+        }
+        return `<li><span class="badge cat-${p.category || 'NA'}">${esc(p.category || '—')}</span> <b>${esc(what)}</b>: ${esc(parts.join(', ') || '—')}</li>`;
+      };
+      html += `<details><summary>${esc(t('taf.decoded'))}</summary><code class="metar">${esc(taf.raw)}</code><ul class="wxLines fcLines">${taf.periods.map(line).join('')}</ul><p class="fc-legend">${esc(t('taf.legend'))}</p></details>`;
+      return { key, body: `${html}</div>` };
+    }
 
     // Widget meteo + ATC per un aeroporto
     function renderAirport(elId, title, icao, info) {
@@ -100,19 +186,25 @@
       if (!icao) { el.innerHTML = `<div class="wx-head"><div><span class="eyebrow">${esc(title)}</span><b>—</b></div></div><span class="muted">${esc(t('flight.loadAFlight'))}</span>`; return; }
       const a = ap(icao);
       const m = info && info.metar;
-      let html = `<div class="wx-head"><div><span class="eyebrow">${esc(title)}</span><b>${esc(icao)}</b><span class="name">${esc(a.name || '')}</span></div>${m && m.category ? `<span class="badge cat-${m.category}">${m.category}</span>` : ''}</div>`;
+      const night = root.Taf.isNight(Date.now(), a.lat, a.lon);
+      const nowIcon = m ? root.Taf.icon({ wx: m.wx, clouds: m.clouds, cavok: m.cavok }, night) : null;
+      let html = `<div class="wx-head"><div><span class="eyebrow">${esc(title)}</span><b>${esc(icao)}</b><span class="name">${esc(a.name || '')}</span></div>
+        <div class="wx-now">${nowIcon ? `<span class="wx-icon">${I(nowIcon)}</span>` : ''}${m && m.category ? `<span class="badge cat-${m.category}">${m.category}</span>` : ''}</div></div>`;
       if (!info) { el.innerHTML = `${html}<span class="muted">${esc(t('flight.pressRefresh'))}</span>`; return; }
+      const fc = forecastHtml(info, a, elId === 'apArr' ? 'arr' : 'dep');
+      let metarDetails = '';
       if (m) {
         const w = m.wind;
         const wind = !w ? '—' : (w.speed === 0 ? t('wx.calm') : `${w.dir === null ? 'VRB' : String(w.dir).padStart(3, '0')}° / ${w.speed} kt${w.gust ? ` ${t('wx.gustShort')} ${w.gust}` : ''}`);
         const vis = m.cavok ? 'CAVOK' : (m.visibility ? (m.visibility >= 9999 ? '10 km+' : `${m.visibility} m`) : '—');
-        html += `<div class="wx-big"><b>${m.qnh ? m.qnh.hpa : '—'}</b><span>hPa QNH</span></div>
+        html += `<div class="wx-body"><div class="wx-cur"><div class="wx-big"><b>${m.qnh ? m.qnh.hpa : '—'}</b><span>hPa QNH</span></div>
           <div class="wx-line">${I('wind')} ${esc(wind)}</div>
-          <div class="wx-line">${I('eye')} ${esc(vis)}${m.temp !== null ? ` · ${I('thermometer')} ${m.temp}°` : ''}</div>
-          <details><summary>METAR</summary><code class="metar">${esc(m.raw)}</code><ul class="wxLines">${m.lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></details>`;
+          <div class="wx-line">${I('eye')} ${esc(vis)}${m.temp !== null ? ` · ${I('thermometer')} ${m.temp}°` : ''}</div></div>${fc.key}</div>`;
+        metarDetails = `<details><summary>METAR</summary><code class="metar">${esc(m.raw)}</code><ul class="wxLines">${m.lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></details>`;
       } else {
-        html += `<span class="muted">${esc(info.metarError || t('flight.noMetar'))}</span>`;
+        html += `<span class="muted">${esc(info.metarError || t('flight.noMetar'))}</span>${fc.key}`;
       }
+      html += fc.body + metarDetails;
       if (info.atc) {
         const { ctrls, centers, atis } = info.atc;
         const short = (cs) => cs.split('_').pop();
@@ -138,6 +230,13 @@
         if (raw) info.metar = root.Metar.decode(raw.split('\n')[0]);
         else info.metarError = t('flight.noMetarHere');
       } catch (e) { info.metarError = t('flight.metarError', { msg: e.message }); }
+      try {
+        const raw = (await root.Net.text(root.Taf.URL(icao))).trim();
+        // la risposta può contenere più TAF o righe a capo: teniamo il primo, su una riga
+        const first = raw.split(/\n(?=TAF\b)/)[0].replace(/\s+/g, ' ');
+        if (first) info.taf = root.Taf.parse(first.startsWith('TAF') ? first : `TAF ${first}`);
+        if (!info.taf) info.tafError = t('taf.none');
+      } catch (e) { info.tafError = t('taf.error', { msg: e.message }); }
       try { info.atc = atcAt(await feed(), icao); } catch (e) { info.atcError = t('flight.vatsimError', { msg: e.message }); }
       return info;
     }

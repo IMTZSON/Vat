@@ -540,6 +540,27 @@
     'radar.status': ['{pilots} aerei · {atc} ATC', '{pilots} aircraft · {atc} ATC'],
     'radar.noResults': ['Nessun risultato', 'No results'],
 
+    // ------------------------------------------------------------------ previsioni TAF
+    'taf.title': ['Previsione', 'Forecast'],
+    'taf.valid': ['TAF valido {a} → {b}', 'TAF valid {a} → {b}'],
+    'taf.atArr': ['All\'arrivo · {time}', 'At arrival · {time}'],
+    'taf.atDep': ['Alla partenza · {time}', 'At departure · {time}'],
+    'taf.possible': ['possibile {cat}', 'possible {cat}'],
+    'taf.outside': ['fuori dalla validità del TAF', 'outside the TAF validity'],
+    'taf.none': ['Nessun TAF per questo aeroporto (spesso i piccoli aeroporti non lo emettono).', 'No TAF for this airport (small airports often don\'t issue one).'],
+    'taf.error': ['TAF non disponibile: {msg}', 'TAF not available: {msg}'],
+    'taf.decoded': ['TAF decodificato', 'Decoded TAF'],
+    'taf.base': ['Dalle {a} alle {b}', 'From {a} to {b}'],
+    'taf.fm': ['Dalle {a} alle {b}', 'From {a} to {b}'],
+    'taf.becmg': ['Tra {a} e {b} diventa', 'Becoming between {a} and {b}'],
+    'taf.tempo': ['Temporaneamente {a}–{b}', 'Temporarily {a}–{b}'],
+    'taf.prob': ['Probabilità {p}% {a}–{b}', '{p}% probability {a}–{b}'],
+    'taf.probTempo': ['Probabilità {p}%, temporaneamente {a}–{b}', '{p}% probability, temporarily {a}–{b}'],
+    'taf.wind': ['vento {w}', 'wind {w}'],
+    'taf.cancelled': ['TAF cancellato.', 'TAF cancelled.'],
+    'taf.now': ['Adesso', 'Now'],
+    'taf.legend': ['Colore: categoria di volo (VFR, MVFR, IFR, LIFR). Il puntino indica un possibile peggioramento temporaneo.', 'Colour: flight category (VFR, MVFR, IFR, LIFR). The dot marks a possible temporary deterioration.'],
+
     // ------------------------------------------------------------------ motore readback
     'rb.badSquawk': ['Lo squawk {code} contiene 8 o 9: non è valido, chiedi "say again squawk".', 'Squawk {code} contains an 8 or 9: it is not valid, ask "say again squawk".'],
     'rb.oddQnh': ['QNH {qnh} sembra strano: verifica.', 'QNH {qnh} looks odd: double-check it.'],

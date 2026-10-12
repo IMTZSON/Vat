@@ -34,10 +34,47 @@
   };
   const tx = (k, v) => P(T[k]).replace(/\{(\w+)\}/g, (m, x) => (v && v[x] !== undefined ? v[x] : ''));
 
+  // Testo di un gruppo di fenomeni ("-SHRA" → "light showers of rain" / "rovesci di pioggia leggera")
+  function weatherText(tok) {
+    const m = String(tok || '').match(WX_RE);
+    if (!m || !(m[2] || m[3])) return String(tok || '');
+    const desc = (m[2].match(/../g) || []).map((c) => P(WX[c]));
+    const phen = (m[3].match(/../g) || []).map((c) => P(WX[c]));
+    let txt;
+    if (en()) {
+      // "light showers of rain", "thunderstorm with rain", "rain in the vicinity"
+      const d = desc.map((x) => (x === 'thunderstorm' && phen.length ? 'thunderstorm with' : x));
+      txt = [m[1] === '-' ? tx('light') : m[1] === '+' ? tx('heavy') : '', ...d, ...phen].filter(Boolean).join(' ');
+      if (m[1] === 'VC') txt += ` ${tx('vicinity')}`;
+    } else {
+      txt = [...desc, ...phen].join(' ');
+      if (m[1] === '-') txt += ` ${tx('light')}`;
+      if (m[1] === '+') txt += ` ${tx('heavy')}`;
+      if (m[1] === 'VC') txt += ` ${tx('vicinity')}`;
+    }
+    return txt;
+  }
+  const isWeather = (tok) => String(tok || '').length >= 2 && (() => { const m = String(tok).match(WX_RE); return !!(m && (m[2] || m[3])); })();
+
+  function cloudText(c) {
+    return `${P(COVER[c.cover])}${c.base !== null ? ` ${tx('at_ft', { ft: c.base })}` : ''}${c.type === 'CB' ? ` ${tx('cb')}` : c.type === 'TCU' ? ` ${tx('tcu')}` : ''}`;
+  }
+
+  // Categoria di volo (stessa scala di aviationweather.gov): visibilità in metri, nubi con base in piedi
+  function category(vis, clouds, cavok) {
+    const ceiling = (clouds || []).filter((c) => ['BKN', 'OVC', 'VV'].includes(c.cover) && c.base !== null).map((c) => c.base)[0];
+    const v = cavok ? 10000 : vis;
+    if (v === null || v === undefined) return undefined;
+    if (v < 1600 || (ceiling !== undefined && ceiling < 500)) return 'LIFR';
+    if (v < 5000 || (ceiling !== undefined && ceiling < 1000)) return 'IFR';
+    if (v < 8000 || (ceiling !== undefined && ceiling <= 3000)) return 'MVFR';
+    return 'VFR';
+  }
+
   function temp(s) { return s ? (s[0] === 'M' ? -Number(s.slice(1)) : Number(s)) : null; }
 
   function decode(raw) {
-    const out = { raw: String(raw || '').trim(), lines: [], wind: null, visibility: null, clouds: [], weather: [], qnh: null, temp: null, dew: null, cavok: false };
+    const out = { raw: String(raw || '').trim(), lines: [], wind: null, visibility: null, clouds: [], weather: [], wx: [], qnh: null, temp: null, dew: null, cavok: false };
     const toks = out.raw.replace(/=$/, '').split(/\s+/).filter(Boolean);
     let i = 0;
     while (['METAR', 'SPECI'].includes(toks[i])) i++;
@@ -71,21 +108,8 @@
       if ((m = t.match(/^Q(\d{4})$/))) { out.qnh = { hpa: Number(m[1]) }; continue; }
       if ((m = t.match(/^A(\d{4})$/))) { out.qnh = { inhg: Number(m[1]) / 100, hpa: Math.round((Number(m[1]) / 100) * 33.8639) }; continue; }
       if (t.length >= 2 && (m = t.match(WX_RE)) && (m[2] || m[3])) {
-        const desc = (m[2].match(/../g) || []).map((c) => P(WX[c]));
-        const phen = (m[3].match(/../g) || []).map((c) => P(WX[c]));
-        let txt;
-        if (en()) {
-          // "light showers of rain", "thunderstorm with rain", "rain in the vicinity"
-          const d = desc.map((x) => (x === 'thunderstorm' && phen.length ? 'thunderstorm with' : x));
-          txt = [m[1] === '-' ? tx('light') : m[1] === '+' ? tx('heavy') : '', ...d, ...phen].filter(Boolean).join(' ');
-          if (m[1] === 'VC') txt += ` ${tx('vicinity')}`;
-        } else {
-          txt = [...desc, ...phen].join(' ');
-          if (m[1] === '-') txt += ` ${tx('light')}`;
-          if (m[1] === '+') txt += ` ${tx('heavy')}`;
-          if (m[1] === 'VC') txt += ` ${tx('vicinity')}`;
-        }
-        out.weather.push(txt);
+        out.weather.push(weatherText(t));
+        out.wx.push(t);
       }
     }
 
@@ -106,24 +130,18 @@
     else if (out.visibility !== null) L.push(`${tx('vis')}: ${out.visibility >= 9999 ? tx('vis10') : out.visibility >= 5000 ? `${Math.round(out.visibility / 1000)} km` : `${out.visibility} m`}`);
     if (out.weather.length) L.push(`${tx('phen')}: ${out.weather.join(', ')}`);
     if (out.clouds.length) {
-      L.push(`${tx('clouds')}: ${out.clouds.map((c) => `${P(COVER[c.cover])}${c.base !== null ? ` ${tx('at_ft', { ft: c.base })}` : ''}${c.type === 'CB' ? ` ${tx('cb')}` : c.type === 'TCU' ? ` ${tx('tcu')}` : ''}`).join(', ')}`);
+      L.push(`${tx('clouds')}: ${out.clouds.map(cloudText).join(', ')}`);
     } else if (out.noClouds) L.push(`${tx('clouds')}: ${tx('noClouds')}`);
     if (out.temp !== null) L.push(tx('temp', { t: out.temp, d: out.dew !== null ? `${out.dew}°C` : tx('na') }));
     if (out.qnh) L.push(out.qnh.inhg ? `${tx('altimeter')}: ${out.qnh.inhg.toFixed(2)} inHg (≈ ${out.qnh.hpa} hPa)` : `QNH: ${out.qnh.hpa} hPa`);
     if (out.trend) L.push(`${tx('trend')}: ${out.trend.startsWith('NOSIG') ? tx('nosig') : out.trend}`);
 
-    const ceiling = out.clouds.filter((c) => ['BKN', 'OVC', 'VV'].includes(c.cover) && c.base !== null).map((c) => c.base)[0];
-    const vis = out.cavok ? 10000 : out.visibility;
-    if (vis !== null && vis !== undefined) {
-      if (vis < 1600 || (ceiling !== undefined && ceiling < 500)) out.category = 'LIFR';
-      else if (vis < 5000 || (ceiling !== undefined && ceiling < 1000)) out.category = 'IFR';
-      else if (vis < 8000 || (ceiling !== undefined && ceiling <= 3000)) out.category = 'MVFR';
-      else out.category = 'VFR';
-    }
+    const cat = category(out.visibility, out.clouds, out.cavok);
+    if (cat) out.category = cat;
     return out;
   }
 
-  const api = { decode };
+  const api = { decode, weatherText, isWeather, cloudText, category, WX_RE };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Metar = api;
 })(this);
