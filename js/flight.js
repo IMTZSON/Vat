@@ -2,7 +2,6 @@
 (function (root) {
   'use strict';
 
-  const FACILITY = { 1: 'FSS', 2: 'Delivery', 3: 'Ground', 4: 'Tower', 5: 'Approach / Radar', 6: 'Centro (CTR)' };
   const esc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   root.App.register((App) => {
@@ -10,7 +9,6 @@
     const S = App.settings;
     const R = root.Readback;
     const AIRPORTS = root.Scenarios.AIRPORTS;
-    let feedCache = null;
     let wx = { dep: null, arr: null };
 
     // ------------------------------------------------------------ SimBrief
@@ -74,20 +72,8 @@
 
     // ------------------------------------------------------------ meteo e ATC
 
-    async function feed() {
-      if (feedCache && Date.now() - feedCache.t < 60000) return feedCache.data;
-      const data = await root.Net.json('https://data.vatsim.net/v3/vatsim-data.json');
-      feedCache = { t: Date.now(), data };
-      return data;
-    }
-
-    function atcAt(data, icao) {
-      const match = (cs) => cs.startsWith(`${icao}_`) || (icao[0] === 'K' && cs.startsWith(`${icao.slice(1)}_`));
-      const ctrls = (data.controllers || []).filter((c) => c.facility > 0 && match(c.callsign));
-      const centers = (data.controllers || []).filter((c) => c.facility === 6 && c.callsign.startsWith(icao.slice(0, 2)) && !match(c.callsign)).slice(0, 4);
-      const atis = (data.atis || []).filter((a) => match(a.callsign));
-      return { ctrls, centers, atis };
-    }
+    const feed = (maxAge) => root.Vatsim.feed(maxAge);
+    const atcAt = (data, icao) => root.Vatsim.atcAt(data, icao);
 
     function renderAirport(elId, title, icao, info) {
       const el = $(elId);
@@ -106,7 +92,7 @@
         const { ctrls, centers, atis } = info.atc;
         if (ctrls.length || atis.length) {
           html += '<div class="label">ATC online su VATSIM</div><ul class="atcList">';
-          for (const c of ctrls) html += `<li><b>${esc(c.frequency)}</b> ${esc(FACILITY[c.facility] || '')} <span class="hint">${esc(c.callsign)}</span></li>`;
+          for (const c of ctrls) html += `<li><b>${esc(c.frequency)}</b> ${esc(root.Vatsim.FACILITY[c.facility] || '')} <span class="hint">${esc(c.callsign)}</span></li>`;
           for (const a of atis) html += `<li><b>${esc(a.frequency)}</b> ATIS ${a.atis_code ? `<span class="badge ai">${esc(a.atis_code)}</span>` : ''} <span class="hint">${esc(a.callsign)}</span></li>`;
           html += '</ul>';
           for (const a of atis) {
@@ -140,6 +126,9 @@
       $('wxMsg').textContent = 'Aggiorno…';
       const [dep, arr] = await Promise.all([loadAirport(f.dep), loadAirport(f.arr)]);
       wx = { dep, arr };
+      // QNH del METAR, usato dalle verifiche dei readback
+      App.wx = { dep: dep.metar && dep.metar.qnh ? dep.metar.qnh.hpa : null, arr: arr.metar && arr.metar.qnh ? arr.metar.qnh.hpa : null, t: Date.now() };
+      App.emit('wx', App.wx);
       renderAirport('apDep', 'Partenza', f.dep, dep);
       renderAirport('apArr', 'Arrivo', f.arr, arr);
       const letter = (info) => info && info.atc && info.atc.atis.map((a) => a.atis_code).find(Boolean);
@@ -208,9 +197,8 @@
       if (!cs) { out.textContent = 'Imposta prima il tuo nominativo (scheda Ascolto).'; return; }
       out.textContent = 'Cerco…';
       try {
-        feedCache = null;
-        const data = await feed();
-        const me = (data.pilots || []).find((p) => p.callsign.toUpperCase() === cs.code);
+        const data = await feed(0);
+        const me = root.Vatsim.pilot(data, cs.code);
         if (!me) { out.textContent = `Non risulti connesso come ${cs.code}. Controlla di aver usato lo stesso nominativo in vPilot.`; return; }
         const fp = me.flight_plan || {};
         const assigned = fp.assigned_transponder && fp.assigned_transponder !== '0000' ? fp.assigned_transponder : null;

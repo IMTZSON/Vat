@@ -85,9 +85,20 @@
         chips.append(c);
       }
 
+      const v = item.verify;
+      const vb = $('verify');
+      if (vb) {
+        if (!v || item.aiPending) { vb.textContent = ''; vb.className = 'badge muted'; }
+        else if (v.status === 'ok') { vb.textContent = '✅ Verificato'; vb.className = 'badge ok'; }
+        else if (v.status === 'warn') { vb.textContent = '⚠️ Controlla'; vb.className = 'badge maybe'; }
+        else { vb.textContent = '⛔ Audio non chiaro'; vb.className = 'badge no'; }
+      }
+      rb.classList.toggle('doubt', !!v && v.status === 'bad');
+
       const warn = $('warnings');
       warn.innerHTML = '';
-      const notes = [...(r.warnings || [])];
+      const fromVerify = v ? v.reasons.map((x) => x.text) : [];
+      const notes = [...fromVerify, ...(r.warnings || []).filter((w) => !fromVerify.includes(w))];
       if (r.noReadbackNeeded && r.source !== 'AI') notes.push('Nessuna istruzione da ripetere: basta un "Roger" (o "Wilco" se ti chiede di riportare).');
       if (r.note) notes.push(r.note);
       for (const n of notes) {
@@ -155,9 +166,49 @@
       } catch (e) { /* audio non disponibile */ }
     }
 
+    // ------------------------------------------------------------ contesto live per le verifiche
+
+    let live = null;
+    const SUFFIX = { DEL: 'Delivery', GND: 'Ground', TWR: 'Tower', APP: 'Approach', DEP: 'Departure', CTR: 'Control', FSS: 'Information', ATIS: 'Information' };
+    function stationName(callsign) {
+      const parts = callsign.split('_');
+      const ap = root.Scenarios.AIRPORTS[parts[0]];
+      return `${ap ? ap.city : parts[0]} ${SUFFIX[parts[parts.length - 1]] || ''}`.trim();
+    }
+    async function refreshLive() {
+      const f = App.flight;
+      const cs = App.callsignInfo();
+      const next = { freqs: [], runways: [], qnh: [], whisper: '' };
+      const ctx = [];
+      if (cs) ctx.push(`Callsign ${cs.display}`);
+      if (f && f.dep && f.arr) {
+        const A = root.Scenarios.AIRPORTS;
+        if (A[f.dep] && A[f.arr]) next.runways = [...new Set([...A[f.dep].rwys, ...A[f.arr].rwys, f.depRwy, f.arrRwy].filter(Boolean))];
+        ctx.push(`Runways ${[f.depRwy, f.arrRwy].filter(Boolean).join(', ')}`);
+        if (App.wx && Date.now() - App.wx.t < 3600000) next.qnh = [App.wx.dep, App.wx.arr].filter(Boolean);
+        try {
+          const data = await root.Vatsim.feed(60000);
+          next.freqs = root.Vatsim.frequenciesFor(data, [f.dep, f.arr]);
+          const st = next.freqs.filter((x) => x.callsign !== 'UNICOM').slice(0, 8).map((x) => `${stationName(x.callsign)} ${x.freq.toFixed(3).replace(/0+$/, '')}`);
+          if (st.length) ctx.push(`Stations ${st.join(', ')}`);
+        } catch (e) { /* senza dati VATSIM si saltano i controlli sulle frequenze */ }
+      }
+      next.whisper = ctx.join('. ');
+      live = next;
+      return next;
+    }
+    App.on('flight', () => refreshLive());
+    App.on('wx', () => refreshLive());
+    setInterval(() => { if (running) refreshLive(); }, 60000);
+
+    function verify(item, aiText) {
+      const cs = App.callsignInfo();
+      return root.Precision.check({ transcript: item.heard, rules: item.rules, ai: aiText || null, callsign: cs, audio: item.audio, live });
+    }
+
     // ------------------------------------------------------------ elaborazione
 
-    async function handleTranscript(text, origin) {
+    async function handleTranscript(text, origin, audio) {
       text = (text || '').trim();
       if (!text) return;
       const cs = App.callsignInfo();
@@ -167,9 +218,12 @@
         heard: text,
         origin,
         result,
+        rules: result,
+        audio: audio || null,
         date: now.toLocaleDateString('it-IT'),
         time: now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
       };
+      item.verify = verify(item);
       history.unshift(item);
       if (history.length > 100) history.pop();
 
@@ -186,7 +240,11 @@
       if (wantAI) {
         try {
           const ai = await root.Groq.readback(text, { key: S.groqKey, model: S.llmModel, callsign: cs ? cs.display : '' });
-          item.result = { ...result, readback: ai.readback, spoken: ai.spoken || '', note: ai.note || '', source: 'AI' };
+          item.verify = verify(item, ai.readback);
+          // Se l'AI ha messo un numero che l'ATC non ha detto, vince il readback a regole
+          item.result = item.verify.useRules
+            ? { ...result, note: ai.note || '' }
+            : { ...result, readback: ai.readback, spoken: ai.spoken || '', note: ai.note || '', source: 'AI' };
         } catch (e) {
           item.result = { ...result, warnings: [...result.warnings, `AI non disponibile (${e.message}): mostro il readback a regole.`] };
         }
@@ -249,8 +307,8 @@
           App.setStatus('Trascrivo…', 'busy');
           try {
             const cs = App.callsignInfo();
-            const text = await root.Groq.transcribe(wav, { key: S.groqKey, model: S.whisperModel, callsign: cs ? cs.display : '' });
-            if (text) await handleTranscript(text, 'whisper');
+            const r = await root.Groq.transcribe(wav, { key: S.groqKey, model: S.whisperModel, callsign: cs ? cs.display : '', context: live && live.whisper });
+            if (r.text) await handleTranscript(r.text, 'whisper', root.Precision.audioConfidence(r.segments));
           } catch (e) {
             $('live').textContent = e.message;
           }
@@ -265,6 +323,7 @@
       $('live').textContent = '';
       try {
         running = true;
+        refreshLive();
         if (S.mode === 'groq') await startGroq();
         else startFree();
         App.setStatus('In ascolto', 'listening');

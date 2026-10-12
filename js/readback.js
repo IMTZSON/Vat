@@ -120,7 +120,9 @@
     s = s.replace(/push-back|push back/g, 'pushback');
     s = s.replace(/line-up|lineup/g, 'line up');
     s = s.replace(/(\d)\.(\d)/g, '$1§$2');
-    s = s.replace(/[^a-z0-9§ ]/g, ' ');
+    // La punteggiatura separa i numeri ("Alitalia 123, 10 miles" non diventa "12310")
+    s = s.replace(/[,;:!?]|\.(?!\d)/g, ' ¦ ');
+    s = s.replace(/[^a-z0-9§¦ ]/g, ' ');
     s = s.replace(/§/g, '.');
     // errori tipici del riconoscimento vocale
     s = s.replace(/\b(flight ?levels?|fly ?level|flight ?lebel)\b/g, ' fl ');
@@ -150,6 +152,9 @@
         const t = tokens[j];
         if (/^\d+(\.\d+)?$/.test(t)) {
           if (t.includes('.') && s.includes('.')) break;
+          // Due numeri già "interi" (es. "360 10", "123 10") restano separati;
+          // si uniscono solo cifre singole dettate una alla volta ("4 5 2 1", "125 5")
+          if (s.replace('.', '').length >= 2 && t.length >= 2 && !/^0/.test(t)) break;
           if (s && Number(s) >= 1000 && /000$/.test(s) && /^[1-9]00$/.test(t)) s = String(Number(s) + Number(t));
           else s += t;
           j++;
@@ -192,7 +197,7 @@
 
   function tokenize(text) {
     const pre = preNormalize(text);
-    return collapseNumbers(pre ? pre.split(' ') : []);
+    return collapseNumbers(pre ? pre.split(' ') : []).filter((t) => t !== '¦');
   }
 
   // ------------------------------------------------------- lettori comuni
@@ -231,6 +236,7 @@
     if (toks[j + 1] === 'knots') return null;
     const v = Number(toks[j]);
     let next = j + 1;
+    if (toks[next] === 'feet' && toks[next + 1] === 'per') return null;
     if (toks[next] === 'feet') { isAlt = true; next++; }
     if (!isAlt && v < 1000) return { display: `FL${v}`, spoken: spokenFL(v), next };
     return { display: `${v} ft`, spoken: `${spokenAltitude(v)} feet`, next };
@@ -300,6 +306,12 @@
     const words = [];
     while (j < toks.length && !stop.has(toks[j]) && words.length < 12) { words.push(toks[j]); j++; }
     if (!words.length) return null;
+    const fpr = /\bflight plan(ned)? route\b/.test(words.join(' '));
+    if (fpr) {
+      const at = words.findIndex((w, x) => w === 'flight' && /^plan/.test(words[x + 1] || '') && words[x + 2] === 'route');
+      if (at >= 0) words.splice(at, 3);
+      while (words[words.length - 1] === 'via') words.pop();
+    }
     let dest = words;
     let route = [];
     let hadDeparture = false;
@@ -321,15 +333,21 @@
     }
     dest = dest.filter((w) => w !== 'airport');
     if (!dest.length) return null;
-    const d = nameFromWords(dest, false);
+    const icao = dest.length === 1 && /^[a-z]{4}$/.test(dest[0]) && /^[eklc]/.test(dest[0]) && !PHONETIC[dest[0]] && !['line', 'left', 'land', 'lake', 'long', 'east', 'kent', 'call', 'city'].includes(dest[0]);
+    const d = icao
+      ? { display: dest[0].toUpperCase(), spoken: dest[0].toUpperCase().split('').map((c) => LETTER_WORD[c].toLowerCase()).join(' ') }
+      : nameFromWords(dest, false);
     let display = `Cleared to ${d.display}`;
     let spoken = `cleared to ${d.spoken}`;
     if (route.length) {
-      const flightPlan = route.join(' ').includes('flight plan');
-      const r = flightPlan ? { display: 'flight planned route', spoken: 'flight planned route' } : nameFromWords(route, true);
-      const via = flightPlan || hadDeparture ? '' : 'via ';
+      const r = nameFromWords(route, true);
+      const via = hadDeparture ? '' : 'via ';
       display += `, ${via}${r.display}${hadDeparture ? ' departure' : ''}`;
       spoken += `, ${via}${r.spoken}${hadDeparture ? ' departure' : ''}`;
+    }
+    if (fpr) {
+      display += ', flight planned route';
+      spoken += ', flight planned route';
     }
     return { part: P('clearance', display, spoken), next: j };
   }
@@ -341,8 +359,10 @@
     if (verb !== 'cleared' && verb !== 'expect') return null;
     let k = i + 1;
     const inner = [];
-    while (k < toks.length && k <= i + 7 && toks[k] !== 'approach') { inner.push(toks[k]); k++; }
-    if (toks[k] !== 'approach') return null;
+    while (k < toks.length && k <= i + 7 && toks[k] !== 'approach' && toks[k] !== 'runway') { inner.push(toks[k]); k++; }
+    const hasWord = toks[k] === 'approach';
+    // "cleared ILS runway 16L" senza la parola approach
+    if (!hasWord && !(toks[k] === 'runway' && inner.length && APP_TYPES[inner[0]])) return null;
     const types = inner.filter((w) => APP_TYPES[w]);
     if (!types.length) return null;
     let typeDisplay = types.map((w) => APP_TYPES[w]).join(' ');
@@ -358,7 +378,7 @@
       const r = readRunway(inner, x);
       if (r && (inner[x - 1] === 'runway' || /[lrc]$/.test(inner[x]) || RUNWAY_SIDE[inner[x + 1]])) rwy = r;
     }
-    let next = k + 1;
+    let next = hasWord ? k + 1 : k;
     if (!rwy) {
       const after = readOptRunway(toks, next);
       if (after) { rwy = { value: after.display.replace(' runway ', ''), spoken: after.spoken.replace(' runway ', '') }; next = after.next; }
@@ -418,6 +438,7 @@
     if (t === 'hold' && t1 === 'position') return simple('Holding position', 'holding position', 2);
     if (t === 'go' && t1 === 'around') return simple('Going around', 'going around', 2);
     if (t === 'continue' && t1 === 'approach') return simple('Continue approach', 'continue approach', 2);
+    if (t === 'continue' && t1 === 'taxi') return simple('Continue taxi', 'continue taxi', 2);
     if (t === 'runway' && t1 === 'heading') return simple('Runway heading', 'runway heading', 2);
     if ((t === 'continue' || t === 'fly' || t === 'maintain') && t1 === 'present' && t2 === 'heading') {
       return simple(`${cap(t)} present heading`, `${t} present heading`, 3);
@@ -457,6 +478,7 @@
     let j = i + 1;
     const words = [];
     while (j < toks.length && !stop.has(toks[j]) && words.length < 20) { words.push(toks[j]); j++; }
+    if (!words.length) return null;
     const items = [];
     for (let k = 0; k < words.length; k++) {
       const w = words[k];
@@ -505,6 +527,7 @@
   }
 
   function ruleLevel(toks, i) {
+    // (toks può essere copiato e corretto localmente, vedi "expect … minutes")
     const t = toks[i];
     const t1 = toks[i + 1];
     let verb = null;
@@ -516,7 +539,7 @@
     } else if ((t === 'initial' && t1 === 'climb') || (t === 'climb' && t1 === 'initially') || (t === 'initially' && t1 === 'climb')) {
       verb = 'Initial climb';
       j = i + 2;
-    } else if (t === 'climb' || t === 'descend') {
+    } else if ((t === 'climb' || t === 'descend') && !(toks[i - 2] === 'rate' && toks[i - 1] === 'of')) {
       verb = cap(t);
       j = i + 1;
       if (toks[j] === 'and' && toks[j + 1] === 'maintain') j += 2;
@@ -534,6 +557,13 @@
     } else {
       return null;
     }
+    let shift = 0;
+    if (verb === 'Expect' && toks[j] === 'fl' && /^\d{4,5}$/.test(toks[j + 1] || '') && toks[j + 2] === 'minutes') {
+      const fl = toks[j + 1].slice(0, 3);
+      toks = toks.slice();
+      toks.splice(j + 1, 1, fl, toks[j + 1].slice(3));
+      shift = 1;
+    }
     const lv = readLevel(toks, j);
     if (!lv) return null;
     let display = `${verb} ${lv.display}`;
@@ -546,11 +576,20 @@
       spoken += ` ${spellDigits(toks[j])} minutes after departure`;
       j = k;
     }
+    if (['reach', 'level', 'leveled', 'levelled'].includes(toks[j]) && toks[j + 1] === 'by' && toks[j + 2] && !STOP.has(toks[j + 2]) && !/^\d/.test(toks[j + 2])) {
+      display += ` level by ${toks[j + 2].toUpperCase()}`;
+      spoken += ` level by ${toks[j + 2]}`;
+      j += 3;
+    }
+    if (toks[i - 2] === 'after' && toks[i - 1] === 'departure') {
+      display = `After departure, ${display.charAt(0).toLowerCase()}${display.slice(1)}`;
+      spoken = `after departure ${spoken}`;
+    }
     if (toks[i - 2] === 'when' && toks[i - 1] === 'ready') {
       display = `When ready, ${display.charAt(0).toLowerCase()}${display.slice(1)}`;
       spoken = `when ready ${spoken}`;
     }
-    return { part: P('level', display, spoken), next: j };
+    return { part: P('level', display, spoken), next: j - shift };
   }
 
   function ruleHeading(toks, i) {
@@ -558,10 +597,11 @@
     const t1 = toks[i + 1];
     let dir = null;
     let j;
+    let sawHeading = false;
     if (t === 'turn' && (t1 === 'left' || t1 === 'right')) {
       dir = t1;
       j = i + 2;
-      if (toks[j] === 'heading') j++;
+      if (toks[j] === 'heading') { j++; sawHeading = true; }
     } else if ((t === 'left' || t === 'right') && t1 === 'heading') {
       dir = t;
       j = i + 2;
@@ -573,11 +613,17 @@
     if (!isDigits(toks[j], 1, 3)) return null;
     const v = Number(toks[j]);
     if (v < 1 || v > 360) return null;
+    const after = toks[i - 2] === 'after' && toks[i - 1] === 'departure';
+    const pre = (d, sp) => (after ? [`After departure, ${d.charAt(0).toLowerCase()}${d.slice(1)}`, `after departure ${sp}`] : [d, sp]);
+    // Virata relativa: "turn left 10 degrees" (senza la parola heading) NON è una prua
+    if (dir && !sawHeading && toks[j + 1] === 'degrees') {
+      const [d, sp] = pre(`Turn ${dir} ${v} degrees`, `turn ${dir} ${spellDigits(String(v))} degrees`);
+      return { part: P('heading', d, sp), next: j + 2 };
+    }
     const hdg = String(v).padStart(3, '0');
     j++;
     if (toks[j] === 'degrees') j++;
-    const display = dir ? `${cap(dir)} heading ${hdg}` : `Heading ${hdg}`;
-    const spoken = `${dir ? `${dir} ` : ''}heading ${spellDigits(hdg)}`;
+    const [display, spoken] = pre(dir ? `${cap(dir)} heading ${hdg}` : `Heading ${hdg}`, `${dir ? `${dir} ` : ''}heading ${spellDigits(hdg)}`);
     return { part: P('heading', display, spoken), next: j };
   }
 
@@ -723,11 +769,135 @@
     return { part: P('runway', display, spoken), next };
   }
 
+
+  const fmtWords = (ws) => ws.map((w) => (/\d/.test(w) ? w.toUpperCase() : (['the', 'a', 'an', 'landing', 'departing', 'on', 'short', 'final'].includes(w) ? w : cap(w)))).join(' ');
+
+  // Autorizzazione condizionata: "behind the landing A320, line up and wait …, behind"
+  function ruleConditional(toks, i) {
+    if (toks[i] !== 'behind') return null;
+    let j = i + 1;
+    const words = [];
+    while (j < toks.length && words.length < 6 && !['line', 'cross', 'taxi', 'enter', 'continue', 'hold'].includes(toks[j])) { words.push(toks[j]); j++; }
+    if (!words.length || j >= toks.length) return { part: P('condition', 'behind', 'behind'), next: i + 1 };
+    return { part: P('condition', `Behind ${fmtWords(words)}`, `behind ${words.join(' ')}`), next: j };
+  }
+
+  function ruleGiveWay(toks, i) {
+    if (toks[i] !== 'give' || toks[i + 1] !== 'way') return null;
+    let j = i + 2;
+    if (toks[j] === 'to') j++;
+    const words = [];
+    while (j < toks.length && words.length < 6 && !STOP.has(toks[j]) && !['from', 'passing', 'crossing', 'coming', 'left', 'right'].includes(toks[j])) { words.push(toks[j]); j++; }
+    while (j < toks.length && ['from', 'passing', 'crossing', 'coming', 'left', 'right', 'to'].includes(toks[j])) j++;
+    return { part: P('ground', `Giving way to ${fmtWords(words)}`.trim(), `giving way to ${words.join(' ')}`.trim()), next: j };
+  }
+
+  function ruleVacate(toks, i) {
+    if (toks[i] !== 'vacate') return null;
+    let j = i + 1;
+    let display = 'Vacate';
+    let spoken = 'vacate';
+    if (toks[j] === 'left' || toks[j] === 'right') { display += ` ${toks[j]}`; spoken += ` ${toks[j]}`; j++; }
+    if (toks[j] === 'via') {
+      j++;
+      const L = PHONETIC[toks[j]] || ((/^[a-z]$/.test(toks[j] || '')) ? toks[j].toUpperCase() : null);
+      if (L) {
+        const m = (toks[j].match(/^[a-z](\d{1,2})$/) || [])[1];
+        let digits = m || (/^\d{1,2}$/.test(toks[j + 1] || '') ? toks[j + 1] : '');
+        display += ` via ${LETTER_WORD[L]}${digits ? ` ${digits}` : ''}`;
+        spoken += ` via ${LETTER_WORD[L].toLowerCase()}${digits ? ` ${spellDigits(digits)}` : ''}`;
+        j += digits && !m ? 2 : 1;
+      }
+    }
+    return { part: P('runway', display, spoken), next: j };
+  }
+
+  function ruleMach(toks, i) {
+    let j = i;
+    let verb = 'Mach';
+    if (['maintain', 'reduce', 'increase'].includes(toks[i]) && toks[i + 1] === 'mach') { verb = `${cap(toks[i])} Mach`; j = i + 2; }
+    else if (toks[i] === 'mach') j = i + 1;
+    else return null;
+    if (toks[j] === 'point' || toks[j] === 'decimal') j++;
+    const v = toks[j];
+    if (!/^(0?\.\d{1,2}|\d{2})$/.test(v || '')) return null;
+    const dec = v.includes('.') ? v.split('.')[1] : v;
+    j++;
+    let display = `${verb} .${dec}`.replace('Mach .', 'Mach 0.');
+    let spoken = `${verb.toLowerCase()} point ${spellDigits(dec)}`;
+    if (toks[j] === 'or' && ['greater', 'more', 'less'].includes(toks[j + 1])) { display += ` or ${toks[j + 1]}`; spoken += ` or ${toks[j + 1]}`; j += 2; }
+    return { part: P('speed', display, spoken), next: j };
+  }
+
+  function ruleRate(toks, i) {
+    if (toks[i] !== 'rate' || toks[i + 1] !== 'of' || !['climb', 'descent'].includes(toks[i + 2])) return null;
+    let j = i + 3;
+    if (!isDigits(toks[j], 3, 4)) return null;
+    const v = toks[j];
+    j++;
+    if (toks[j] === 'feet') j++;
+    if (toks[j] === 'per' && toks[j + 1] === 'minute') j += 2;
+    let display = `Rate of ${toks[i + 2]} ${v} ft/min`;
+    let spoken = `rate of ${toks[i + 2]} ${spokenAltitude(v)} feet per minute`;
+    if (toks[j] === 'or' && ['greater', 'more', 'less'].includes(toks[j + 1])) { display += ` or ${toks[j + 1]}`; spoken += ` or ${toks[j + 1]}`; j += 2; }
+    return { part: P('level', display, spoken), next: j };
+  }
+
+  function ruleHold(toks, i) {
+    if (toks[i] !== 'hold' || !['over', 'at'].includes(toks[i + 1])) return null;
+    const name = toks[i + 2];
+    if (!name || STOP.has(name) || /^\d/.test(name)) return null;
+    let j = i + 3;
+    let display = `Hold over ${name.toUpperCase()}`;
+    let spoken = `hold over ${name}`;
+    if (toks[j] === 'as' && toks[j + 1] === 'published') { display += ' as published'; spoken += ' as published'; j += 2; }
+    return { part: P('direct', display, spoken), next: j };
+  }
+
+  function ruleExpectMisc(toks, i) {
+    if (toks[i] !== 'expect') return null;
+    if (toks[i + 1] === 'runway') {
+      const r = readRunway(toks, i + 2);
+      if (r) return { part: P('runway', `Expect runway ${r.value}`, `expect runway ${r.spoken}`), next: r.next };
+    }
+    if ((toks[i + 1] === 'further' || toks[i + 1] === 'onward') && toks[i + 2] === 'clearance') {
+      let j = i + 3;
+      if (toks[j] === 'at') j++;
+      if (isDigits(toks[j], 4, 4)) return { part: P('phrase', `Expect further clearance ${toks[j]}`, `expect further clearance ${spellDigits(toks[j])}`), next: j + 1 };
+    }
+    return null;
+  }
+
+  function ruleInformation(toks, i) {
+    if (toks[i] !== 'information' || !PHONETIC[toks[i + 1]]) return null;
+    const L = PHONETIC[toks[i + 1]];
+    let j = i + 2;
+    while (['is', 'now', 'current', 'received'].includes(toks[j])) j++;
+    return { part: P('qnh', `Information ${LETTER_WORD[L]}`, `information ${LETTER_WORD[L].toLowerCase()}`), next: j };
+  }
+
+  function ruleTransition(toks, i) {
+    if (toks[i] !== 'transition' || toks[i + 1] !== 'level') return null;
+    let j = i + 2;
+    if (toks[j] === 'fl') j++;
+    if (!isDigits(toks[j], 2, 3)) return null;
+    return { part: P('level', `Transition level ${Number(toks[j])}`, `transition level ${spellDigits(String(Number(toks[j])))}`), next: j + 1 };
+  }
+
+  // "departure frequency 125.5", "tower frequency 118.7"
+  function ruleFreqWord(toks, i) {
+    if (!['departure', 'ground', 'tower', 'approach', 'radar', 'delivery', 'director'].includes(toks[i]) || toks[i + 1] !== 'frequency') return null;
+    const f = fixFreq(toks[i + 2]);
+    if (!f) return null;
+    return { part: P('frequency', `${cap(toks[i])} ${f}`, `${toks[i]} ${spellDigits(f)}`), next: i + 3 };
+  }
+
   // L'ordine conta: a parità di posizione vince la prima regola.
   const RULES = [
-    ruleClearance, ruleApproach, ruleArrival, ruleRunwayOps, rulePhrases,
-    rulePushStart, ruleTaxi, ruleSpeed, ruleLevel, ruleHeading, ruleSquawk,
-    ruleQnh, ruleContact, ruleDirect, ruleRunway,
+    ruleClearance, ruleApproach, ruleArrival, ruleRunwayOps, rulePhrases, ruleConditional,
+    ruleGiveWay, ruleVacate, ruleHold, rulePushStart, ruleTaxi, ruleRate, ruleMach, ruleSpeed,
+    ruleLevel, ruleExpectMisc, ruleHeading, ruleSquawk, ruleQnh, ruleInformation, ruleTransition,
+    ruleFreqWord, ruleContact, ruleDirect, ruleRunway,
   ];
 
   // ---------------------------------------------------------- nominativo
@@ -767,7 +937,8 @@
       const v = PHONETIC[t] ? PHONETIC[t].toLowerCase() : t;
       const prev = compact[compact.length - 1];
       const short = /^[a-z]$/.test(v) || /^\d+$/.test(v);
-      if (short && prev && prev.short) prev.v += v;
+      const bothNumbers = prev && /^\d+$/.test(v) && /\d$/.test(prev.v);
+      if (short && prev && prev.short && !bothNumbers) prev.v += v;
       else compact.push({ v, short });
     }
     const words = compact.map((x) => x.v);
@@ -833,14 +1004,38 @@
       }
     }
 
+    // Pista con numero impossibile (es. "61L"): meglio chiedere che indovinare
+    toks.forEach((t, k) => {
+      const m = t === 'runway' && (toks[k + 1] || '').match(/^(\d{1,2})[lrc]?$/);
+      if (m && (Number(m[1]) < 1 || Number(m[1]) > 36)) ctx.warnings.push(`Pista "${toks[k + 1].toUpperCase()}" non valida: chiedi "say again runway".`);
+    });
+
     const noReadbackNeeded = parts.length === 0;
+    const forUs = detectForUs(toks, cs);
+    const joined = ` ${toks.join(' ')} `;
     if (noReadbackNeeded) {
+      // Casi in cui non si fa un readback ma bisogna sapere cosa fare
+      let special = null;
+      if (/ standby /.test(joined)) special = ['— nessuna risposta (standby)', 'Standby: non rispondere, aspetta che l\'ATC ti richiami.'];
+      else if (/ say again /.test(joined)) special = ['Ripeti la tua ultima chiamata', 'L\'ATC non ti ha capito: ripeti la tua ultima chiamata.'];
+      else {
+        const m = joined.match(/ (?:say|report)(?: your)? (level|altitude|heading|speed|position) /);
+        if (m) {
+          const what = { level: 'il tuo livello (es. "Level 240")', altitude: 'la tua quota (es. "Passing 5000 feet")', heading: 'la tua prua (es. "Heading 270")', speed: 'la tua velocità (es. "Speed 250 knots")', position: 'la tua posizione' }[m[1]];
+          special = [`Riporta ${what.split(' (')[0]}`, `L'ATC ti chiede ${what}, seguito dal nominativo.`];
+        }
+      }
+      if (special) {
+        return {
+          input: text, normalized: toks.join(' '), parts: [], readback: special[0], spoken: '', forUs,
+          noReadbackNeeded: true, warnings: [...ctx.warnings, special[1]], callsign: cs, source: 'regole', special: true,
+        };
+      }
       parts.push(wantsReport ? P('ack', 'Wilco', 'wilco') : P('ack', 'Roger', 'roger'));
     } else if (wantsReport) {
       parts.push(P('ack', 'Wilco', 'wilco'));
     }
 
-    const forUs = detectForUs(toks, cs);
     // Il nostro nominativo va in fondo solo se la chiamata è (forse) per noi.
     const csDisplay = cs && forUs !== false ? cs.display : '';
     const csSpoken = cs && forUs !== false ? cs.spoken : '';

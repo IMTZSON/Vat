@@ -72,18 +72,29 @@
     }
   }
 
-  function transcribe(wavBlob, { key, model, callsign }) {
+  // Restituisce { text, segments } (segments con avg_logprob ecc. per valutare la qualità).
+  // context: stazioni/frequenze online, piste e ATIS del volo, per aiutare Whisper sui numeri.
+  function transcribe(wavBlob, { key, model, callsign, context }) {
     return withModel(key, 'stt', model, async (m) => {
-      const form = new FormData();
-      form.append('file', wavBlob, 'atc.wav');
-      form.append('model', m);
-      form.append('language', 'en');
-      form.append('temperature', '0');
-      form.append('response_format', 'json');
-      // Il prompt aiuta Whisper con il gergo aeronautico e il nostro nominativo.
-      form.append('prompt', `ATC radio. ${callsign ? `${callsign}, ` : ''}descend FL80, turn left heading 270, squawk 4521, QNH 1013, contact Roma Radar 125.5, taxi holding point Alpha 2 runway 26L via Papa, Sierra, hold short, line up and wait, cleared to land runway 16L.`);
-      const data = await call('/audio/transcriptions', key, { method: 'POST', body: form });
-      return (data.text || '').trim();
+      const send = async (format) => {
+        const form = new FormData();
+        form.append('file', wavBlob, 'atc.wav');
+        form.append('model', m);
+        form.append('language', 'en');
+        form.append('temperature', '0');
+        form.append('response_format', format);
+        const base = `ATC radio. ${callsign ? `${callsign}, ` : ''}descend FL80, turn left heading 270, squawk 4521, QNH 1013, contact Roma Radar 125.5, taxi holding point Alpha 2 runway 26L via Papa, Sierra, hold short, line up and wait, cleared to land runway 16L.`;
+        form.append('prompt', `${context ? `${context}. ` : ''}${base}`.slice(0, 900));
+        return call('/audio/transcriptions', key, { method: 'POST', body: form });
+      };
+      let data;
+      try {
+        data = await send('verbose_json');
+      } catch (e) {
+        if (e.status !== 400 || e.modelMissing) throw e;
+        data = await send('json');
+      }
+      return { text: (data.text || '').trim(), segments: Array.isArray(data.segments) ? data.segments : [] };
     });
   }
 
@@ -98,6 +109,9 @@ for_us is false only if the transmission is clearly addressed to a different cal
 If nothing needs reading back, answer "Roger" (or "Wilco" for a request to report).
 Use compact written form like "Descend FL80, left heading 270, Roma 125.5, Alitalia 123".
 Write taxiways and holding points with phonetic words and commas, e.g. "Taxi holding point Alpha 2, runway 26L, via Papa, Alpha, Sierra".
+PRECISION IS CRITICAL: copy every number (levels, altitudes, headings, speeds, frequencies, squawks, QNH, runways) exactly
+as it appears in the transcript. Never add, guess, round or "correct" a number. If something is unclear, keep it as heard
+and explain the doubt in "note".
 Answer ONLY with JSON: {"for_us": boolean, "readback": string, "spoken": string (same readback written as pronounced, ICAO digits e.g. "flight level eight zero", "niner"), "note": string (short note in Italian about doubtful parts, or empty)}.`;
 
   function parseJson(text) {

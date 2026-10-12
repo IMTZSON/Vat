@@ -285,3 +285,5 @@ body.compact .heardRow { margin-top: 4px; padding-top: 6px; }
   .tab { flex: none; }
   .scoreRow { flex-direction: column; align-items: flex-start; gap: 4px; }
 }
+
+.readback.doubt { text-decoration: underline wavy var(--bad); text-decoration-thickness: 2px; }

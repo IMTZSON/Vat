@@ -23,7 +23,8 @@
             const wav = rec.stop();
             if (!wav) return '';
             const cs = root.Readback.parseCallsign(settings.callsign, settings.telephony);
-            return root.Groq.transcribe(wav, { key: settings.groqKey, model: settings.whisperModel, callsign: cs ? cs.display : '' });
+            const r = await root.Groq.transcribe(wav, { key: settings.groqKey, model: settings.whisperModel, callsign: cs ? cs.display : '' });
+            return r.text;
           },
           cancel() { rec.stop(); },
         };

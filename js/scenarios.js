@@ -17,17 +17,17 @@
   ];
 
   const AIRPORTS = {
-    LIRF: { city: 'Roma', name: 'Roma Fiumicino', rwys: ['16L', '16R', '25', '34L', '34R'], acc: 'Roma' },
+    LIRF: { city: 'Roma', name: 'Roma Fiumicino', rwys: ['16L', '34R', '16R', '34L', '07', '25'], acc: 'Roma' },
     LIRA: { city: 'Ciampino', name: 'Roma Ciampino', rwys: ['15', '33'], acc: 'Roma' },
     LIMC: { city: 'Malpensa', name: 'Milano Malpensa', rwys: ['35L', '35R', '17L', '17R'], acc: 'Milano' },
     LIML: { city: 'Linate', name: 'Milano Linate', rwys: ['36', '18'], acc: 'Milano' },
     LIME: { city: 'Bergamo', name: 'Bergamo', rwys: ['28', '10'], acc: 'Milano' },
-    LIPZ: { city: 'Venezia', name: 'Venezia', rwys: ['04R', '22L'], acc: 'Padova' },
+    LIPZ: { city: 'Venezia', name: 'Venezia', rwys: ['04R', '22L', '04L', '22R'], acc: 'Padova' },
     LIPE: { city: 'Bologna', name: 'Bologna', rwys: ['12', '30'], acc: 'Padova' },
     LIRQ: { city: 'Firenze', name: 'Firenze', rwys: ['05', '23'], acc: 'Roma' },
     LIRN: { city: 'Napoli', name: 'Napoli', rwys: ['06', '24'], acc: 'Roma' },
     LICC: { city: 'Catania', name: 'Catania', rwys: ['08', '26'], acc: 'Roma' },
-    LICJ: { city: 'Palermo', name: 'Palermo', rwys: ['07', '25'], acc: 'Roma' },
+    LICJ: { city: 'Palermo', name: 'Palermo', rwys: ['07', '25', '02', '20'], acc: 'Roma' },
     LIBD: { city: 'Bari', name: 'Bari', rwys: ['07', '25'], acc: 'Brindisi' },
     LIEO: { city: 'Olbia', name: 'Olbia', rwys: ['05', '23'], acc: 'Roma' },
     LIMF: { city: 'Torino', name: 'Torino', rwys: ['36', '18'], acc: 'Milano' },
@@ -218,6 +218,10 @@
 
   function canon(text) {
     const toks = R.tokenize(text).map((t) => (R.PHONETIC[t] ? R.PHONETIC[t].toLowerCase() : t));
+    // "flight level two five zero one zero minutes" -> fl 250 10 minutes
+    for (let k = 0; k < toks.length; k++) {
+      if (toks[k] === 'fl' && /^\d{4,5}$/.test(toks[k + 1] || '') && toks[k + 2] === 'minutes') toks.splice(k + 1, 1, toks[k + 1].slice(0, 3), toks[k + 1].slice(3));
+    }
     const out = [];
     for (let i = 0; i < toks.length; i++) {
       let t = toks[i];
@@ -225,6 +229,7 @@
       if (t === 'pushback') t = 'push';
       if (t === 'startup') t = 'start';
       if (/^\d+$/.test(t)) t = String(Number(t));
+      else if (/^\d+\.\d+$/.test(t)) t = String(parseFloat(t));
       const m = t.match(/^0*(\d{1,2})([lrc])$/);
       if (m) t = m[1] + m[2];
       const nx = toks[i + 1];
@@ -264,7 +269,7 @@
     return { items, score: Math.round((ok / items.length) * 100), perfect: ok === items.length };
   }
 
-  const api = { PHASES, AIRPORTS, generate, fullFlight, score, canon, makeContext };
+  const api = { PHASES, AIRPORTS, generate, fullFlight, score, canon, essentials, makeContext };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Scenarios = api;
 })(this);
