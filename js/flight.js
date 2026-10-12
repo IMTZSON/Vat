@@ -39,6 +39,7 @@
       App.setFlight({
         source: 'manuale', callsign: (App.callsignInfo() || {}).code || '',
         dep, depName: (AIRPORTS[dep] || {}).name || dep, arr, arrName: (AIRPORTS[arr] || {}).name || arr, cruise: fl,
+        pax: Number($('manPax').value) || null, aircraft: App.settings.aircraft,
       });
       refreshWx();
     });
@@ -54,8 +55,8 @@
       if (!f) { el.innerHTML = ''; return; }
       const cell = (label, value) => (value ? `<div><span>${label}</span><b>${esc(value)}</b></div>` : '');
       el.innerHTML = `
-        <div class="fsHead"><b>${esc(f.callsign || '')}</b> ${esc(f.dep)} → ${esc(f.arr)} <span class="hint">(${esc(f.source)})</span></div>
-        <div class="fsGrid">
+        <div class="fs-head"><b>${esc(f.callsign || '')}</b> ${esc(f.dep)} → ${esc(f.arr)} <span class="hint">(${esc(f.source)})</span></div>
+        <div class="fs-grid">
           ${cell('Partenza', `${f.dep} ${f.depName || ''}`)}
           ${cell('Arrivo', `${f.arr} ${f.arrName || ''}`)}
           ${cell('Alternato', f.altn)}
@@ -77,11 +78,11 @@
 
     function renderAirport(elId, title, icao, info) {
       const el = $(elId);
-      if (!icao) { el.innerHTML = `<h2>${title}</h2><p class="hint">Carica un piano di volo.</p>`; return; }
+      if (!icao) { el.innerHTML = `<h3>${title}</h3><p class="hint">Carica un piano di volo.</p>`; return; }
       const ap = AIRPORTS[icao];
-      let html = `<h2>${title} · ${esc(icao)} <span class="hint">${esc(ap ? ap.name : '')}</span>`;
+      let html = `<h3>${title} · ${esc(icao)} <span class="hint">${esc(ap ? ap.name : '')}</span>`;
       if (info && info.metar && info.metar.category) html += ` <span class="badge cat-${info.metar.category}">${info.metar.category}</span>`;
-      html += '</h2>';
+      html += '</h3>';
       if (!info) { el.innerHTML = `${html}<p class="hint">Premi "Aggiorna meteo e ATC".</p>`; return; }
       if (info.metar) {
         html += `<code class="metar">${esc(info.metar.raw)}</code><ul class="wxLines">${info.metar.lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>`;
@@ -176,8 +177,8 @@
         const li = document.createElement('li');
         li.innerHTML = `<div class="callHead"><span class="badge muted">${esc(phase)}</span> <span class="hint">${esc(what)}</span></div><div class="callText">${esc(clean(text))}</div>`;
         const b = document.createElement('button');
-        b.className = 'btn small';
-        b.textContent = '🔊';
+        b.className = 'icon-btn';
+        b.innerHTML = root.Icons.svg('volume-2');
         b.title = 'Ascolta';
         b.addEventListener('click', () => root.TTS.speak(clean(spoken).replace(/\[[^\]]*\]/g, '')));
         li.querySelector('.callHead').append(b);

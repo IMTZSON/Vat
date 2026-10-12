@@ -30,8 +30,8 @@
 
     function speakBtn(text) {
       const b = document.createElement('button');
-      b.className = 'btn small';
-      b.textContent = '🔊';
+      b.className = 'icon-btn';
+      b.innerHTML = root.Icons.svg('volume-2');
       b.title = 'Ascolta';
       b.addEventListener('click', () => root.TTS.speak(speakable(text.replace(/^\(.*?\)\s*/, ''))));
       return b;
@@ -45,7 +45,7 @@
         const items = sec.items.filter((it) => !q || [it.when, it.atc, it.pilot, it.note].join(' ').toLowerCase().includes(q));
         if (!items.length) continue;
         const panel = document.createElement('details');
-        panel.className = 'panel';
+        panel.className = 'group glass disclosure';
         panel.open = !!q || sec === SECTIONS[0];
         const sum = document.createElement('summary');
         sum.textContent = `${sec.title} (${items.length})`;
@@ -83,7 +83,7 @@
         panel.append(ul);
         box.append(panel);
       }
-      if (!box.children.length) box.innerHTML = '<div class="panel hint">Nessuna frase trovata.</div>';
+      if (!box.children.length) box.innerHTML = '<div class="card glass hint">Nessuna frase trovata.</div>';
     }
 
     $('phraseSearch').addEventListener('input', (e) => render(e.target.value));

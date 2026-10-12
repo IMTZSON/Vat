@@ -17,20 +17,20 @@
   ];
 
   const AIRPORTS = {
-    LIRF: { city: 'Roma', name: 'Roma Fiumicino', rwys: ['16L', '34R', '16R', '34L', '07', '25'], acc: 'Roma' },
-    LIRA: { city: 'Ciampino', name: 'Roma Ciampino', rwys: ['15', '33'], acc: 'Roma' },
-    LIMC: { city: 'Malpensa', name: 'Milano Malpensa', rwys: ['35L', '35R', '17L', '17R'], acc: 'Milano' },
-    LIML: { city: 'Linate', name: 'Milano Linate', rwys: ['36', '18'], acc: 'Milano' },
-    LIME: { city: 'Bergamo', name: 'Bergamo', rwys: ['28', '10'], acc: 'Milano' },
-    LIPZ: { city: 'Venezia', name: 'Venezia', rwys: ['04R', '22L', '04L', '22R'], acc: 'Padova' },
-    LIPE: { city: 'Bologna', name: 'Bologna', rwys: ['12', '30'], acc: 'Padova' },
-    LIRQ: { city: 'Firenze', name: 'Firenze', rwys: ['05', '23'], acc: 'Roma' },
-    LIRN: { city: 'Napoli', name: 'Napoli', rwys: ['06', '24'], acc: 'Roma' },
-    LICC: { city: 'Catania', name: 'Catania', rwys: ['08', '26'], acc: 'Roma' },
-    LICJ: { city: 'Palermo', name: 'Palermo', rwys: ['07', '25', '02', '20'], acc: 'Roma' },
-    LIBD: { city: 'Bari', name: 'Bari', rwys: ['07', '25'], acc: 'Brindisi' },
-    LIEO: { city: 'Olbia', name: 'Olbia', rwys: ['05', '23'], acc: 'Roma' },
-    LIMF: { city: 'Torino', name: 'Torino', rwys: ['36', '18'], acc: 'Milano' },
+    LIRF: { city: 'Roma', name: 'Roma Fiumicino', rwys: ['16L', '34R', '16R', '34L', '07', '25'], acc: 'Roma', lat: 41.8003, lon: 12.2389 },
+    LIRA: { city: 'Ciampino', name: 'Roma Ciampino', rwys: ['15', '33'], acc: 'Roma', lat: 41.7994, lon: 12.5949 },
+    LIMC: { city: 'Malpensa', name: 'Milano Malpensa', rwys: ['35L', '35R', '17L', '17R'], acc: 'Milano', lat: 45.6306, lon: 8.7231 },
+    LIML: { city: 'Linate', name: 'Milano Linate', rwys: ['36', '18'], acc: 'Milano', lat: 45.4451, lon: 9.2767 },
+    LIME: { city: 'Bergamo', name: 'Bergamo', rwys: ['28', '10'], acc: 'Milano', lat: 45.6689, lon: 9.7042 },
+    LIPZ: { city: 'Venezia', name: 'Venezia', rwys: ['04R', '22L', '04L', '22R'], acc: 'Padova', lat: 45.5053, lon: 12.3519 },
+    LIPE: { city: 'Bologna', name: 'Bologna', rwys: ['12', '30'], acc: 'Padova', lat: 44.5354, lon: 11.2887 },
+    LIRQ: { city: 'Firenze', name: 'Firenze', rwys: ['05', '23'], acc: 'Roma', lat: 43.81, lon: 11.2051 },
+    LIRN: { city: 'Napoli', name: 'Napoli', rwys: ['06', '24'], acc: 'Roma', lat: 40.886, lon: 14.2908 },
+    LICC: { city: 'Catania', name: 'Catania', rwys: ['08', '26'], acc: 'Roma', lat: 37.4668, lon: 15.0664 },
+    LICJ: { city: 'Palermo', name: 'Palermo', rwys: ['07', '25', '02', '20'], acc: 'Roma', lat: 38.176, lon: 13.091 },
+    LIBD: { city: 'Bari', name: 'Bari', rwys: ['07', '25'], acc: 'Brindisi', lat: 41.1389, lon: 16.7606 },
+    LIEO: { city: 'Olbia', name: 'Olbia', rwys: ['05', '23'], acc: 'Roma', lat: 40.8987, lon: 9.5176 },
+    LIMF: { city: 'Torino', name: 'Torino', rwys: ['36', '18'], acc: 'Milano', lat: 45.2008, lon: 7.6496 },
   };
 
   const FIXES = ['BOLLA', 'TORLI', 'RITEB', 'ELKAP', 'XIBIL', 'NIKMO', 'OSKAT', 'GILIX', 'PEDUK', 'ROTUN', 'VALMA', 'SORIN', 'DIPAL', 'ETNAS', 'MAREK', 'LUPEN'];

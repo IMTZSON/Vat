@@ -20,34 +20,44 @@ Disponibile come **programma per Windows (.exe)** e come pagina web.
 
 ## Cosa fa
 
-### 🎧 Ascolto (in volo)
-- Ascolta la radio di vPilot, trascrive l'ATC e ti mostra il **readback corretto** con la **pronuncia ICAO**.
-  ```
-  ATC:       "Alitalia 123, descend FL80, turn left heading 270, contact Roma Radar 125.5"
-  DA DIRE:    Descend FL80, left heading 270, Roma Radar 125.5, Alitalia 123
-  PRONUNCIA:  descend flight level eight zero, left heading two seven zero, Roma Radar one two five decimal five…
-  ```
-- Riconosce le chiamate **per te**: quelle per altri aerei vanno solo nello storico. Fa un **bip** quando l'ATC chiama te.
-- Avvisa sui valori sospetti, per esempio uno squawk con 8 o 9 o un QNH strano.
-- **Modalità compatta** sempre in primo piano sopra il simulatore.
-- **Storico** esportabile in un file di testo.
+L'interfaccia è in stile iOS (vetro sfocato, tab bar in basso) e il tema chiaro/scuro segue Windows. Ci sono 5 schede.
 
-### 🎓 Allenamento
-- Un ATC simulato ti parla a voce, tu rispondi **a voce** (o scrivendo) e l'app ti **corregge elemento per elemento**: quota, prua, frequenza, squawk, pista, nominativo.
-- Fasi: Delivery, Ground, Tower, Partenza, Crociera, Avvicinamento, Misto, oppure **Volo completo** in 18 passi dal clearance al parcheggio.
-- Tre livelli di difficoltà e statistiche dei progressi per fase.
-- Se hai caricato un volo nella scheda Volo, l'allenamento usa i tuoi aeroporti, le tue piste e la tua SID.
+### 🎧 ATC (in volo)
+- Ascolta la radio di vPilot, trascrive l'ATC e mostra il **readback corretto** con la **pronuncia ICAO**.
+- **Verifica ogni readback** con un badge:
+  - ✅ **Verificato**: i controlli non hanno trovato nulla di strano;
+  - ⚠️ **Controlla**: qualcosa non torna e l'app spiega cosa;
+  - ⛔ **Audio non chiaro**: chiedi *say again*.
+- I controlli fatti:
+  - qualità dell'audio (confidenza di Whisper);
+  - l'AI non deve aggiungere numeri che l'ATC non ha detto (in quel caso vince il readback a regole);
+  - frequenza confrontata con i **controllori online su VATSIM** ("forse 125.500?");
+  - pista confrontata con quelle degli aeroporti del volo;
+  - QNH confrontato con il **METAR**;
+  - squawk valido.
+- Riconosce le chiamate per te, fa un bip, ha la **modalità compatta** sopra il simulatore e lo storico esportabile.
 
-### ✈️ Volo (briefing)
-- **SimBrief**: carica l'ultimo piano di volo con il tuo nome utente. Imposta da solo il nominativo e mostra rotta, livello, piste, SID/STAR e carburante.
-- **Meteo**: METAR di partenza e arrivo spiegato in italiano (vento, visibilità, nubi, QNH, categoria VFR/IFR).
-- **ATC online su VATSIM** negli aeroporti del volo, con frequenze, lettera ATIS e testo ATIS.
-- **Le tue chiamate**: cosa dire tu per primo in ogni fase, già compilato con i dati del volo (stand, lettera ATIS, piste).
-- **Tu su VATSIM**: controlla se sei connesso e se lo squawk impostato è quello assegnato.
+### ✈️ Volo
+- **Mappa con tracking live** dal feed VATSIM (ogni 15 s): rotta pianificata, aereo, scia, **fase del volo**, livello, GS, NM rimanenti, ETA e %.
+- Piano di volo da **SimBrief**, oppure inserito a mano.
+- **METAR** spiegato in italiano, **ATC online** con frequenze e ATIS, e **le tue chiamate** già compilate.
 
-### 📖 Frasario
-- 40 frasi standard ICAO divise per fase, con la risposta corretta, una spiegazione in italiano e il tasto 🔊 per ascoltarle.
-- Ci sono anche emergenze, alfabeto fonetico, numeri con la pronuncia e un glossario.
+### 🛒 Bordo
+- **Simulazione realistica del servizio di bordo**:
+  - le vendite arrivano in diretta in base a passeggeri, durata del volo e momento del servizio (bevande e pasti all'inizio, duty free alla fine);
+  - mostra incasso, prodotti più venduti e scorte che calano.
+- Segue il volo reale su VATSIM, oppure un timer.
+- **Listino modificabile** (prezzi, scorte, prodotti) per A320 e 737. Il riepilogo finisce nel logbook.
+
+### 📋 Cockpit
+- **Checklist A320 family e Boeing 737** da spuntare. La fase del volo propone quella giusta.
+- **Note CRAFT** (Clearance, Route, Altitude, Frequency, Transponder) **compilate da sole** dall'autorizzazione sentita, più le note libere.
+- **Logbook automatico**: off-block, decollo, atterraggio, on-block, ore di volo e incasso di bordo. Esportabile in CSV.
+
+### ⋯ Altro
+- **Allenamento** con ATC simulato a voce e correzione elemento per elemento (anche un volo completo in 18 passi).
+- **Frasario** con 40 frasi ICAO, alfabeto, numeri e glossario.
+- **Impostazioni**.
 
 ### ⌨️ Scorciatoie (funzionano anche col simulatore in primo piano)
 | Tasti | Azione |
@@ -55,6 +65,8 @@ Disponibile come **programma per Windows (.exe)** e come pagina web.
 | `Ctrl+Shift+L` | Avvia o ferma l'ascolto |
 | `Ctrl+Shift+R` | Ripete a voce l'ultimo readback |
 | `Ctrl+Shift+O` | Modalità compatta sopra il simulatore |
+
+> **Precisione**: nessun riconoscimento vocale è perfetto al 100%. Per questo l'app non mostra mai in silenzio un valore dubbio: quando qualcosa non torna te lo dice. Nel dubbio, in radio si chiede sempre *"say again"*.
 
 ---
 
@@ -104,6 +116,10 @@ Pagina statica (`index.html`, `css/`, `js/`) dentro una shell Electron (`electro
 | File | Ruolo |
 |---|---|
 | `js/readback.js` | Motore di readback: normalizzazione, regole ICAO, pronuncia, riconoscimento nominativo |
+| `js/precision.js`, `js/vatsim.js` | Verifiche dei readback (audio, AI vs regole, dati live VATSIM/METAR) |
+| `js/geo.js`, `js/tracking.js`, `js/logbook.js` | Tracking su mappa (Leaflet), fasi del volo, logbook automatico |
+| `js/cabin-sim.js`, `js/cabin.js` | Simulazione del servizio di bordo |
+| `js/checklists-data.js`, `js/cockpit.js` | Checklist e note CRAFT |
 | `js/scenarios.js` | Generatore di istruzioni ATC per l'allenamento e valutazione delle risposte |
 | `js/metar.js`, `js/simbrief.js` | Decodifica METAR e lettura OFP SimBrief |
 | `js/audio.js`, `js/stt.js`, `js/tts.js`, `js/groq.js` | Audio, riconoscimento vocale, sintesi vocale, Groq |
@@ -113,8 +129,15 @@ Pagina statica (`index.html`, `css/`, `js/`) dentro una shell Electron (`electro
 
 ```
 npm install      # dipendenze (Electron)
-npm test         # test del motore
+npm test         # oltre 300 test (corpus ATC, verifiche, geo, bordo, SimBrief)
 npm start        # avvia il programma
 npm run serve    # solo server: apri http://127.0.0.1:47800 in Chrome
 npm run dist     # crea gli .exe (su Windows)
 ```
+
+
+### Licenze di terze parti
+- Font Inter: SIL Open Font License (`css/fonts/LICENSE-Inter-OFL.txt`)
+- Leaflet: BSD-2 (`js/vendor/LICENSE-leaflet.txt`)
+- Icone Lucide: ISC (`js/vendor/LICENSE-lucide.txt`)
+- Mappe © OpenStreetMap contributors, © CARTO

@@ -253,6 +253,7 @@
         renderHistory();
         saveHistory();
       }
+      App.emit('readback', item);
     }
 
     // ------------------------------------------------------------ ascolto
@@ -327,7 +328,7 @@
         if (S.mode === 'groq') await startGroq();
         else startFree();
         App.setStatus('In ascolto', 'listening');
-        $('toggle').textContent = '■ Ferma';
+        $('toggle').innerHTML = `${root.Icons.svg('square')} Ferma ascolto`;
         $('toggle').classList.add('stop');
         updateModeUI();
       } catch (e) {
@@ -342,7 +343,7 @@
       if (recognition) { recognition.onend = null; try { recognition.stop(); } catch (e) { /* ignora */ } recognition = null; }
       if (recorder) { recorder.stop(); recorder = null; }
       App.setStatus('Fermo', 'idle');
-      $('toggle').textContent = '▶ Avvia ascolto';
+      $('toggle').innerHTML = `${root.Icons.svg('play')} Avvia ascolto`;
       $('toggle').classList.remove('stop');
       updateModeUI();
     }

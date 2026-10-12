@@ -110,9 +110,10 @@ ipcMain.on('open-external', (e, url) => {
 
 ipcMain.handle('save-text', async (e, { name, text }) => {
   const safe = String(name || 'readback.txt').replace(/[^\w.-]/g, '_');
+  const ext = (path.extname(safe).slice(1) || 'txt').toLowerCase();
   const r = await dialog.showSaveDialog(win, {
     defaultPath: path.join(app.getPath('documents'), safe),
-    filters: [{ name: 'Testo', extensions: ['txt'] }],
+    filters: [{ name: ext === 'csv' ? 'CSV (Excel)' : 'Testo', extensions: [ext] }],
   });
   if (r.canceled || !r.filePath) return false;
   await fs.promises.writeFile(r.filePath, String(text), 'utf8');

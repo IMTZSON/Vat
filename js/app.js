@@ -28,6 +28,9 @@
     ttsVoice: '',
     ttsRate: 1,
     onTop: false,
+    aircraft: 'A320',
+    cabSource: 'auto',
+    cabMinutes: 90,
     tab: 'listen',
   };
 
@@ -111,11 +114,41 @@
       el.className = `status ${cls || 'idle'}`;
     },
 
+    // Schede principali (tab bar) e sotto-pagine (es. Altro › Impostazioni) con pulsante indietro
     switchTab(id) {
-      document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('active', b.dataset.tab === id));
-      document.querySelectorAll('.view').forEach((v) => { v.hidden = v.dataset.view !== id; });
+      const view = document.querySelector(`.view[data-view="${id}"]`) || document.querySelector('.view[data-view="listen"]');
+      id = view.dataset.view;
+      const parent = view.dataset.parent || null;
+      document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('active', b.dataset.tab === (parent || id)));
+      document.querySelectorAll('.view').forEach((v) => { v.hidden = v !== view; });
+      $('topTitle').textContent = view.dataset.title || 'Readback Copilot';
+      const back = $('backBtn');
+      back.hidden = !parent;
+      back.dataset.target = parent || '';
+      if (parent) back.querySelector('span').textContent = document.querySelector(`.view[data-view="${parent}"]`).dataset.title;
       if (this.settings.tab !== id) this.set('tab', id);
+      root.scrollTo({ top: 0 });
       this.emit('tab', id);
+    },
+
+    // Controlli segmentati iOS costruiti sopra le <select class="seg">
+    buildSegmented() {
+      document.querySelectorAll('select.seg').forEach((sel) => {
+        const seg = document.createElement('div');
+        seg.className = 'segmented';
+        const sync = () => seg.querySelectorAll('button').forEach((b) => b.classList.toggle('active', b.dataset.value === sel.value));
+        for (const o of sel.options) {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.textContent = o.textContent;
+          b.dataset.value = o.value;
+          b.addEventListener('click', () => { sel.value = o.value; sel.dispatchEvent(new Event('change')); sync(); });
+          seg.append(b);
+        }
+        sel.after(seg);
+        sync();
+        if (sel.dataset.setting) this.on(`setting:${sel.dataset.setting}`, () => setTimeout(sync));
+      });
     },
 
     setCompact(on) {
@@ -123,7 +156,6 @@
       if (on) this.switchTab('listen');
       desktop.setCompact(on);
       if (!on) desktop.setOnTop(this.settings.onTop);
-      $('overlayBtn').textContent = on ? '🗖 Espandi' : '🗗 Compatta';
     },
 
     async refreshDevices(unlock) {
@@ -161,8 +193,20 @@
     },
 
     async start() {
+      root.Icons.hydrate(document);
+      // Pulsante per uscire dalla modalità compatta (la barra in alto è nascosta)
+      const exit = document.createElement('button');
+      exit.className = 'icon-btn compact-exit glass';
+      exit.title = 'Esci dalla modalità compatta (Ctrl+Shift+O)';
+      exit.innerHTML = root.Icons.svg('maximize-2');
+      exit.addEventListener('click', () => this.setCompact(false));
+      document.body.append(exit);
+
       this.bindSettings();
+      this.buildSegmented();
       document.querySelectorAll('.tab').forEach((b) => b.addEventListener('click', () => this.switchTab(b.dataset.tab)));
+      document.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => this.switchTab(b.dataset.go)));
+      $('backBtn').addEventListener('click', () => this.switchTab($('backBtn').dataset.target || 'more'));
       $('overlayBtn').addEventListener('click', () => this.setCompact(!document.body.classList.contains('compact')));
       document.querySelectorAll('.refreshDevices').forEach((b) => b.addEventListener('click', () => this.refreshDevices(true)));
 
@@ -216,6 +260,7 @@
       if (info) {
         document.body.classList.add('is-desktop');
         $('desktopInfo').textContent = `Programma per Windows, versione ${info.version}. Le scorciatoie funzionano anche con il simulatore in primo piano.`;
+        $('aboutLine').textContent = `Readback Copilot ${info.version} · programma per Windows`;
       }
 
       for (const init of this.modules) {

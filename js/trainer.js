@@ -43,7 +43,7 @@
       const el = $('trainAtc');
       el.textContent = cur.atc;
       el.classList.toggle('hiddenText', !show);
-      $('trainReveal').textContent = show ? '🙈 Nascondi testo' : '👁 Mostra testo';
+      $('trainReveal').innerHTML = show ? `${root.Icons.svg('eye-off')} Nascondi testo` : `${root.Icons.svg('eye')} Mostra testo`;
       el.dataset.shown = show ? '1' : '';
     }
 
@@ -62,21 +62,21 @@
         $('trainStep').textContent = '';
       }
       answered = false;
-      $('trainStation').textContent = `📻 ${cur.station}`;
+      $('trainStation').innerHTML = `${root.Icons.svg('radio')} ${cur.station}`;
       $('trainStation').className = 'badge ai';
       showAtcText(!!S.trainShowText);
       $('trainResult').hidden = true;
       $('trainInput').value = '';
       $('trainLive').textContent = '';
       setEnabled(true);
-      $('trainNext').textContent = '▶ Prossima istruzione';
+      $('trainNext').innerHTML = `${root.Icons.svg('play')} Prossima istruzione`;
       root.TTS.speak(cur.atcSpoken);
     }
 
     function cancelSession() {
       if (session) { try { session.cancel(); } catch (e) { /* ignora */ } session = null; }
       $('trainMic').classList.remove('recording');
-      $('trainMic').textContent = '🎤 Parla';
+      $('trainMic').innerHTML = `${root.Icons.svg('mic')} Parla`;
     }
 
     async function micStart() {
@@ -85,7 +85,7 @@
       try {
         session = await root.STT.start(S, (txt) => { $('trainLive').textContent = `Sto sentendo: ${txt}`; });
         $('trainMic').classList.add('recording');
-        $('trainMic').textContent = '⏹ Fine';
+        $('trainMic').innerHTML = `${root.Icons.svg('square')} Fine`;
         $('trainLive').textContent = 'Parla ora…';
       } catch (e) {
         session = null;
@@ -98,7 +98,7 @@
       const s = session;
       session = null;
       $('trainMic').classList.remove('recording');
-      $('trainMic').textContent = '🎤 Parla';
+      $('trainMic').innerHTML = `${root.Icons.svg('mic')} Parla`;
       $('trainLive').textContent = 'Riconosco…';
       try {
         const text = await s.stop();

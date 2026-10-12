@@ -3,356 +3,422 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
   <title>Readback Copilot</title>
+  <link rel="stylesheet" href="css/vendor/leaflet.css">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <header class="top">
-    <div class="brand">
-      <span class="logo" aria-hidden="true">🎧</span>
-      <div>
-        <h1>Readback Copilot</h1>
-        <p class="sub">Il tuo copilota radio per VATSIM</p>
+  <div class="wallpaper" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <div class="topbar-inner glass">
+      <button id="backBtn" class="nav-back" hidden><i data-icon="chevron-left"></i><span>Altro</span></button>
+      <span class="topbar-title" id="topTitle">Readback Copilot</span>
+      <div class="topbar-right">
+        <span id="status" class="status idle">Fermo</span>
+        <button id="overlayBtn" class="icon-btn" title="Modalità compatta sopra il simulatore (Ctrl+Shift+O)"><i data-icon="minimize-2"></i></button>
       </div>
-    </div>
-    <nav class="tabs" role="tablist">
-      <button class="tab" data-tab="listen" role="tab">🎧 Ascolto</button>
-      <button class="tab" data-tab="train" role="tab">🎓 Allenamento</button>
-      <button class="tab" data-tab="flight" role="tab">✈️ Volo</button>
-      <button class="tab" data-tab="phrases" role="tab">📖 Frasario</button>
-      <button class="tab" data-tab="settings" role="tab">⚙️ Impostazioni</button>
-    </nav>
-    <div class="topRight">
-      <span id="status" class="status idle">Fermo</span>
-      <button id="overlayBtn" class="btn small" title="Modalità compatta sempre in primo piano (Ctrl+Shift+O)">🗗 Compatta</button>
     </div>
   </header>
 
-  <div id="toast" class="toast" hidden></div>
+  <div id="toast" class="toast glass" hidden></div>
 
   <main>
-    <!-- ======================================================= ASCOLTO -->
-    <section class="view" data-view="listen">
-      <div class="controls panel">
-        <label class="field">
-          <span>Il tuo nominativo</span>
-          <input id="callsign" data-setting="callsign" placeholder="es. AZA123 o I-ABCD" autocomplete="off" spellcheck="false">
-        </label>
-        <label class="field">
-          <span>Nominativo radio <em>(opzionale)</em></span>
-          <input id="telephony" data-setting="telephony" placeholder="es. Alitalia" autocomplete="off" spellcheck="false">
-        </label>
-        <label class="field">
-          <span>Modalità</span>
-          <select id="mode" data-setting="mode">
-            <option value="groq">Groq – Whisper + AI (chiave gratuita)</option>
-            <option value="free">Gratis – riconoscimento vocale di Chrome</option>
-          </select>
-        </label>
-        <button id="toggle" class="btn primary">▶ Avvia ascolto</button>
-        <p id="csHint" class="hint wide"></p>
-        <div id="desktopFree" class="notice wide" hidden>
-          La modalità Gratis usa il riconoscimento vocale di Chrome/Edge, che non funziona dentro il programma: aprila nel browser (tieni aperto il programma).
-          <button id="openChrome" class="btn small">Apri l'app in Chrome</button>
-        </div>
-      </div>
+    <!-- ===================================================================== ATC -->
+    <section class="view" data-view="listen" data-title="ATC">
+      <h1 class="large-title">ATC</h1>
 
-      <div class="panel readout" aria-live="polite">
+      <div class="card glass readout" aria-live="polite">
         <div class="badges">
           <span id="forUs" class="badge muted">In attesa</span>
           <span id="verify" class="badge muted"></span>
           <span id="srcBadge" class="badge muted"></span>
         </div>
-        <div class="label">Da dire</div>
+        <div class="eyebrow">Da dire</div>
         <p id="readback" class="readback">—</p>
-        <div class="label">Come pronunciarlo</div>
+        <div class="eyebrow">Pronuncia</div>
         <p id="spoken" class="spoken">Avvia l'ascolto o prova una frase qui sotto.</p>
         <div id="chips" class="chips"></div>
         <ul id="warnings" class="warnings"></ul>
-        <div class="heardRow">
-          <p class="heard"><span class="label inline">ATC</span> <span id="heard">—</span></p>
-          <button id="speak" class="btn small" title="Ascolta la pronuncia (Ctrl+Shift+R)">🔊 Ascolta</button>
+        <div class="heard-row">
+          <p class="heard"><span class="eyebrow inline">ATC</span> <span id="heard">—</span></p>
+          <button id="speak" class="btn tinted small" title="Ascolta la pronuncia (Ctrl+Shift+R)"><i data-icon="volume-2"></i> Ascolta</button>
         </div>
         <p id="live" class="live"></p>
-        <div id="meterWrap" class="meterWrap" hidden>
-          <div class="meter"><div id="meterBar" class="meterBar"></div><div id="meterTh" class="meterTh"></div></div>
-          <label class="thLabel">Soglia <input id="threshold" data-setting="threshold" type="range" min="0.002" max="0.15" step="0.001"></label>
+        <div id="meterWrap" class="meter-wrap" hidden>
+          <div class="meter"><div id="meterBar" class="meter-bar"></div><div id="meterTh" class="meter-th"></div></div>
+          <label class="meter-label">Soglia <input id="threshold" data-setting="threshold" type="range" min="0.002" max="0.15" step="0.001"></label>
         </div>
       </div>
 
-      <div class="panel">
-        <div class="panelHead">
-          <h2>Storico</h2>
-          <div class="row tight">
-            <button id="exportHistory" class="btn small">💾 Esporta</button>
-            <button id="clearHistory" class="btn small">🗑 Svuota</button>
-          </div>
+      <button id="toggle" class="btn primary big"><i data-icon="play"></i> Avvia ascolto</button>
+
+      <div class="group-title">Il tuo volo</div>
+      <div class="group glass">
+        <label class="row"><span class="row-label">Nominativo</span><input id="callsign" data-setting="callsign" class="row-input mono" placeholder="AZA123 o I-ABCD" autocomplete="off" spellcheck="false"></label>
+        <label class="row"><span class="row-label">Nominativo radio</span><input id="telephony" data-setting="telephony" class="row-input" placeholder="automatico" autocomplete="off" spellcheck="false"></label>
+        <div class="row"><span class="row-label">Riconoscimento</span>
+          <select id="mode" data-setting="mode" class="seg">
+            <option value="groq">Groq AI</option>
+            <option value="free">Chrome</option>
+          </select>
         </div>
-        <ol id="history" class="history"><li class="empty">Nessuna trasmissione ancora.</li></ol>
+      </div>
+      <p id="csHint" class="footnote"></p>
+      <div id="desktopFree" class="notice" hidden>
+        Il riconoscimento di Chrome/Edge non funziona dentro il programma: aprilo nel browser (tieni aperto il programma).
+        <button id="openChrome" class="btn tinted small">Apri in Chrome</button>
       </div>
 
-      <details class="panel" open>
+      <div class="group-title row-between">Storico
+        <span class="title-actions">
+          <button id="exportHistory" class="btn plain small"><i data-icon="download"></i> Esporta</button>
+          <button id="clearHistory" class="btn plain small danger"><i data-icon="trash-2"></i></button>
+        </span>
+      </div>
+      <ol id="history" class="group glass list history"><li class="empty">Nessuna trasmissione ancora.</li></ol>
+
+      <details class="group glass disclosure">
         <summary>Prova una frase ATC (anche senza audio)</summary>
-        <textarea id="tryText" rows="3" placeholder="es. Alitalia 123, descend FL80, turn left heading 270, contact Roma 125.5"></textarea>
-        <div class="row"><button id="tryBtn" class="btn">Genera readback</button></div>
-        <div id="examples" class="examples"></div>
+        <div class="pad">
+          <textarea id="tryText" rows="3" placeholder="es. Alitalia 123, descend FL80, turn left heading 270, contact Roma 125.5"></textarea>
+          <div class="row-buttons"><button id="tryBtn" class="btn tinted">Genera readback</button></div>
+          <div id="examples" class="examples"></div>
+        </div>
       </details>
     </section>
 
-    <!-- ======================================================= ALLENAMENTO -->
-    <section class="view" data-view="train" hidden>
-      <div class="panel controls train">
-        <label class="field">
-          <span>Fase</span>
-          <select id="trainPhase" data-setting="trainPhase"></select>
-        </label>
-        <label class="field">
-          <span>Difficoltà</span>
-          <select id="trainDifficulty" data-setting="trainDifficulty">
+    <!-- ===================================================================== VOLO -->
+    <section class="view" data-view="flight" data-title="Volo" hidden>
+      <h1 class="large-title">Volo</h1>
+
+      <div class="card glass map-card">
+        <div id="map" class="map"></div>
+        <div id="trackPanel" class="track-panel glass">
+          <div class="track-phase"><span id="trkPhase">Non tracciato</span><span id="trkUpdated" class="footnote"></span></div>
+          <div class="track-grid">
+            <div><span>Livello</span><b id="trkAlt">—</b></div>
+            <div><span>GS</span><b id="trkGs">—</b></div>
+            <div><span>Rimanenti</span><b id="trkRemain">—</b></div>
+            <div><span>ETA</span><b id="trkEta">—</b></div>
+          </div>
+          <div class="progress"><div id="trkProgress"></div></div>
+        </div>
+      </div>
+      <div class="row-buttons">
+        <button id="trackToggle" class="btn primary"><i data-icon="navigation"></i> Segui il volo su VATSIM</button>
+        <span id="trackMsg" class="footnote"></span>
+      </div>
+
+      <div class="group-title">Piano di volo</div>
+      <div class="group glass">
+        <label class="row"><span class="row-label">Utente SimBrief</span><input id="simbriefUser" data-setting="simbriefUser" class="row-input" placeholder="nome utente o ID" autocomplete="off" spellcheck="false"></label>
+        <div class="row"><button id="simbriefLoad" class="btn plain"><i data-icon="download"></i> Carica ultimo piano di volo</button></div>
+      </div>
+      <p id="simbriefMsg" class="footnote"></p>
+      <details class="group glass disclosure">
+        <summary>Inserisci a mano</summary>
+        <label class="row"><span class="row-label">Partenza (ICAO)</span><input id="manDep" class="row-input mono" maxlength="4" placeholder="LIRF"></label>
+        <label class="row"><span class="row-label">Arrivo (ICAO)</span><input id="manArr" class="row-input mono" maxlength="4" placeholder="LIMC"></label>
+        <label class="row"><span class="row-label">Crociera (FL)</span><input id="manFl" class="row-input" inputmode="numeric" placeholder="360"></label>
+        <label class="row"><span class="row-label">Passeggeri</span><input id="manPax" class="row-input" inputmode="numeric" placeholder="150"></label>
+        <div class="row"><button id="manUse" class="btn plain">Usa questi dati</button></div>
+      </details>
+      <div id="flightSummary" class="flight-summary"></div>
+
+      <div class="group-title row-between">Meteo e ATC online
+        <span class="title-actions"><button id="wxRefresh" class="btn plain small"><i data-icon="refresh-cw"></i> Aggiorna</button></span>
+      </div>
+      <div class="two-col">
+        <div class="card glass airport" id="apDep"><h3>Partenza</h3><p class="footnote">Carica un piano di volo.</p></div>
+        <div class="card glass airport" id="apArr"><h3>Arrivo</h3><p class="footnote">Carica un piano di volo.</p></div>
+      </div>
+      <p id="wxMsg" class="footnote"></p>
+
+      <div class="group-title">Le tue chiamate</div>
+      <div class="group glass">
+        <label class="row"><span class="row-label">Parcheggio (stand)</span><input id="callStand" data-setting="callStand" class="row-input" placeholder="12"></label>
+        <label class="row"><span class="row-label">ATIS partenza</span><input id="callAtisDep" class="row-input mono" maxlength="1" placeholder="B"></label>
+        <label class="row"><span class="row-label">ATIS arrivo</span><input id="callAtisArr" class="row-input mono" maxlength="1" placeholder="K"></label>
+      </div>
+      <ol id="myCalls" class="group glass list calls"></ol>
+
+      <div class="group-title row-between">Tu su VATSIM
+        <span class="title-actions"><button id="vatsimMe" class="btn plain small"><i data-icon="refresh-cw"></i> Controlla</button></span>
+      </div>
+      <div id="vatsimMeOut" class="card glass footnote">Connettiti a VATSIM e premi "Controlla".</div>
+    </section>
+
+    <!-- ===================================================================== BORDO -->
+    <section class="view" data-view="cabin" data-title="Bordo" hidden>
+      <h1 class="large-title">Bordo</h1>
+
+      <div class="card glass cabin-hero">
+        <div class="hero-grid">
+          <div><span>Incasso</span><b id="cabRevenue">€0,00</b></div>
+          <div><span>Venduti</span><b id="cabSold">0</b></div>
+          <div><span>Passeggeri</span><b id="cabPaxView">—</b></div>
+          <div><span>Servizio</span><b id="cabState">Non iniziato</b></div>
+        </div>
+        <div class="progress"><div id="cabProgress"></div></div>
+        <p id="cabHint" class="footnote"></p>
+      </div>
+      <div class="row-buttons">
+        <button id="cabStart" class="btn primary"><i data-icon="play"></i> Inizia simulazione</button>
+        <button id="cabEnd" class="btn tinted"><i data-icon="check"></i> Chiudi volo</button>
+      </div>
+
+      <div class="group-title">Impostazioni volo</div>
+      <div class="group glass">
+        <label class="row"><span class="row-label">Passeggeri</span><input id="cabPax" class="row-input" inputmode="numeric" placeholder="da SimBrief"></label>
+        <div class="row"><span class="row-label">Aereo</span>
+          <select id="aircraft" data-setting="aircraft" class="seg">
+            <option value="A320">A320</option>
+            <option value="B737">B737</option>
+          </select>
+        </div>
+        <div class="row"><span class="row-label">Fonte</span>
+          <select id="cabSource" data-setting="cabSource" class="seg">
+            <option value="auto">Volo VATSIM</option>
+            <option value="timer">Timer</option>
+          </select>
+        </div>
+        <label class="row"><span class="row-label">Durata timer (min)</span><input id="cabMinutes" data-setting="cabMinutes" class="row-input" inputmode="numeric"></label>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <div class="group-title">Vendite in diretta</div>
+          <ol id="cabFeed" class="group glass list feed"><li class="empty">Le vendite compariranno qui durante il servizio.</li></ol>
+        </div>
+        <div>
+          <div class="group-title">Più venduti</div>
+          <ol id="cabTop" class="group glass list"><li class="empty">—</li></ol>
+        </div>
+      </div>
+
+      <div class="group-title row-between">Listino
+        <span class="title-actions">
+          <button id="cabAddItem" class="btn plain small"><i data-icon="plus"></i> Prodotto</button>
+          <button id="cabResetCatalog" class="btn plain small"><i data-icon="rotate-ccw"></i> Predefinito</button>
+        </span>
+      </div>
+      <div id="cabCatalog" class="group glass list catalog"></div>
+    </section>
+
+    <!-- ===================================================================== COCKPIT -->
+    <section class="view" data-view="cockpit" data-title="Cockpit" hidden>
+      <h1 class="large-title">Cockpit</h1>
+      <div class="segmented big" id="cockpitSeg">
+        <button data-sub="checklist" class="active">Checklist</button>
+        <button data-sub="notes">Note</button>
+        <button data-sub="logbook">Logbook</button>
+      </div>
+
+      <div class="subview" data-sub="checklist">
+        <div class="group glass">
+          <div class="row"><span class="row-label">Aereo</span>
+            <select id="clAircraft" data-setting="aircraft" class="seg">
+              <option value="A320">A320</option>
+              <option value="B737">B737</option>
+            </select>
+          </div>
+        </div>
+        <div id="clPhases" class="chips scroll"></div>
+        <div class="card glass">
+          <div class="row-between"><h3 id="clTitle">Checklist</h3><span id="clCount" class="badge muted"></span></div>
+          <ul id="clItems" class="checklist"></ul>
+          <div class="row-buttons">
+            <button id="clReset" class="btn tinted small"><i data-icon="rotate-ccw"></i> Azzera</button>
+            <button id="clNext" class="btn primary small">Prossima <i data-icon="chevron-right"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="subview" data-sub="notes" hidden>
+        <div class="group-title row-between">Autorizzazione (CRAFT)
+          <span class="title-actions"><button id="craftFill" class="btn plain small"><i data-icon="radio"></i> Dall'ultima sentita</button></span>
+        </div>
+        <div class="group glass">
+          <label class="row"><span class="row-label craft">C</span><input id="craftC" class="row-input" placeholder="Clearance limit · destinazione"></label>
+          <label class="row"><span class="row-label craft">R</span><input id="craftR" class="row-input" placeholder="Route · SID / rotta"></label>
+          <label class="row"><span class="row-label craft">A</span><input id="craftA" class="row-input" placeholder="Altitude · quota iniziale"></label>
+          <label class="row"><span class="row-label craft">F</span><input id="craftF" class="row-input" placeholder="Frequency · frequenza partenza"></label>
+          <label class="row"><span class="row-label craft">T</span><input id="craftT" class="row-input mono" placeholder="Transponder · squawk"></label>
+        </div>
+        <div class="group-title">Note libere</div>
+        <textarea id="notes" class="glass notes" rows="8" placeholder="Frequenze, QNH, istruzioni, appunti…"></textarea>
+        <div class="row-buttons"><button id="notesClear" class="btn tinted small"><i data-icon="trash-2"></i> Pulisci note</button></div>
+      </div>
+
+      <div class="subview" data-sub="logbook" hidden>
+        <div id="logStats" class="card glass hero-grid"></div>
+        <div class="row-buttons">
+          <button id="logAdd" class="btn tinted small"><i data-icon="plus"></i> Aggiungi volo</button>
+          <button id="logExport" class="btn tinted small"><i data-icon="download"></i> Esporta CSV</button>
+        </div>
+        <ol id="logList" class="group glass list"><li class="empty">Nessun volo registrato.</li></ol>
+      </div>
+    </section>
+
+    <!-- ===================================================================== ALTRO -->
+    <section class="view" data-view="more" data-title="Altro" hidden>
+      <h1 class="large-title">Altro</h1>
+      <div class="group glass list nav-list">
+        <button class="row link" data-go="train"><span class="row-icon" style="--c: var(--orange)"><i data-icon="graduation-cap"></i></span><span class="row-label">Allenamento</span><i data-icon="chevron-right" class="chev"></i></button>
+        <button class="row link" data-go="phrases"><span class="row-icon" style="--c: var(--green)"><i data-icon="book-open"></i></span><span class="row-label">Frasario</span><i data-icon="chevron-right" class="chev"></i></button>
+        <button class="row link" data-go="settings"><span class="row-icon" style="--c: var(--gray)"><i data-icon="settings"></i></span><span class="row-label">Impostazioni</span><i data-icon="chevron-right" class="chev"></i></button>
+      </div>
+      <p class="footnote center" id="aboutLine">Readback Copilot</p>
+    </section>
+
+    <!-- ===================================================================== ALLENAMENTO -->
+    <section class="view" data-view="train" data-parent="more" data-title="Allenamento" hidden>
+      <h1 class="large-title">Allenamento</h1>
+      <div class="group glass">
+        <div class="row"><span class="row-label">Fase</span><select id="trainPhase" data-setting="trainPhase" class="row-select"></select></div>
+        <div class="row"><span class="row-label">Difficoltà</span>
+          <select id="trainDifficulty" data-setting="trainDifficulty" class="seg">
             <option value="easy">Facile</option>
             <option value="normal">Normale</option>
             <option value="hard">Difficile</option>
           </select>
-        </label>
-        <label class="field check">
-          <input type="checkbox" id="trainShowText" data-setting="trainShowText">
-          <span>Mostra il testo dell'ATC</span>
-        </label>
-        <button id="trainNext" class="btn primary">▶ Nuova istruzione</button>
+        </div>
+        <label class="row"><span class="row-label">Mostra il testo dell'ATC</span><input type="checkbox" class="switch" id="trainShowText" data-setting="trainShowText"></label>
       </div>
+      <button id="trainNext" class="btn primary big"><i data-icon="play"></i> Nuova istruzione</button>
 
-      <div class="panel readout">
+      <div class="card glass readout">
         <div class="badges">
           <span id="trainStation" class="badge muted">Premi "Nuova istruzione"</span>
           <span id="trainStep" class="badge muted"></span>
         </div>
-        <div class="label">L'ATC dice</div>
-        <p id="trainAtc" class="atcText">L'ATC ti darà un'istruzione a voce: ascolta e rispondi con il readback corretto.</p>
-        <div class="row">
-          <button id="trainReplay" class="btn small" disabled>🔊 Riascolta</button>
-          <button id="trainReveal" class="btn small" disabled>👁 Mostra testo</button>
+        <div class="eyebrow">L'ATC dice</div>
+        <p id="trainAtc" class="atc-text">L'ATC ti darà un'istruzione a voce: ascolta e rispondi con il readback corretto.</p>
+        <div class="row-buttons">
+          <button id="trainReplay" class="btn tinted small" disabled><i data-icon="volume-2"></i> Riascolta</button>
+          <button id="trainReveal" class="btn tinted small" disabled><i data-icon="eye"></i> Mostra testo</button>
         </div>
-
         <div class="answer">
-          <div class="label">La tua risposta</div>
-          <div class="row tight answerRow">
-            <button id="trainMic" class="btn mic" disabled title="Premi per parlare, ripremi per finire (oppure tieni premuto Spazio)">🎤 Parla</button>
-            <input id="trainInput" placeholder="…oppure scrivi qui il tuo readback e premi Invio" autocomplete="off" spellcheck="false" disabled>
-            <button id="trainSend" class="btn" disabled>Invia</button>
+          <div class="eyebrow">La tua risposta</div>
+          <div class="answer-row">
+            <button id="trainMic" class="btn mic" disabled title="Premi per parlare, ripremi per finire (oppure tieni premuto Spazio)"><i data-icon="mic"></i> Parla</button>
+            <input id="trainInput" placeholder="…oppure scrivi il readback e premi Invio" autocomplete="off" spellcheck="false" disabled>
+            <button id="trainSend" class="btn tinted" disabled>Invia</button>
           </div>
           <p id="trainLive" class="live"></p>
         </div>
-
         <div id="trainResult" class="result" hidden>
-          <div class="scoreRow">
+          <div class="score-row">
             <div id="trainScore" class="score">0%</div>
-            <div>
-              <div class="label">Hai detto</div>
-              <p id="trainSaid" class="heard"></p>
-            </div>
+            <div><div class="eyebrow">Hai detto</div><p id="trainSaid" class="heard"></p></div>
           </div>
           <ul id="trainItems" class="checks"></ul>
-          <div class="label">Readback corretto</div>
+          <div class="eyebrow">Readback corretto</div>
           <p id="trainCorrect" class="readback small"></p>
           <p id="trainCorrectSpoken" class="spoken"></p>
-          <div class="row">
-            <button id="trainListenCorrect" class="btn small">🔊 Ascolta la risposta giusta</button>
-            <button id="trainRetry" class="btn small">↻ Riprova questa</button>
+          <div class="row-buttons">
+            <button id="trainListenCorrect" class="btn tinted small"><i data-icon="volume-2"></i> Ascolta</button>
+            <button id="trainRetry" class="btn tinted small"><i data-icon="rotate-ccw"></i> Riprova</button>
           </div>
         </div>
       </div>
 
-      <div class="panel">
-        <div class="panelHead">
-          <h2>I tuoi progressi</h2>
-          <button id="trainResetStats" class="btn small">Azzera</button>
-        </div>
-        <div id="trainStats" class="stats"></div>
+      <div class="group-title row-between">I tuoi progressi
+        <span class="title-actions"><button id="trainResetStats" class="btn plain small danger">Azzera</button></span>
       </div>
+      <div id="trainStats" class="card glass stats"></div>
     </section>
 
-    <!-- ======================================================= VOLO -->
-    <section class="view" data-view="flight" hidden>
-      <div class="panel">
-        <h2>Piano di volo</h2>
-        <div class="grid three">
-          <label class="field">
-            <span>Utente SimBrief (o ID)</span>
-            <input id="simbriefUser" data-setting="simbriefUser" placeholder="nome utente SimBrief" autocomplete="off" spellcheck="false">
-          </label>
-          <div class="field"><span>&nbsp;</span><button id="simbriefLoad" class="btn primary">⬇ Carica ultimo OFP</button></div>
-          <p id="simbriefMsg" class="hint"></p>
-        </div>
-        <details>
-          <summary class="hint">Oppure inserisci a mano</summary>
-          <div class="grid four">
-            <label class="field"><span>Partenza (ICAO)</span><input id="manDep" maxlength="4" placeholder="LIRF"></label>
-            <label class="field"><span>Arrivo (ICAO)</span><input id="manArr" maxlength="4" placeholder="LIMC"></label>
-            <label class="field"><span>Livello crociera (FL)</span><input id="manFl" inputmode="numeric" placeholder="360"></label>
-            <div class="field"><span>&nbsp;</span><button id="manUse" class="btn">Usa questi dati</button></div>
-          </div>
-        </details>
-        <div id="flightSummary" class="flightSummary"></div>
-      </div>
-
-      <div class="grid two">
-        <div class="panel airport" id="apDep"><h2>Partenza</h2><p class="hint">Carica un piano di volo.</p></div>
-        <div class="panel airport" id="apArr"><h2>Arrivo</h2><p class="hint">Carica un piano di volo.</p></div>
-      </div>
-      <div class="row"><button id="wxRefresh" class="btn small">↻ Aggiorna meteo e ATC</button><span id="wxMsg" class="hint"></span></div>
-
-      <div class="panel">
-        <h2>Le tue chiamate</h2>
-        <p class="hint">Cosa dire tu per primo, fase per fase, già compilato con i dati del tuo volo.</p>
-        <div class="grid three">
-          <label class="field"><span>Parcheggio (stand)</span><input id="callStand" data-setting="callStand" placeholder="es. 12"></label>
-          <label class="field"><span>ATIS partenza</span><input id="callAtisDep" maxlength="1" placeholder="es. B"></label>
-          <label class="field"><span>ATIS arrivo</span><input id="callAtisArr" maxlength="1" placeholder="es. K"></label>
-        </div>
-        <ol id="myCalls" class="calls"></ol>
-      </div>
-
-      <div class="panel">
-        <div class="panelHead"><h2>Tu su VATSIM</h2><button id="vatsimMe" class="btn small">↻ Controlla</button></div>
-        <div id="vatsimMeOut" class="hint">Connettiti a VATSIM con il tuo nominativo e premi "Controlla".</div>
-      </div>
-    </section>
-
-    <!-- ======================================================= FRASARIO -->
-    <section class="view" data-view="phrases" hidden>
-      <div class="panel">
-        <input id="phraseSearch" placeholder="🔎 Cerca una frase (es. squawk, taxi, mayday)…" autocomplete="off">
-      </div>
+    <!-- ===================================================================== FRASARIO -->
+    <section class="view" data-view="phrases" data-parent="more" data-title="Frasario" hidden>
+      <h1 class="large-title">Frasario</h1>
+      <div class="search glass"><i data-icon="search"></i><input id="phraseSearch" placeholder="Cerca (squawk, taxi, mayday…)" autocomplete="off"></div>
       <div id="phrasebook"></div>
-      <div class="panel">
-        <h2>Alfabeto fonetico ICAO</h2>
-        <div id="alphabet" class="alphabet"></div>
-        <h2 class="mt">Numeri</h2>
-        <div id="numbers" class="alphabet"></div>
-      </div>
-      <div class="panel">
-        <h2>Glossario</h2>
-        <dl id="glossary" class="glossary"></dl>
-      </div>
+      <div class="group-title">Alfabeto fonetico ICAO</div>
+      <div id="alphabet" class="alphabet"></div>
+      <div class="group-title">Numeri</div>
+      <div id="numbers" class="alphabet"></div>
+      <div class="group-title">Glossario</div>
+      <dl id="glossary" class="card glass glossary"></dl>
     </section>
 
-    <!-- ======================================================= IMPOSTAZIONI -->
-    <section class="view" data-view="settings" hidden>
-      <div class="panel">
-        <h2>Groq (Whisper + AI)</h2>
-        <div class="grid">
-          <label class="field">
-            <span>Chiave API Groq <a href="https://console.groq.com/keys" target="_blank" rel="noopener">(creala gratis)</a></span>
-            <input id="groqKey" data-setting="groqKey" type="password" placeholder="gsk_..." autocomplete="off">
-          </label>
-          <label class="field check">
-            <input id="useAI" data-setting="useAI" type="checkbox">
-            <span>Usa l'AI per il readback (più preciso)</span>
-          </label>
-          <label class="field">
-            <span>Modello Whisper <em>(vuoto = automatico)</em></span>
-            <input id="whisperModel" data-setting="whisperModel" list="modelList" spellcheck="false" placeholder="automatico">
-          </label>
-          <label class="field">
-            <span>Modello AI <em>(vuoto = automatico)</em></span>
-            <input id="llmModel" data-setting="llmModel" list="modelList" spellcheck="false" placeholder="automatico">
-          </label>
+    <!-- ===================================================================== IMPOSTAZIONI -->
+    <section class="view" data-view="settings" data-parent="more" data-title="Impostazioni" hidden>
+      <h1 class="large-title">Impostazioni</h1>
+
+      <div class="group-title">Groq (Whisper + AI)</div>
+      <div class="group glass">
+        <label class="row"><span class="row-label">Chiave API</span><input id="groqKey" data-setting="groqKey" type="password" class="row-input mono" placeholder="gsk_…" autocomplete="off"></label>
+        <label class="row"><span class="row-label">Usa l'AI per il readback</span><input id="useAI" data-setting="useAI" type="checkbox" class="switch"></label>
+        <label class="row"><span class="row-label">Modello Whisper</span><input id="whisperModel" data-setting="whisperModel" list="modelList" class="row-input" placeholder="automatico" spellcheck="false"></label>
+        <label class="row"><span class="row-label">Modello AI</span><input id="llmModel" data-setting="llmModel" list="modelList" class="row-input" placeholder="automatico" spellcheck="false"></label>
+        <div class="row"><button id="testGroq" class="btn plain" type="button">Verifica chiave</button><button id="loadModels" class="btn plain" type="button">Modelli disponibili</button></div>
+      </div>
+      <datalist id="modelList"></datalist>
+      <p class="footnote"><span id="modelsMsg"></span> Chiave gratuita su <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com</a>. Resta salvata solo su questo computer.</p>
+
+      <div class="group-title">Audio</div>
+      <div class="group glass">
+        <div class="row"><span class="row-label">Ascolta l'ATC da</span>
+          <select id="audioSource" data-setting="audioSource" class="seg">
+            <option value="device">Dispositivo</option>
+            <option value="system">Audio del PC</option>
+          </select>
         </div>
-        <datalist id="modelList"></datalist>
-        <div class="row">
-          <button id="loadModels" class="btn small" type="button">Carica modelli disponibili</button>
-          <button id="testGroq" class="btn small" type="button">Verifica chiave</button>
-          <span id="modelsMsg" class="hint"></span>
+        <div class="row"><span class="row-label">Dispositivo radio</span><select id="device" data-setting="device" class="row-select"><option value="">Predefinito</option></select><button class="icon-btn refreshDevices" type="button" title="Aggiorna"><i data-icon="refresh-cw"></i></button></div>
+        <div class="row"><span class="row-label">Microfono allenamento</span><select id="micDevice" data-setting="micDevice" class="row-select"><option value="">Predefinito</option></select><button class="icon-btn refreshDevices" type="button" title="Aggiorna"><i data-icon="refresh-cw"></i></button></div>
+        <div class="row"><span class="row-label">Lingua (Chrome)</span>
+          <select id="lang" data-setting="lang" class="seg">
+            <option value="en-US">US</option>
+            <option value="en-GB">UK</option>
+          </select>
         </div>
+        <label class="row"><span class="row-label">In grande solo le chiamate per me</span><input id="hideOthers" data-setting="hideOthers" type="checkbox" class="switch"></label>
+        <label class="row"><span class="row-label">Bip quando l'ATC mi chiama</span><input id="beep" data-setting="beep" type="checkbox" class="switch"></label>
       </div>
 
-      <div class="panel">
-        <h2>Audio</h2>
-        <div class="grid">
-          <label class="field">
-            <span>Da dove ascoltare l'ATC (modalità Groq)</span>
-            <select id="audioSource" data-setting="audioSource">
-              <option value="device">Dispositivo (es. CABLE Output)</option>
-              <option value="system">Audio del PC (senza VB-Cable)</option>
-            </select>
-          </label>
-          <label class="field">
-            <span>Dispositivo radio (ATC)</span>
-            <div class="row tight">
-              <select id="device" data-setting="device"><option value="">Predefinito</option></select>
-              <button class="btn small refreshDevices" type="button" title="Aggiorna elenco">↻</button>
-            </div>
-          </label>
-          <label class="field">
-            <span>Microfono per l'allenamento</span>
-            <div class="row tight">
-              <select id="micDevice" data-setting="micDevice"><option value="">Predefinito</option></select>
-              <button class="btn small refreshDevices" type="button" title="Aggiorna elenco">↻</button>
-            </div>
-          </label>
-          <label class="field">
-            <span>Lingua riconoscimento (modalità Gratis)</span>
-            <select id="lang" data-setting="lang">
-              <option value="en-US">Inglese (USA)</option>
-              <option value="en-GB">Inglese (UK)</option>
-            </select>
-          </label>
-          <label class="field check">
-            <input id="hideOthers" data-setting="hideOthers" type="checkbox">
-            <span>Mostra in grande solo le chiamate per me</span>
-          </label>
-          <label class="field check">
-            <input id="beep" data-setting="beep" type="checkbox">
-            <span>Bip quando arriva una chiamata per me</span>
-          </label>
-        </div>
+      <div class="group-title">Voce</div>
+      <div class="group glass">
+        <div class="row"><span class="row-label">Voce inglese</span><select id="ttsVoice" data-setting="ttsVoice" class="row-select"><option value="">Automatica</option></select></div>
+        <label class="row"><span class="row-label">Velocità</span><input id="ttsRate" data-setting="ttsRate" type="range" min="0.6" max="1.4" step="0.05" class="row-range"></label>
+        <div class="row"><button id="ttsTest" class="btn plain"><i data-icon="volume-2"></i> Prova voce</button></div>
       </div>
 
-      <div class="panel">
-        <h2>Voce</h2>
-        <div class="grid">
-          <label class="field">
-            <span>Voce inglese</span>
-            <select id="ttsVoice" data-setting="ttsVoice"><option value="">Automatica</option></select>
-          </label>
-          <label class="field">
-            <span>Velocità voce</span>
-            <input id="ttsRate" data-setting="ttsRate" type="range" min="0.6" max="1.4" step="0.05">
-          </label>
-        </div>
-        <div class="row"><button id="ttsTest" class="btn small">🔊 Prova voce</button></div>
+      <div class="group-title">Programma</div>
+      <div class="group glass">
+        <label class="row"><span class="row-label">Sempre in primo piano</span><input id="onTop" data-setting="onTop" type="checkbox" class="switch"></label>
+        <div class="row"><span class="row-label"><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>L</kbd></span><span class="row-value">Avvia / ferma ascolto</span></div>
+        <div class="row"><span class="row-label"><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>R</kbd></span><span class="row-value">Ripeti a voce il readback</span></div>
+        <div class="row"><span class="row-label"><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>O</kbd></span><span class="row-value">Modalità compatta</span></div>
+        <div class="row"><button id="resetAll" class="btn plain danger">Ripristina impostazioni</button></div>
       </div>
+      <p class="footnote" id="desktopInfo">Le scorciatoie funzionano col simulatore in primo piano solo nel programma per Windows.</p>
 
-      <div class="panel">
-        <h2>Programma</h2>
-        <div class="grid">
-          <label class="field check">
-            <input id="onTop" data-setting="onTop" type="checkbox">
-            <span>Finestra sempre in primo piano</span>
-          </label>
-        </div>
-        <ul class="guide">
-          <li><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> avvia/ferma l'ascolto</li>
-          <li><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> ripete a voce l'ultimo readback</li>
-          <li><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> modalità compatta (sopra il simulatore)</li>
-        </ul>
-        <p class="hint" id="desktopInfo">Le scorciatoie funzionano anche col simulatore in primo piano solo nel programma per Windows.</p>
-        <div class="row"><button id="resetAll" class="btn small">Ripristina impostazioni</button></div>
-      </div>
-
-      <details class="panel">
-        <summary>Guida: collegare vPilot (Windows)</summary>
-        <ol class="guide">
-          <li><b>Senza installare nulla (programma per Windows):</b> in "Da dove ascoltare" scegli <b>Audio del PC</b>. Funziona subito, ma sente anche i suoni del simulatore.</li>
+      <details class="group glass disclosure">
+        <summary>Guida: collegare vPilot</summary>
+        <ol class="guide pad">
+          <li><b>Senza installare nulla:</b> in "Ascolta l'ATC da" scegli <b>Audio del PC</b> (sente anche il simulatore).</li>
           <li><b>Più preciso:</b> installa <b>VB-Cable</b> (gratuito, vb-audio.com) e riavvia.</li>
           <li>In <b>vPilot → Settings → Audio</b> imposta l'uscita su <b>CABLE Input</b>. Il microfono resta il tuo headset.</li>
-          <li>Per sentire ancora l'ATC: <kbd>Win</kbd>+<kbd>R</kbd> → <code>mmsys.cpl</code> → Registrazione → <b>CABLE Output</b> → Proprietà → Ascolto → spunta <b>Ascolta questo dispositivo</b> → le tue cuffie.</li>
-          <li>Qui sopra scegli <b>Dispositivo</b> e <b>CABLE Output</b> come dispositivo radio.</li>
+          <li>Per sentire ancora l'ATC: <kbd>Win</kbd>+<kbd>R</kbd> → <code>mmsys.cpl</code> → Registrazione → <b>CABLE Output</b> → Proprietà → Ascolto → <b>Ascolta questo dispositivo</b> → cuffie.</li>
+          <li>Qui scegli <b>Dispositivo</b> e <b>CABLE Output</b> come dispositivo radio.</li>
         </ol>
       </details>
     </section>
   </main>
 
+  <nav class="tabbar glass" role="tablist">
+    <button class="tab" data-tab="listen" role="tab"><i data-icon="headphones"></i><span>ATC</span></button>
+    <button class="tab" data-tab="flight" role="tab"><i data-icon="map"></i><span>Volo</span></button>
+    <button class="tab" data-tab="cabin" role="tab"><i data-icon="shopping-bag"></i><span>Bordo</span></button>
+    <button class="tab" data-tab="cockpit" role="tab"><i data-icon="clipboard-list"></i><span>Cockpit</span></button>
+    <button class="tab" data-tab="more" role="tab"><i data-icon="ellipsis"></i><span>Altro</span></button>
+  </nav>
+
+  <script src="js/vendor/leaflet.js"></script>
+  <script src="js/icons.js"></script>
   <script src="js/callsigns.js"></script>
   <script src="js/readback.js"></script>
   <script src="js/net.js"></script>
@@ -365,11 +431,18 @@
   <script src="js/scenarios.js"></script>
   <script src="js/precision.js"></script>
   <script src="js/vatsim.js"></script>
+  <script src="js/geo.js"></script>
+  <script src="js/cabin-sim.js"></script>
+  <script src="js/checklists-data.js"></script>
   <script src="js/phrasebook-data.js"></script>
   <script src="js/app.js"></script>
   <script src="js/listen.js"></script>
   <script src="js/trainer.js"></script>
   <script src="js/flight.js"></script>
+  <script src="js/tracking.js"></script>
+  <script src="js/logbook.js"></script>
+  <script src="js/cockpit.js"></script>
+  <script src="js/cabin.js"></script>
   <script src="js/phrasebook.js"></script>
   <script src="js/main.js"></script>
 </body>
