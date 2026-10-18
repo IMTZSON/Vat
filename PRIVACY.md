@@ -21,12 +21,13 @@ Impostazioni (compresa la chiave Groq), storico delle chiamate, statistiche di a
 | **GitHub** (raw.githubusercontent.com, github.com) | Nessun dato personale: si scaricano i confini dei settori di controllo (VATSpy, SimAware), al massimo una volta al giorno. | All'avvio della mappa; se non c'è rete si usa la copia inclusa. |
 | **SimBrief** | Il tuo nome utente SimBrief. | Quando premi "Carica da SimBrief". |
 | **OpenStreetMap / MapTiler** | Le coordinate delle porzioni di mappa visualizzate (e la tua chiave MapTiler, se la usi). | Solo con la mappa **dettagliata**: la mappa di base è inclusa nel programma e non scarica nulla. |
+| **OpenStreetMap / Overpass API** (overpass-api.de, overpass.kumi.systems) | Nessun dato personale: il codice e le coordinate dell'aeroporto di cui serve lo schema (piste, taxiway, punti attesa, stand). | Quando l'ATC ti dà un'istruzione di rullaggio o parte la prova generale; lo schema resta in cache sul PC per 30 giorni. |
 | **GitHub** (api.github.com) | Nessun dato personale: si legge l'elenco delle versioni. | Al massimo ogni 6 ore; disattivabile in Impostazioni. |
 
 Nient'altro. Non ci sono analytics, crash report o pubblicità.
 
 ## Tasto PTT
-Se imposti il tasto PTT di vPilot (coach readback), il programma osserva tastiera e pulsanti del mouse a livello di sistema **solo per riconoscere quel tasto**: non registra, non salva e non invia nessun altro tasto. Senza tasto impostato l'osservazione è spenta. Il tasto non viene bloccato: vPilot lo riceve normalmente.
+Se imposti il tasto PTT di vPilot (coach readback), il programma osserva tastiera e pulsanti del mouse a livello di sistema (o i pulsanti del joystick, se scegli un pulsante del joystick) **solo per riconoscere quel tasto**: non registra, non salva e non invia nessun altro tasto. Senza tasto impostato l'osservazione è spenta. Il tasto non viene bloccato: vPilot lo riceve normalmente.
 
 ## Aggiornamenti
 Il programma installato controlla su GitHub se c'è una versione nuova (al massimo ogni 6 ore, disattivabile), la scarica in background e la installa solo quando premi "Riavvia e aggiorna" o quando chiudi il programma.
@@ -54,8 +55,9 @@ Readback Copilot has no accounts, no servers of its own and no usage analytics. 
 - **GitHub (map data)**: control sector boundaries (VATSpy, SimAware), at most once a day; the bundled copy is used offline.
 - **SimBrief**: your SimBrief username, when you press "Load from SimBrief".
 - **OpenStreetMap / MapTiler**: map tile coordinates (and your MapTiler key, if used) — only with the **detailed** map; the base map is built in and downloads nothing.
+- **OpenStreetMap / Overpass API**: the code and coordinates of the airport whose ground layout (runways, taxiways, holding points, stands) is needed — when ATC gives you taxi instructions or a rehearsal starts; cached on your PC for 30 days.
 - **GitHub**: the list of releases and, for the installed app, the update itself — at most every 6 hours (can be turned off). Updates install only when you press "Restart and update" or quit.
 
-**PTT key**: if you set your vPilot PTT key (readback coach), the app observes the keyboard and mouse buttons system-wide **only to recognise that key**; no other key is recorded, stored or sent, and the key still reaches vPilot. With no key set, nothing is observed.
+**PTT key**: if you set your vPilot PTT key (readback coach), the app observes the keyboard and mouse buttons system-wide (or joystick buttons, if you pick one) **only to recognise that key**; no other key is recorded, stored or sent, and the key still reaches vPilot. With no key set, nothing is observed.
 
 No analytics, no crash reports, no ads. To delete everything, close the app and delete `%APPDATA%\Readback Copilot`.

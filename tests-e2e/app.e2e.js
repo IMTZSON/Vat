@@ -464,3 +464,96 @@ test('4.2: Pro, riascolto della radio, prossima chiamata e collegamento al simul
   assert.strictEqual(await page.textContent('#simAlert'), '⚠ Transponder on 2000: ATC assigned 4521');
   assert.deepStrictEqual(errors, []);
 });
+
+test('4.3: rullaggio sulla mappa, atterraggio e resoconto, prova generale, PTT sul joystick, emergenze', { skip: !chromium && 'playwright non installato', timeout: 120000 }, async (t) => {
+  // Dati del suolo di OpenStreetMap finti (il server locale chiama Overpass con fetch)
+  const N = (id, lat, lon, tags) => ({ type: 'node', id, lat, lon, ...(tags ? { tags } : {}) });
+  const W = (id, aeroway, ref, nodes) => ({ type: 'way', id, nodes, tags: { aeroway, ...(ref ? { ref } : {}) } });
+  const OVERPASS = { elements: [
+    N(1, 45.010, 9.000), N(3, 45.004, 9.000), N(4, 44.996, 9.000), N(2, 44.990, 9.000),
+    N(10, 45.006, 9.003), N(11, 45.004, 9.003), N(14, 45.000, 9.003), N(12, 44.996, 9.003), N(13, 44.994, 9.003),
+    N(20, 45.004, 9.0015, { aeroway: 'holding_position', ref: 'A2' }), N(30, 45.000, 9.008), N(33, 45.0005, 9.010, { aeroway: 'parking_position', ref: '512' }),
+    W(100, 'runway', '16L/34R', [1, 3, 4, 2]), W(110, 'taxiway', 'A', [10, 11, 14, 12, 13]), W(111, 'taxiway', 'A2', [11, 20, 3]),
+    W(113, 'taxiway', 'B', [30, 14]), W(115, 'taxilane', null, [33, 30]),
+  ] };
+  const realFetch = global.fetch;
+  global.fetch = async (url, init) => (String(url).includes('overpass') ? new Response(JSON.stringify(OVERPASS), { status: 200 }) : realFetch(url, init));
+  const { server: srv, port } = await server.start(ROOT, { version: 'e2e', ports: [0], cacheDir: fs.mkdtempSync(path.join(os.tmpdir(), 'rc-e2e-g-')) });
+  const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || undefined });
+  t.after(async () => { global.fetch = realFetch; await browser.close(); srv.close(); });
+  const ctx = await browser.newContext({ locale: 'en-GB', viewport: { width: 1280, height: 820 } });
+  await ctx.addInitScript(() => {
+    window.__btn = new Set();
+    navigator.getGamepads = () => [{ id: 'Honeycomb Alpha Flight Controls (Vendor: 294b Product: 1900)', index: 0, buttons: Array.from({ length: 16 }, (_, i) => ({ pressed: window.__btn.has(i), value: window.__btn.has(i) ? 1 : 0 })) }];
+    window.desktop = {
+      setOnTop() {}, setCompact() {}, openExternal() {}, saveText: async () => true, onHotkey() {},
+      saveFile: async (name, b64) => { window.__saved = [name, b64.slice(0, 8)]; return true; },
+      info: async () => ({ version: '4.3.0', build: 1, origin: location.origin }),
+      store: { load: async () => ({ isNew: false, data: { 'readback-copilot-settings': { callsign: 'AZA123', mode: 'free', onboarded: true, uiLang: 'en' } } }), set() {}, merge: async () => 0 },
+      sim: { enable: (on) => { if (on) setTimeout(() => window.__simStatus('msfs'), 50); }, status: async () => 'searching', onData: (fn) => { window.__simData = fn; }, onStatus: (fn) => { window.__simStatus = fn; }, onTouchdown: (fn) => { window.__touch = fn; } },
+    };
+  });
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await mockNetwork(page, { stt: 0, atc: '', pilot: '', ai: '' });
+  await page.goto(`http://127.0.0.1:${port}/`);
+  await page.waitForFunction(() => window.App && App.showTaxi && App.openEmergency);
+
+  // Rullaggio: istruzione dell'ATC -> schema dell'aeroporto e percorso fino al punto attesa
+  await page.evaluate(() => {
+    App.setFlight({ source: 'manual', dep: 'LIMC', arr: 'LIRF', depName: 'Milano Malpensa', arrName: 'Roma Fiumicino', aircraft: 'A320', pax: 150, fixes: [{ ident: 'ELKAP', lat: 44, lon: 10 }] });
+    window.__simData({ source: 'msfs', lat: 45.0005, lon: 9.0099, onGround: true, alt: 700, xpdr: '2000', com1: 121.8 });
+  });
+  await page.fill('#tryText', 'Alitalia 123, taxi to holding point A2 runway 16L via B, A');
+  await page.click('#tryBtn');
+  await page.waitForFunction(() => /Taxi route on the map: B → A → A2/.test(document.getElementById('toast').textContent), null, { timeout: 10000 });
+  assert.ok(await page.$('.taxi-hold'), 'barra del punto attesa sulla mappa');
+  assert.match(await page.textContent('.taxi-hold-label'), /A2/);
+
+  // Atterraggio: il simulatore segnala il contatto -> voto, poi resoconto PNG a fine volo
+  await page.evaluate(() => window.__touch({ fpm: 124, g: 1.18, bounces: 0, id: 'smooth', score: 90 }));
+  await page.waitForFunction(() => /Landing: 124 ft\/min · 1.18 G · Smooth \(90\/100\)/.test(document.getElementById('toast').textContent));
+  await page.evaluate(() => App.emit('flight-finished', { id: 'x', date: '2026-10-18', callsign: 'AZA123', dep: 'LIMC', arr: 'LIRF', aircraft: 'A320', blockMin: 80, airMin: 62, touchdown: { fpm: 124, g: 1.18, bounces: 0, id: 'smooth', score: 90 }, radio: { calls: 14, verified: 13, unclear: 0, coach: 87 } }));
+  await page.waitForFunction(() => document.getElementById('debriefSheet').open, null, { timeout: 5000 });
+  assert.match(await page.getAttribute('#debriefImg', 'src'), /^data:image\/png;base64,/);
+  await page.click('#debriefSave');
+  await page.waitForFunction(() => window.__saved);
+  assert.deepStrictEqual(await page.evaluate(() => window.__saved), ['volo-LIMC-LIRF-2026-10-18.png', 'iVBORw0K']);
+  await page.click('#debriefClose');
+
+  // Prova generale: volo completo con le frequenze online e i fix veri
+  await page.evaluate(() => {
+    Vatsim.last = { controllers: [{ callsign: 'LIMM_CTR', facility: 6, frequency: '134.250' }, { callsign: 'LIRF_TWR', facility: 4, frequency: '118.700' }], atis: [], pilots: [] };
+    App.wx = { dep: 1012, arr: 1018, t: Date.now() };
+  });
+  await page.click('.tab[data-tab="flight"]');
+  await page.click('#rehearsalBtn');
+  await page.waitForFunction(() => App.settings.tab === 'train' && /1\/\d+/.test(document.getElementById('trainStep').textContent));
+  assert.strictEqual(await page.inputValue('#trainPhase'), 'full');
+
+  // PTT sul joystick: il pulsante premuto diventa il PTT e manda gli eventi di trasmissione
+  await page.evaluate(() => App.switchTab('settings'));
+  await page.click('#pttSet');
+  await page.evaluate(() => window.__btn.add(4));
+  await page.waitForFunction(() => /Button 5/.test(document.getElementById('pttLabel').textContent));
+  assert.ok(await page.evaluate(() => App.pttActive()));
+  await page.evaluate(() => { window.__btn.clear(); window.__ptt = []; App.on('ptt', (d) => window.__ptt.push(d)); });
+  await page.waitForTimeout(100);
+  await page.evaluate(() => window.__btn.add(4));
+  await page.waitForFunction(() => window.__ptt.includes(true));
+  await page.evaluate(() => window.__btn.clear());
+  await page.waitForFunction(() => window.__ptt[window.__ptt.length - 1] === false);
+
+  // Emergenze: MAYDAY già compilato, squawk 7700, risposte dell'ATC
+  await page.evaluate(() => App.switchTab('listen'));
+  await page.click('#emOpen');
+  await page.fill('#emStation', 'Milano Radar');
+  await page.waitForFunction(() => /MAYDAY MAYDAY MAYDAY.*Milano Radar.*Alitalia 123.*engine failure/.test(document.getElementById('emParts').textContent));
+  assert.strictEqual(await page.textContent('#emSquawk'), 'Squawk 7700');
+  assert.ok((await page.$$('#emReplies li')).length >= 4);
+  await page.selectOption('#emNature', 'medical');
+  assert.strictEqual(await page.inputValue('#emKind'), 'panpan');
+  assert.match(await page.textContent('#emParts'), /PAN PAN/);
+  assert.deepStrictEqual(errors, []);
+});

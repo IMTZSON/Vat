@@ -26,7 +26,9 @@ test('protocollo X-Plane: iscrizione RREF e lettura dei valori', () => {
 
 test('valori di X-Plane e MSFS nel formato comune', () => {
   const x = Sim.fromXplane({ com1: 121800, com1Stby: 118700, com2: 132905, xpdr: 4521, baroInHg: 29.8, altSel: 6000, hdgSel: 270.4, alt: 4321.6, gsMs: 128.6, hdg: -10, onGround: 0 });
-  assert.deepStrictEqual(x, { com1: 121.8, com1Stby: 118.7, com2: 132.905, xpdr: '4521', baro: 1009.1, altSel: 6000, hdgSel: 270, alt: 4322, gs: 250, hdg: 350, onGround: false });
+  assert.deepStrictEqual(x, { com1: 121.8, com1Stby: 118.7, com2: 132.905, xpdr: '4521', baro: 1009.1, altSel: 6000, hdgSel: 270, alt: 4322, gs: 250, hdg: 350, onGround: false, vs: null, g: null, lat: null, lon: null });
+  const y = Sim.fromXplane({ vs: -712.4, g: 1.234, lat: 45.6301234, lon: 8.7231 });
+  assert.deepStrictEqual([y.vs, y.g, y.lat, y.lon], [-712, 1.23, 45.630123, 8.7231]);
   assert.strictEqual(Sim.fromXplane({ xpdr: 9999 }).xpdr, null, 'codice non ottale');
   assert.strictEqual(Sim.decodeBcd(0x4521), '4521');
   assert.strictEqual(Sim.decodeBcd(0x0200), '0200');
@@ -66,10 +68,11 @@ test('SimLink: trova X-Plane sulla rete locale e inoltra i dati', async (t) => {
 test('SimLink: MSFS via SimConnect (finto) e ritorno a "searching" quando il simulatore si chiude', async (t) => {
   const handle = new EventEmitter();
   const defs = [];
-  handle.addToDataDefinition = (id, name, unit) => defs.push([name, unit]);
+  handle.addToDataDefinition = (id, name, unit) => { if (id === 1) defs.push([name, unit]); else (defs[`d${id}`] = defs[`d${id}`] || []).push(name); };
+  handle.clearDataDefinition = () => {};
   handle.requestDataOnSimObject = () => {};
   handle.close = () => {};
-  const fake = { Protocol: { KittyHawk: 5 }, SimConnectDataType: { FLOAT64: 4, INT32: 1 }, SimConnectConstants: { OBJECT_ID_USER: 0 }, SimConnectPeriod: { SECOND: 4 }, open: async () => ({ handle }) };
+  const fake = { Protocol: { KittyHawk: 5 }, SimConnectDataType: { FLOAT64: 4, INT32: 1, STRING256: 9 }, SimConnectConstants: { OBJECT_ID_USER: 0 }, SimConnectPeriod: { SECOND: 4, VISUAL_FRAME: 2 }, open: async () => ({ handle }) };
   const data = [];
   const statuses = [];
   const link = new Sim.SimLink({ simconnect: fake, dgram: null, onData: (d) => data.push(d), onStatus: (s) => statuses.push(s) });
@@ -78,12 +81,38 @@ test('SimLink: MSFS via SimConnect (finto) e ritorno a "searching" quando il sim
   await new Promise((r) => setTimeout(r, 10));
   assert.strictEqual(defs.length, Sim.MSFS_VARS.length + 1);
   assert.deepStrictEqual(defs[defs.length - 1], ['TRANSPONDER CODE:1', 'BCO16']);
-  const vals = [121.8, 118.7, 0, 1009, 5000, 270, 4000, 210, 268, 0];
+  const vals = [121.8, 118.7, 0, 1009, 5000, 270, 4000, 210, 268, 0, -500, 1.1, 45.6, 8.7];
   let k = 0;
   handle.emit('simObjectData', { requestID: 1, data: { readFloat64: () => vals[k++], readInt32: () => 0x4521 } });
   assert.strictEqual(data[0].source, 'msfs');
   assert.strictEqual(data[0].xpdr, '4521');
   assert.strictEqual(data[0].com1, 121.8);
+  assert.deepStrictEqual([data[0].lat, data[0].lon, data[0].vs], [45.6, 8.7, -500]);
+  assert.deepStrictEqual(defs.d2, Sim.MSFS_FAST.map((x) => x[1]), 'dati veloci per l\'atterraggio');
+  // Add-on FlyByWire riconosciuto dal titolo: livello e prua dal FCU
+  handle.emit('simObjectData', { requestID: 3, data: { readString256: () => 'FlyByWire A320neo (LEAP)' } });
+  assert.deepStrictEqual(defs.d4, ['AUTOPILOT ALTITUDE LOCK VAR:3', 'L:A32NX_AUTOPILOT_HEADING_SELECTED']);
+  const fcu = [12000, -1];
+  let j = 0;
+  handle.emit('simObjectData', { requestID: 4, data: { readFloat64: () => fcu[j++] } });
+  k = 0;
+  handle.emit('simObjectData', { requestID: 1, data: { readFloat64: () => vals[k++], readInt32: () => 0x4521 } });
+  assert.deepStrictEqual([data[1].profile, data[1].altSel, data[1].hdgSel], ['fbw', 12000, null], 'prua gestita (-1) = nessun valore');
+  // Fenix: selettori non standard -> non si leggono (si controlla l'andamento)
+  handle.emit('simObjectData', { requestID: 3, data: { readString256: () => 'Fenix A320 IAE' } });
+  k = 0;
+  handle.emit('simObjectData', { requestID: 1, data: { readFloat64: () => vals[k++], readInt32: () => 0x4521 } });
+  assert.deepStrictEqual([data[2].profile, data[2].altSel, data[2].hdgSel], ['fenix', null, null]);
+  // contatto con la pista dai dati veloci
+  const touch = [];
+  link.d.onTouchdown = (e) => touch.push(e);
+  const t0 = Date.now();
+  const feed = (dt, onGround, vs, tdv) => link.detector.feed({ t: t0 + dt, onGround, vs, g: 1.2, tdv });
+  for (let dt = 0; dt < 30000; dt += 250) feed(dt, false, -650);
+  feed(30000, true, -120, -2);
+  for (let dt = 30250; dt < 34000; dt += 250) feed(dt, true, 0, -2);
+  assert.strictEqual(touch.length, 1);
+  assert.strictEqual(touch[0].fpm, 120);
   handle.emit('quit');
   assert.deepStrictEqual(statuses, ['searching', 'msfs', 'searching']);
 });
@@ -115,4 +144,21 @@ test('istruzioni per altri e altimetro in pollici', () => {
   assert.strictEqual(s.squawk, null);
   s = hear(s, 'Alitalia 123 altimeter 2992');
   assert.ok(!s.qnh || s.qnh.hpa === 1013);
+});
+
+test('aerei senza selettori leggibili: si controlla l\'andamento reale', () => {
+  const t0 = 2000000;
+  let s = hear(C.emptyState(), 'Alitalia 123 climb flight level 240 turn left heading 270', t0);
+  const base = { altSel: null, hdgSel: null, onGround: false };
+  // sale: va bene anche se non è ancora arrivato
+  let c = C.check(s, { ...base, alt: 12000, vs: 1800, hdg: 270 }, t0 + 90000);
+  assert.deepStrictEqual(c.map((x) => [x.type, x.status]), [['level', 'ok'], ['heading', 'ok']]);
+  // livellato a 12000 e prua sbagliata dopo un minuto e mezzo: avvisi
+  c = C.check(s, { ...base, alt: 12000, vs: 0, hdg: 160 }, t0 + 90000);
+  assert.deepStrictEqual(c.map((x) => [x.key, x.status]), [['sim.notClimbing', 'warn'], ['sim.offHeading', 'warn']]);
+  // nei primi secondi si aspetta
+  assert.ok(C.check(s, { ...base, alt: 12000, vs: 0, hdg: 160 }, t0 + 20000).every((x) => x.status === 'wait'));
+  s = hear(s, 'Alitalia 123 descend flight level 100', t0 + 100000);
+  c = C.check(s, { ...base, alt: 24000, vs: 200, hdg: 270 }, t0 + 200000);
+  assert.strictEqual(c.find((x) => x.type === 'level').key, 'sim.notDescending');
 });

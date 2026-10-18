@@ -29,6 +29,13 @@
       const checks = connected && sim ? C.check(state, sim, Date.now()) : [];
       const box = $('simChecks');
       box.innerHTML = '';
+      if (App.lastLanding) {
+        const l = App.lastLanding;
+        const chip = document.createElement('span');
+        chip.className = `sim-chip landing ${l.score >= 75 ? 'ok' : 'warn'}`;
+        chip.textContent = `🛬 ${l.fpm} ft/min · ${t(`landing.${l.id}`)}`;
+        box.append(chip);
+      }
       for (const c of checks.filter((x) => x.status !== 'wait')) {
         const chip = document.createElement('span');
         chip.className = `sim-chip ${c.status}`;
@@ -52,6 +59,16 @@
       }
     }
 
+    // Atterraggio: voto, bip, e il dato passa al logbook e al resoconto
+    function landed(ev) {
+      App.lastLanding = ev;
+      root.TTS.ping();
+      App.toast(t('landing.toast', { fpm: ev.fpm, g: ev.g.toFixed(2), grade: t(`landing.${ev.id}`), score: ev.score }), 10000);
+      App.emit('landing', ev);
+      render();
+    }
+    if (bridge && bridge.onTouchdown) bridge.onTouchdown(landed);
+
     if (bridge) {
       bridge.onStatus(setStatus);
       bridge.onData((d) => { sim = d; render(); });
@@ -68,7 +85,7 @@
       state = C.observe(state, item.result, Date.now());
       render();
     });
-    App.on('flight', () => { state = C.emptyState(); warned.clear(); render(); });
+    App.on('flight', () => { state = C.emptyState(); warned.clear(); App.lastLanding = null; render(); });
     // Le attese scadono anche senza nuovi dati dal simulatore
     setInterval(() => { if (sim) render(); }, 5000);
     App.sim = () => ({ status, data: sim });

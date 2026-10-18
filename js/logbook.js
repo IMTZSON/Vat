@@ -31,8 +31,10 @@
       if (!current) return;
       current.blockMin = minutes(current.offBlock, current.onBlock);
       current.airMin = minutes(current.takeoff, current.landing);
+      if (App.radioStats) current.radio = App.radioStats(current.offBlock || current.takeoff);
       list.unshift(current);
       App.toast(t('log.saved', { dep: current.dep, arr: current.arr, time: hhmm(current.blockMin || current.airMin) }), 5000);
+      App.emit('flight-finished', current);
       current = null;
       save();
       render();
@@ -44,6 +46,13 @@
       for (const ev of e.events) c[ev] = e.t;
       save();
       if (e.events.includes('onBlock')) finish();
+    });
+
+    App.on('landing', (ev) => {
+      const c = current || (list[0] && Date.now() - (list[0].onBlock || 0) < 600000 ? list[0] : ensureCurrent());
+      c.touchdown = { fpm: ev.fpm, g: ev.g, bounces: ev.bounces, id: ev.id, score: ev.score };
+      save();
+      render();
     });
 
     App.on('cabin-summary', (sum) => {
@@ -79,11 +88,15 @@
         const li = document.createElement('li');
         li.className = 'log-item';
         li.innerHTML = `<div class="route-line-txt">${esc(x.dep)} → ${esc(x.arr)} <span class="hint">${esc(x.callsign || '')} · ${esc(x.aircraft || '')}</span></div>
-          <div class="meta">${esc(root.I18n.date(x.date))} · ${esc(t('log.block'))} ${hhmm(x.blockMin)} · ${esc(t('log.flight'))} ${hhmm(x.airMin)} · Off ${time(x.offBlock)} · On ${time(x.onBlock)}${x.revenue ? ` · ${esc(t('log.cabin'))} ${euro(x.revenue)}` : ''}${x.auto ? '' : ` · ${esc(t('log.manual'))}`}</div>
+          <div class="meta">${esc(root.I18n.date(x.date))} · ${esc(t('log.block'))} ${hhmm(x.blockMin)} · ${esc(t('log.flight'))} ${hhmm(x.airMin)} · Off ${time(x.offBlock)} · On ${time(x.onBlock)}${x.revenue ? ` · ${esc(t('log.cabin'))} ${euro(x.revenue)}` : ''}${x.touchdown ? ` · 🛬 ${esc(x.touchdown.fpm)} ft/min (${esc(t(`landing.${x.touchdown.id}`))})` : ''}${x.auto ? '' : ` · ${esc(t('log.manual'))}`}</div>
           ${x.notes ? `<div class="meta">${esc(x.notes)}</div>` : ''}
-          <div class="actions"><button class="icon-btn" data-del="${esc(x.id)}" title="${esc(t('common.delete'))}">${root.Icons.svg('trash-2')}</button></div>`;
+          <div class="actions"><button class="icon-btn" data-debrief="${esc(x.id)}" title="${esc(t('debrief.open'))}">${root.Icons.svg('image')}</button><button class="icon-btn" data-del="${esc(x.id)}" title="${esc(t('common.delete'))}">${root.Icons.svg('trash-2')}</button></div>`;
         ol.append(li);
       }
+      ol.querySelectorAll('[data-debrief]').forEach((b) => b.addEventListener('click', () => {
+        const x = list.find((y) => y.id === b.dataset.debrief);
+        if (x && App.openDebrief) App.openDebrief(x);
+      }));
       ol.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', () => {
         if (!confirm(t('log.deleteConfirm'))) return;
         list = list.filter((x) => x.id !== b.dataset.del);

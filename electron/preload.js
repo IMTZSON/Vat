@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('desktop', {
   setCompact: (on) => ipcRenderer.send('set-compact', !!on),
   openExternal: (url) => ipcRenderer.send('open-external', String(url)),
   saveText: (name, text) => ipcRenderer.invoke('save-text', { name: String(name), text: String(text) }),
+  saveFile: (name, base64) => ipcRenderer.invoke('save-file', { name: String(name), base64: String(base64) }),
   onHotkey: (fn) => ipcRenderer.on('hotkey', (_e, name) => fn(String(name))),
   info: () => ipcRenderer.invoke('info'),
   ptt: {
@@ -27,6 +28,7 @@ contextBridge.exposeInMainWorld('desktop', {
     status: () => ipcRenderer.invoke('sim-status'),
     onData: (fn) => ipcRenderer.on('sim-data', (_e, d) => fn(d)),
     onStatus: (fn) => ipcRenderer.on('sim-status', (_e, s) => fn(String(s))),
+    onTouchdown: (fn) => ipcRenderer.on('sim-touchdown', (_e, ev) => fn(ev)),
   },
   store: {
     load: () => ipcRenderer.invoke('store-load'),

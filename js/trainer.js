@@ -24,8 +24,11 @@
       sel.append(o);
     }
     sel.value = S.trainPhase;
-    App.on('setting:trainPhase', () => { flightSteps = null; });
-    App.on('flight', () => { flightSteps = null; });
+    App.on('setting:trainPhase', () => { flightSteps = null; report = null; renderReport(); });
+    App.on('flight', () => { flightSteps = null; twys = []; });
+
+    let twys = [];   // taxiway veri dell'aeroporto di partenza (prova generale)
+    let report = null; // { steps: [{ station, score, items }] } durante il volo completo
 
     function flightOpts() {
       const f = App.flight || {};
@@ -34,7 +37,54 @@
         callsign: cs || undefined,
         dep: f.dep, arr: f.arr, depName: f.depName, arrName: f.arrName,
         depRwy: f.depRwy, arrRwy: f.arrRwy, sid: f.sid, cruise: f.cruise,
+        ...realData(f),
       };
+    }
+
+    // Dati veri del volo per la prova generale: frequenze online su VATSIM, fix della rotta, QNH, taxiway
+    function realData(f) {
+      const out = { freqs: {}, fixes: (f.fixes || []).map((x) => x.ident), twys };
+      const data = root.Vatsim && root.Vatsim.last;
+      if (data && f.arr) {
+        const at = root.Vatsim.atcAt(data, f.arr);
+        const byFac = (n) => at.ctrls.find((c) => c.facility === n);
+        for (const [key, fac] of [['arrApproach', 5], ['arrTower', 4], ['arrGround', 3]]) if (byFac(fac)) out.freqs[key] = byFac(fac).frequency;
+      }
+      if (data && f.dep) {
+        const ctr = root.Vatsim.atcAt(data, f.dep).centers[0];
+        if (ctr) { out.freqs.center = ctr.frequency; out.centerName = root.World.stationName(ctr.callsign); }
+      }
+      if (App.wx && Date.now() - App.wx.t < 3600000) { out.qnhDep = App.wx.dep; out.qnhArr = App.wx.arr; }
+      return out;
+    }
+
+    // Prova generale: il volo completo con i dati veri, a voce, con il report finale
+    App.startRehearsal = async () => {
+      if (!App.flight || !App.flight.dep || !App.flight.arr) { App.toast(t('rehearsal.noFlight')); return; }
+      if (App.groundRefs) twys = await Promise.race([App.groundRefs(App.flight.dep), new Promise((res) => setTimeout(() => res([]), 5000))]);
+      if (S.trainPhase !== 'full') App.set('trainPhase', 'full');
+      $('trainPhase').value = 'full';
+      flightSteps = null;
+      App.switchTab('train');
+      next();
+    };
+
+    function renderReport() {
+      const el = $('trainReport');
+      if (!report || !report.steps.length) { el.hidden = true; return; }
+      const avg = Math.round(report.steps.reduce((s, x) => s + x.score, 0) / report.steps.length);
+      const missed = {};
+      for (const st of report.steps) for (const it of st.items) if (!it.ok) missed[it.label] = (missed[it.label] || 0) + 1;
+      const top = Object.entries(missed).sort((a, b) => b[1] - a[1]).slice(0, 3);
+      const esc = (s) => String(s).replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
+      const cls = (v) => (v === 100 ? 'ok' : v >= 60 ? 'maybe' : 'no');
+      el.innerHTML = `
+        <div class="eyebrow">${esc(t('rehearsal.report'))}</div>
+        <div class="report-head"><div class="score ${cls(avg)}">${avg}%</div><p>${esc(t('rehearsal.summary', { n: report.steps.length, perfect: report.steps.filter((s) => s.score === 100).length }))}</p></div>
+        <ol class="report-steps">${report.steps.map((s) => `<li><span>${esc(s.station)}</span><b class="${cls(s.score)}">${s.score}%</b></li>`).join('')}</ol>
+        <div class="eyebrow">${esc(t('rehearsal.missed'))}</div>
+        <p class="hint">${top.length ? top.map(([k, n]) => `${esc(k)} ×${n}`).join(' · ') : esc(t('rehearsal.none'))}</p>`;
+      el.hidden = false;
     }
 
     function setEnabled(on) {
@@ -56,6 +106,8 @@
         if (!flightSteps || stepIdx >= flightSteps.length) {
           flightSteps = Sc.fullFlight(flightOpts());
           stepIdx = 0;
+          report = { steps: [] };
+          renderReport();
         }
         cur = flightSteps[stepIdx++];
         $('trainStep').textContent = t('train.step', { n: stepIdx, total: flightSteps.length });
@@ -144,6 +196,10 @@
         stats.byPhase[cur.phase] = p;
         App.storage.set(STATS_KEY, stats);
         renderStats();
+        if (report && flightSteps && flightSteps.includes(cur)) {
+          report.steps.push({ station: cur.station, score: res.score, items: res.items });
+          if (stepIdx >= flightSteps.length) renderReport();
+        }
       }
       if (res.perfect) App.toast(t('train.perfect'));
     }
@@ -168,6 +224,7 @@
     }
 
     $('trainNext').addEventListener('click', next);
+    $('rehearsalBtn').addEventListener('click', () => App.startRehearsal());
     $('trainReplay').addEventListener('click', () => cur && root.TTS.speak(cur.atcSpoken));
     $('trainReveal').addEventListener('click', () => cur && showAtcText(!$('trainAtc').dataset.shown));
     $('trainMic').addEventListener('click', () => (session ? micStop() : micStart()));

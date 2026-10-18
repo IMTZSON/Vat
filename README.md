@@ -2,7 +2,7 @@
 
 **Il tuo copilota radio per VATSIM.** Ascolta l'ATC e ti mostra subito, in grande, **cosa ripetere**, verificando ogni numero. Ti allena con un ATC simulato, valuta i readback che dici davvero, prepara il volo con SimBrief, meteo e controllori online, e contiene un frasario completo.
 
-Programma per **Windows (.exe)** e pagina web · Interfaccia in **italiano, inglese, spagnolo e tedesco** · [English below](#english)
+Programma per **Windows (.exe)** e pagina web · Interfaccia in **italiano, inglese, spagnolo, tedesco, francese e portoghese** · [English below](#english)
 
 ---
 
@@ -31,13 +31,16 @@ Il centro è la **mappa** con il tuo volo; sopra, in vetro, il pannello con 5 sc
   - l'AI non può aggiungere numeri che l'ATC non ha detto (vince il readback a regole);
   - frequenza contro i **controllori online** (anche centri come `LON_S_CTR` per Heathrow), pista contro gli **aeroporti del volo**, QNH contro il **METAR**, squawk valido.
 - **Precisione**: il prompt dato a Whisper non contiene mai numeri (con audio sporco Whisper tende a copiarli); le chiamate si mostrano nell'ordine in cui l'ATC ha parlato; la **soglia del microfono si regola da sola** sul rumore di fondo.
-- **Coach readback** (opzionale): dopo una chiamata per te ascolta il tuo microfono e ti dice cosa hai dimenticato, con le statistiche di ciò che sbagli più spesso. Con il **tasto PTT di vPilot** impostato (*Impostazioni → Coach readback*) registra esattamente la tua trasmissione, dalla pressione al rilascio; mentre trasmetti compare l'indicatore **TX**.
+- **Coach readback** (opzionale): dopo una chiamata per te ascolta il tuo microfono e ti dice cosa hai dimenticato, con le statistiche di ciò che sbagli più spesso. Con il **tasto PTT di vPilot** impostato (tastiera, mouse o **pulsante del joystick**) (*Impostazioni → Coach readback*) registra esattamente la tua trasmissione, dalla pressione al rilascio; mentre trasmetti compare l'indicatore **TX**.
 - **Riascolta la radio**: con un tasto (o `Ctrl+Shift+A`) ripeti l'ultima chiamata ATC. Con `Ctrl+Shift+D` la senti **rallentata** a 0,75× senza voce distorta. Ogni fumetto ATC ha il suo pulsante di riascolto.
 - **Prossima chiamata**: nella Live Activity c'è sempre la prossima frase da dire, alla stazione giusta e con la frequenza da copiare. Segue le istruzioni ricevute (autorizzazione, push, rullaggio, passaggi di frequenza, discesa, finale, pista liberata) e la fase del volo.
 - **Collegamento al simulatore** (MSFS via SimConnect, X-Plane via UDP; solo lettura). Confronta le istruzioni ATC con il cockpit e ti avvisa se qualcosa non torna, per esempio:
   - «Transponder su 2000: l'ATC ha assegnato 4521»;
   - «Contatta London Control su 127.100: la COM1 è su 121.900».
-  - Controlla anche altimetro, livello e prua dell'autopilota. Alcuni add-on usano selettori propri e per loro livello e prua non si controllano.
+  - Controlla anche altimetro, livello e prua dell'autopilota. Riconosce il **FlyByWire A32NX** e ne legge i selettori; con aerei che non li espongono (Fenix, PMDG…) guarda cosa fa davvero l'aereo: se sale o scende verso il livello assegnato e se tiene la prua.
+- **Rullaggio sulla mappa**: quando l'ATC ti dà il rullaggio ("taxi to holding point A2 via B, A") la mappa mostra lo schema dell'aeroporto (piste e taxiway di OpenStreetMap), il **percorso da seguire** con le frecce, il punto attesa e le piste da attraversare.
+- **Atterraggio e resoconto**: col simulatore collegato misura il contatto (ft/min, G, rimbalzi) e ti dà il voto, da "burro" a "molto duro". A fine volo prepara un'**immagine del volo** da salvare o condividere: rotta, tempi, distanza, atterraggio, readback verificati e incasso di bordo.
+- **Aiuto emergenze**: MAYDAY e PAN PAN già compilati nell'ordine ICAO con posizione, livello, prua, autonomia e persone a bordo, letti con la pronuncia radio, con le risposte tipiche dell'ATC e gli squawk 7700/7600/7500.
 - Bip per le chiamate per te, modalità compatta sopra il simulatore, storico esportabile.
 
 ### 🗺️ Mappa radar
@@ -64,6 +67,7 @@ Il centro è la **mappa** con il tuo volo; sopra, in vetro, il pannello con 5 sc
   - l'app propone quello giusto per la fase del volo.
 - **Checklist** A320 e 737 suggerite dalla fase del volo, **note CRAFT** compilate da sole, **logbook** automatico (CSV).
 - **Allenamento** con ATC simulato a voce (anche un volo completo in 18 passi), **frasario** ICAO, impostazioni, privacy.
+- **Prova generale del volo** (scheda Volo): tutte le chiamate del tuo volo vero, dalla clearance al parcheggio, con le frequenze dei controllori online, il QNH, i fix della rotta SimBrief e i taxiway veri. Rispondi a voce e alla fine ricevi il report con il voto di ogni passo e cosa dimentichi più spesso.
 
 ### ⌨️ Scorciatoie (anche col simulatore in primo piano)
 | Tasti | Azione |
@@ -156,7 +160,7 @@ node scripts/eval-audio.js cartella   # precisione su audio reali (GROQ_API_KEY 
 
 ## English
 
-**Your radio copilot for VATSIM.** It listens to ATC and instantly shows you, in big letters, **what to read back**, checking every number. It trains you with simulated ATC, scores the readbacks you actually say, prepares your flight with SimBrief, weather and online controllers, and includes a full phrasebook. Windows app and web page; the interface is in **English, Italian, Spanish and German** (Settings → Language, or the first-run setup).
+**Your radio copilot for VATSIM.** It listens to ATC and instantly shows you, in big letters, **what to read back**, checking every number. It trains you with simulated ATC, scores the readbacks you actually say, prepares your flight with SimBrief, weather and online controllers, and includes a full phrasebook. Windows app and web page; the interface is in **English, Italian, Spanish, German, French and Portuguese** (Settings → Language, or the first-run setup).
 
 **Download** the latest build from **Releases** (`Setup` installer or `Portable`). If Windows says "Windows protected your PC", click **More info → Run anyway**. On first launch a **guided setup** walks you through language, callsign, speech recognition (with a key test) and a **live audio test**.
 
@@ -172,6 +176,7 @@ node scripts/eval-audio.js cartella   # precisione su audio reali (GROQ_API_KEY 
 - Live flight tracking with a **smooth aircraft** between VATSIM updates, flown/remaining route and the **Top of Descent** on the HUD and map (with a "request descent" reminder).
 - **Cabin announcements** (Italian and/or English) filled in with your flight, with the cabin chime, suggested by flight phase; SimBrief **fuel and weights** card.
 - **Radio replay** of the last ATC call (`Ctrl+Shift+A`, slowed down to 0.75× with `Ctrl+Shift+D`), a **Next call** card with what to say, to whom and on which frequency, and a **simulator link** (MSFS via SimConnect, X-Plane via UDP, read only) that warns you when the transponder, radio, altimeter or autopilot doesn't match the ATC instruction.
+- **New in 4.3**: the **taxi route on the map** when ATC gives you taxi instructions (OpenStreetMap ground data: route, arrows, holding point, runway crossings); **landing score** (ft/min, G, bounces) and a shareable **flight debrief image**; a **flight rehearsal** of your real flight with online frequencies, QNH, route fixes and real taxiways, with a final report; **add-on support** (FlyByWire selectors; trend checks for Fenix/PMDG) and **joystick push-to-talk**; an **emergency helper** that builds MAYDAY/PAN PAN messages in ICAO order with ATC replies.
 - **Pro** (optional): transcription and AI included, no Groq key to create — see [docs/PRO-SETUP.md](docs/PRO-SETUP.md).
 - SimBrief, pre-filled calls, cabin service simulation, A320/737 checklists, CRAFT notes, automatic logbook, training with voice ATC, ICAO phrasebook.
 - Data stays on your PC; see [PRIVACY.md](PRIVACY.md).

@@ -6,6 +6,7 @@
 const http = require('http');
 const fs = require('fs');
 const os = require('os');
+const Taxi = require('../js/taxi.js');
 const path = require('path');
 
 const MIME = {
@@ -68,6 +69,52 @@ async function mapData(name, rootDir, opts) {
   } catch (e) {
     if (stat) return { body: fs.readFileSync(cached), source: 'stale' };
     return { body: fs.readFileSync(path.join(rootDir, 'data', spec.file)), source: 'bundled' };
+  }
+}
+
+/* Suolo dell'aeroporto (taxiway, piste, punti attesa, stand) da OpenStreetMap, per disegnare il percorso
+   di rullaggio. Una richiesta a Overpass per aeroporto, poi cache su disco per 30 giorni. */
+const GROUND_MAX_AGE = 30 * 24 * 3600 * 1000;
+const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
+const groundPending = {};
+
+async function groundData(icao, lat, lon, opts) {
+  const dir = opts.cacheDir || path.join(os.tmpdir(), 'readback-copilot-cache');
+  const cached = path.join(dir, `ground-${icao}.json`);
+  let stat = null;
+  try { stat = fs.statSync(cached); } catch (e) { stat = null; }
+  if (stat && Date.now() - stat.mtimeMs < GROUND_MAX_AGE) return { body: fs.readFileSync(cached), source: 'cache' };
+  const q = `[out:json][timeout:25];(way["aeroway"~"^(taxiway|taxilane|runway)$"](around:4500,${lat},${lon});`
+    + `node["aeroway"~"^(holding_position|parking_position|gate)$"](around:4500,${lat},${lon}););out body;>;out skel qt;`;
+  if (!groundPending[icao]) {
+    groundPending[icao] = (async () => {
+      let last = null;
+      try {
+        for (const url of OVERPASS) {
+          const ctl = new AbortController();
+          const timer = setTimeout(() => ctl.abort(), opts.groundTimeout || 40000);
+          try {
+            const r = await fetch(url, { method: 'POST', signal: ctl.signal, body: `data=${encodeURIComponent(q)}`, headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': `ReadbackCopilot/${opts.version || 'dev'}` } });
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            const ground = Taxi.compactOverpass(await r.json());
+            const body = Buffer.from(JSON.stringify({ icao, ...ground }));
+            fs.mkdirSync(dir, { recursive: true });
+            fs.writeFileSync(`${cached}.tmp`, body);
+            fs.renameSync(`${cached}.tmp`, cached);
+            return { body, source: 'fresh' };
+          } catch (e) { last = e; } finally { clearTimeout(timer); }
+        }
+        throw last || new Error('Overpass non raggiungibile');
+      } finally {
+        delete groundPending[icao];
+      }
+    })();
+  }
+  try {
+    return await groundPending[icao];
+  } catch (e) {
+    if (stat) return { body: fs.readFileSync(cached), source: 'stale' };
+    throw e;
   }
 }
 
@@ -171,6 +218,20 @@ function createHandler(root, opts) {
         }
       }
       return send(res, 405, { error: { message: 'Metodo non consentito' } });
+    }
+
+    if (url.pathname === '/api/ground') {
+      const icao = String(url.searchParams.get('icao') || '').toUpperCase();
+      const lat = Number(url.searchParams.get('lat'));
+      const lon = Number(url.searchParams.get('lon'));
+      if (!/^[A-Z0-9]{3,4}$/.test(icao) || !(Math.abs(lat) <= 90) || !(Math.abs(lon) <= 180)) return send(res, 400, { error: { message: 'Aeroporto non valido' } });
+      try {
+        const r = await groundData(icao, lat.toFixed(5), lon.toFixed(5), opts);
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-cache', 'X-Ground-Data': r.source, 'X-Content-Type-Options': 'nosniff' });
+        return res.end(r.body);
+      } catch (e) {
+        return send(res, 502, { error: { message: `Dati dell'aeroporto non disponibili: ${e.message}` } });
+      }
     }
 
     const md = url.pathname.match(/^\/api\/mapdata\/(vatspy|fir|tracon)$/);

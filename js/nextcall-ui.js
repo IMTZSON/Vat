@@ -70,6 +70,8 @@
       fq.title = t('next.copyFreq');
     }
 
+    // Stazione con cui si parla adesso (per l'aiuto emergenze)
+    App.nextCallStation = () => (current && current.station) || '';
     $('nextSpeak').addEventListener('click', () => current && root.TTS.speak(current.spoken));
     $('nextDone').addEventListener('click', () => {
       if (!current) return;

@@ -462,6 +462,7 @@
         audio: audio || null,
         prompt: prompt || '',
         clip: clip || null,
+        ts: Date.now(),
         date: root.I18n.date(now),
         time: root.I18n.time(now, true),
       };
@@ -633,6 +634,17 @@
     });
     updateReplayUI();
     App.isListening = () => running;
+    // Statistiche radio di un volo (per il resoconto): chiamate per te, verificate, audio non chiaro, voto del coach
+    App.radioStats = (since) => {
+      const mine = history.filter((h) => h.result && h.result.forUs === true && h.origin !== 'prova' && (!since || (h.ts || 0) >= since));
+      const scored = mine.filter((h) => h.coach && h.coach.state === 'done');
+      return {
+        calls: mine.length,
+        verified: mine.filter((h) => h.verify && h.verify.status === 'ok').length,
+        unclear: mine.filter((h) => h.verify && h.verify.status === 'bad').length,
+        coach: scored.length ? Math.round(scored.reduce((n, h) => n + h.coach.score, 0) / scored.length) : null,
+      };
+    };
 
     // ------------------------------------------------------------ modelli e verifica del servizio
 
@@ -741,22 +753,31 @@
       $('pttLabel').classList.toggle('set', !!k);
       $('pttClear').hidden = !k;
     }
+    // Il primo tasto, pulsante del mouse o pulsante del joystick premuto diventa il PTT
     $('pttSet').addEventListener('click', async () => {
-      if (!App.desktop.ptt) return;
-      $('pttLabel').textContent = t('ptt.pressNow');
+      const pad = App.gamepad;
+      if (!App.pttAvailable && !pad) return;
+      $('pttLabel').textContent = t(pad ? 'ptt.pressNowPad' : 'ptt.pressNow');
       $('pttLabel').classList.add('capturing');
-      const b = await App.desktop.ptt.capture();
+      const timeout = new Promise((res) => setTimeout(() => res(null), 15000));
+      const tries = [timeout];
+      if (App.pttAvailable) tries.push(App.desktop.ptt.capture());
+      if (pad) tries.push(pad.capture().then((b) => b && { ...b, label: `🎮 ${t('ptt.padButton', { n: b.button + 1 })} · ${root.GamepadPtt.shortName(b.pad)}` }));
+      const b = await Promise.race(tries);
+      if (pad) pad.cancelCapture();
       $('pttLabel').classList.remove('capturing');
       if (b) {
         App.set('pttKey', b);
-        await App.desktop.ptt.set(b);
+        if (pad) pad.setBinding(b);
+        if (App.pttAvailable) await App.desktop.ptt.set(b.kind === 'gamepad' ? null : b);
         App.toast(t('ptt.saved', { key: b.label }));
       }
       renderPtt();
     });
     $('pttClear').addEventListener('click', async () => {
       App.set('pttKey', null);
-      if (App.desktop.ptt) await App.desktop.ptt.set(null);
+      if (App.gamepad) App.gamepad.setBinding(null);
+      if (App.pttAvailable) await App.desktop.ptt.set(null);
       renderPtt();
     });
     renderPtt();

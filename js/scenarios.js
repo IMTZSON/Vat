@@ -96,6 +96,12 @@
       sid: /^[A-Z]+ \d[A-Z]$/.test(sid) ? sid : `${pick(r, FIXES)} 5A`,
       squawk: squawk(r),
       cruise: opts.cruise || between(r, 240, 390, 10),
+      freqs: opts.freqs || {},
+      fixes: (opts.fixes || []).filter((x) => /^[A-Z]{3,5}$/.test(x)),
+      qnhDep: Number(opts.qnhDep) || null,
+      qnhArr: Number(opts.qnhArr) || null,
+      twys: opts.twys || [],
+      centerName: opts.centerName || null,
     };
   }
 
@@ -120,6 +126,19 @@
     return S.wind(d, between(r, 3, 18, 1));
   }
   const otherRwy = (ap, rwy) => ap.rwys.find((x) => x !== rwy && x.slice(0, 2) !== rwy.slice(0, 2)) || ap.rwys.find((x) => x !== rwy) || rwy;
+  // Dati veri del volo (prova generale): frequenze online, fix della rotta, QNH, taxiway dell'aeroporto
+  const normFreq = (f) => { const m = String(f || '').match(/^(1[1-3]\d)\.(\d{1,3})/); if (!m) return null; let d = m[2].replace(/0+$/, ''); if (!d) d = '0'; return `${m[1]}.${d}`; };
+  const F = (c, r, key, kind) => normFreq(c.freqs && c.freqs[key]) || freq(r, kind);
+  const FIX = (c, r) => (c.fixes && c.fixes.length ? pick(r, c.fixes) : pick(r, FIXES));
+  const Q = (c, r, side) => (c[side] >= 950 && c[side] <= 1060 ? c[side] : qnh(r));
+  const TW = (c, r, n) => {
+    const real = (c.twys || []).filter((x) => /^[A-Z]$/.test(x) && x !== 'I' && x !== 'O');
+    if (real.length < n) return twys(r, n);
+    const out = [];
+    while (out.length < n) { const x = pick(r, real); if (!out.includes(x)) out.push(x); }
+    return out;
+  };
+
   function twys(r, n) {
     const out = [];
     while (out.length < n) { const t = pick(r, TAXIWAYS); if (!out.includes(t)) out.push(t); }
@@ -136,8 +155,8 @@
     ],
     ground: [
       (c, r) => ({ st: `${c.dep.city} Ground`, segs: ['push and start approved, facing', pick(r, DIRS)] }),
-      (c, r) => ({ st: `${c.dep.city} Ground`, segs: ['taxi to holding point', S.rwy(c.depRwy), 'via', S.twys(twys(r, 2)), ',', S.qnh(qnh(r))] }),
-      (c, r) => ({ st: `${c.dep.city} Ground`, hard: true, segs: ['taxi to holding point', S.rwy(c.depRwy), 'via', S.twys(twys(r, 3)), ', hold short of', S.rwy(otherRwy(c.dep, c.depRwy))] }),
+      (c, r) => ({ st: `${c.dep.city} Ground`, segs: ['taxi to holding point', S.rwy(c.depRwy), 'via', S.twys(TW(c, r, 2)), ',', S.qnh(Q(c, r, 'qnhDep'))] }),
+      (c, r) => ({ st: `${c.dep.city} Ground`, hard: true, segs: ['taxi to holding point', S.rwy(c.depRwy), 'via', S.twys(TW(c, r, 3)), ', hold short of', S.rwy(otherRwy(c.dep, c.depRwy))] }),
       (c, r) => ({ st: `${c.arr.city} Ground`, segs: [`taxi to stand ${between(r, 101, 230, 1)} via`, S.twys(twys(r, 2))] }),
       () => ({ st: 'Ground', segs: ['hold position'] }),
     ],
@@ -145,29 +164,29 @@
       (c) => ({ st: `${c.dep.city} Tower`, segs: [S.rwy(c.depRwy), ', line up and wait'] }),
       (c, r) => ({ st: `${c.dep.city} Tower`, segs: [windFor(r, c.depRwy), ',', S.rwy(c.depRwy), ', cleared for takeoff'] }),
       (c, r) => ({ st: `${c.arr.city} Tower`, segs: [windFor(r, c.arrRwy), ',', S.rwy(c.arrRwy), ', cleared to land'] }),
-      (c, r) => ({ st: `${c.arr.city} Tower`, segs: ['contact', `${c.arr.city} Ground`, S.freq(freq(r, 'ground'))] }),
+      (c, r) => ({ st: `${c.arr.city} Tower`, segs: ['contact', `${c.arr.city} Ground`, S.freq(F(c, r, 'arrGround', 'ground'))] }),
       (c, r) => ({ st: `${c.dep.city} Tower`, hard: true, segs: ['after departure turn right', S.hdg(between(r, 10, 360, 10)), ',', S.rwy(c.depRwy), ', cleared for takeoff'] }),
     ],
     departure: [
       (c, r) => ({ st: `${c.dep.city} Radar`, segs: ['radar contact, climb', S.fl(between(r, 80, 200, 10))] }),
       (c, r) => ({ st: `${c.dep.city} Radar`, segs: ['turn left', S.hdg(between(r, 10, 360, 10)), ', climb', S.alt(between(r, 5000, 9000, 1000))] }),
-      (c, r) => ({ st: `${c.dep.city} Radar`, segs: [`proceed direct ${pick(r, FIXES)}, climb`, S.fl(between(r, 100, 240, 10))] }),
-      (c, r) => ({ st: `${c.dep.city} Radar`, segs: ['contact', `${c.dep.acc} Control`, S.freq(freq(r))] }),
+      (c, r) => ({ st: `${c.dep.city} Radar`, segs: [`proceed direct ${FIX(c, r)}, climb`, S.fl(between(r, 100, 240, 10))] }),
+      (c, r) => ({ st: `${c.dep.city} Radar`, segs: ['contact', c.centerName || `${c.dep.acc} Control`, S.freq(F(c, r, 'center', 'radar'))] }),
     ],
     cruise: [
       (c, r) => ({ st: `${c.dep.acc} Control`, segs: ['climb', S.fl(c.cruise)] }),
       (c, r) => ({ st: `${c.arr.acc} Control`, segs: ['descend', S.fl(between(r, 90, 240, 10))] }),
       (c, r) => ({ st: `${c.dep.acc} Control`, segs: [S.sq(squawk(r))] }),
-      (c, r) => ({ st: `${c.dep.acc} Control`, segs: [`proceed direct ${pick(r, FIXES)}`] }),
+      (c, r) => ({ st: `${c.dep.acc} Control`, segs: [`proceed direct ${FIX(c, r)}`] }),
       (c, r) => ({ st: `${c.arr.acc} Control`, hard: true, segs: ['descend', S.fl(between(r, 90, 200, 10)), ', reduce speed', `${between(r, 250, 280, 10)} knots`] }),
-      (c, r) => ({ st: `${c.arr.acc} Control`, segs: ['contact', `${c.arr.city} Approach`, S.freq(freq(r))] }),
+      (c, r) => ({ st: `${c.arr.acc} Control`, segs: ['contact', `${c.arr.city} Approach`, S.freq(F(c, r, 'arrApproach', 'radar'))] }),
     ],
     approach: [
-      (c, r) => ({ st: `${c.arr.city} Approach`, segs: ['descend to altitude', S.alt(between(r, 3000, 6000, 500)), ',', S.qnh(qnh(r))] }),
+      (c, r) => ({ st: `${c.arr.city} Approach`, segs: ['descend to altitude', S.alt(between(r, 3000, 6000, 500)), ',', S.qnh(Q(c, r, 'qnhArr'))] }),
       (c, r) => ({ st: `${c.arr.city} Approach`, segs: ['turn right', S.hdg(between(r, 10, 360, 10)), ', descend', S.alt(between(r, 2000, 5000, 1000))] }),
       (c, r) => ({ st: `${c.arr.city} Approach`, segs: ['turn left', S.hdg(between(r, 10, 360, 10)), ', cleared ILS approach', S.rwy(c.arrRwy), ', report established'] }),
-      (c, r) => ({ st: `${c.arr.city} Approach`, segs: ['reduce speed', `${between(r, 160, 220, 10)} knots`, ', contact', `${c.arr.city} Tower`, S.freq(freq(r, 'tower'))] }),
-      (c, r) => ({ st: `${c.arr.city} Approach`, hard: true, segs: ['descend to altitude', S.alt(between(r, 3000, 5000, 1000)), ',', S.qnh(qnh(r)), ', turn left', S.hdg(between(r, 10, 360, 10)), ', reduce speed', `${between(r, 180, 220, 10)} knots`] }),
+      (c, r) => ({ st: `${c.arr.city} Approach`, segs: ['reduce speed', `${between(r, 160, 220, 10)} knots`, ', contact', `${c.arr.city} Tower`, S.freq(F(c, r, 'arrTower', 'tower'))] }),
+      (c, r) => ({ st: `${c.arr.city} Approach`, hard: true, segs: ['descend to altitude', S.alt(between(r, 3000, 5000, 1000)), ',', S.qnh(Q(c, r, 'qnhArr')), ', turn left', S.hdg(between(r, 10, 360, 10)), ', reduce speed', `${between(r, 180, 220, 10)} knots`] }),
     ],
   };
 
@@ -269,7 +288,7 @@
     return { items, score: Math.round((ok / items.length) * 100), perfect: ok === items.length };
   }
 
-  const api = { PHASES, AIRPORTS, generate, fullFlight, score, canon, essentials, makeContext, partLabel };
+  const api = { PHASES, AIRPORTS, generate, fullFlight, normFreq, score, canon, essentials, makeContext, partLabel };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Scenarios = api;
 })(this);

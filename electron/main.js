@@ -36,7 +36,7 @@ function loadPtt() {
 function loadSim() {
   let simconnect = null;
   try { simconnect = require('node-simconnect'); } catch (e) { simconnect = null; }
-  return new SimLink({ simconnect, dgram, onData: (d) => send('sim-data', d), onStatus: (s) => send('sim-status', s) });
+  return new SimLink({ simconnect, dgram, onData: (d) => send('sim-data', d), onStatus: (s) => send('sim-status', s), onTouchdown: (ev) => send('sim-touchdown', ev) });
 }
 
 function loadUpdater() {
@@ -161,6 +161,20 @@ ipcMain.handle('save-text', async (e, { name, text }) => {
   });
   if (r.canceled || !r.filePath) return false;
   await fs.promises.writeFile(r.filePath, String(text), 'utf8');
+  return true;
+});
+
+// Immagini (resoconto del volo): arrivano come base64 dall'interfaccia, solo PNG
+ipcMain.handle('save-file', async (e, { name, base64 }) => {
+  const safe = String(name || 'readback.png').replace(/[^\w.-]/g, '_').replace(/\.[^.]*$/, '') + '.png';
+  const data = Buffer.from(String(base64 || ''), 'base64');
+  if (data.length < 8 || data.readUInt32BE(0) !== 0x89504e47) return false;
+  const r = await dialog.showSaveDialog(win, {
+    defaultPath: path.join(app.getPath('pictures'), safe),
+    filters: [{ name: 'PNG', extensions: ['png'] }],
+  });
+  if (r.canceled || !r.filePath) return false;
+  await fs.promises.writeFile(r.filePath, data);
   return true;
 });
 

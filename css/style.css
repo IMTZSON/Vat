@@ -1135,3 +1135,50 @@ body:not(.stt-pro) .pro-only { display: none !important; }
 .pro-usage { height: 6px; border-radius: 3px; background: var(--fill-2); overflow: hidden; }
 .pro-usage div { height: 100%; width: 0; background: var(--accent); border-radius: 3px; transition: width 0.4s; }
 .pro-usage div.high { background: var(--orange); }
+
+/* ================================================================== 4.3: rullaggio, atterraggio, resoconto */
+:root { --ground-runway: #475569; --ground-taxi: #cbd5e1; }
+@media (prefers-color-scheme: dark) { :root { --ground-runway: #94a3b8; --ground-taxi: #334155; } }
+.twy-label { position: absolute; transform: translate(-50%, -50%); padding: 1px 5px; border-radius: 5px; background: #facc15; color: #111; font: 800 10px var(--font); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); white-space: nowrap; }
+.taxi-arrow { display: grid; place-items: center; width: 14px; height: 14px; color: #fff; font-size: 10px; line-height: 1; text-shadow: 0 0 2px var(--accent), 0 0 2px var(--accent); }
+.taxi-arrow { transform-origin: 50% 50%; }
+.taxi-hold { position: absolute; width: 34px; height: 8px; margin: -4px 0 0 -17px; border-radius: 2px; background: repeating-linear-gradient(90deg, #ef4444 0 6px, #fde047 6px 10px); box-shadow: 0 0 0 2px #fff, 0 2px 8px rgba(0, 0, 0, 0.35); }
+.taxi-hold-label { position: absolute; transform: translate(-50%, 12px); padding: 2px 7px; border-radius: 6px; background: #ef4444; color: #fff; font: 800 11px var(--font); white-space: nowrap; }
+.taxi-cross { position: absolute; transform: translate(-50%, -150%); padding: 2px 7px; border-radius: 6px; background: var(--orange); color: #111; font: 800 11px var(--font); white-space: nowrap; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3); }
+.sim-chip.landing { font-variant-numeric: tabular-nums; }
+.debrief-modal { width: min(560px, calc(100vw - 32px)); }
+.debrief-modal { max-height: calc(100vh - 32px); overflow: auto; }
+.debrief-img { display: block; width: auto; max-width: 100%; height: auto; max-height: calc(100vh - 210px); border-radius: 18px; margin: 4px auto 12px; box-shadow: var(--shadow-1); }
+.rehearsal-card { display: flex; gap: 14px; align-items: center; justify-content: space-between; }
+.rehearsal-card p { margin: 4px 0 0; }
+.rehearsal-card .btn { flex: none; }
+.train-report { display: grid; gap: 8px; }
+.report-head { display: flex; gap: 14px; align-items: center; }
+.report-head p { margin: 0; color: var(--text-2); }
+.report-steps { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; counter-reset: st; }
+.report-steps li { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--separator); font-size: 14px; counter-increment: st; }
+.report-steps li span::before { content: counter(st) ". "; color: var(--text-3); }
+.report-steps b.ok { color: var(--green); }
+.report-steps b.maybe { color: var(--orange); }
+.report-steps b.no { color: var(--red); }
+/* Aiuto emergenze */
+.em-open { color: var(--red); background: var(--bad-bg); font-weight: 700; margin: 4px 0 12px; }
+.em-open:hover { filter: brightness(1.05); }
+.emergency-modal { width: min(620px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; display: grid; gap: 10px; }
+.emergency-modal:not([open]) { display: none; }
+.emergency-modal .modal-head h3 { display: flex; align-items: center; gap: 8px; color: var(--red); }
+.em-form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.em-form [hidden] { display: none !important; }
+.em-message { display: grid; gap: 8px; border: 1.5px solid color-mix(in srgb, var(--red) 45%, transparent); }
+.em-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.em-parts { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.em-parts li { display: grid; grid-template-columns: 110px 1fr; gap: 10px; align-items: baseline; }
+.em-parts li span { font-size: 12px; font-weight: 650; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.03em; }
+.em-parts li b { font-family: var(--mono); font-size: 14.5px; font-weight: 650; }
+.em-replies { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.em-replies li { padding: 8px 12px; border-radius: 14px; background: var(--fill); }
+.em-replies p { margin: 0; font-size: 13.5px; }
+.em-atc { font-weight: 650; }
+.em-pilot { color: var(--accent); font-family: var(--mono); margin-top: 2px !important; }
+.em-codes { font-size: 13px; }
+@media (max-width: 520px) { .em-form { grid-template-columns: 1fr; } .em-parts li { grid-template-columns: 1fr; gap: 0; } }

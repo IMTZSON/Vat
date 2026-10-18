@@ -1,7 +1,7 @@
-/* Traduzioni: italiano, inglese, spagnolo, tedesco.
+/* Traduzioni: italiano, inglese, spagnolo, tedesco, francese, portoghese (Brasile).
    I testi stanno in strings.js come { chiave: [italiano, inglese] }: tenere le due lingue
    affiancate rende impossibile dimenticarne una (lo controlla anche tests/i18n.test.js).
-   Spagnolo e tedesco stanno in strings-es.js e strings-de.js ({ chiave: testo }); una chiave
+   Le altre lingue stanno in strings-es.js, -de, -fr e -pt ({ chiave: testo }); una chiave
    mancante, e i contenuti bilingui ["italiano", "inglese"] (checklist, frasario…), usano l'inglese.
    Nell'HTML: data-i18n="chiave" (testo), data-i18n-html (testo con markup fidato),
    data-i18n-title, data-i18n-placeholder, data-i18n-aria (attributi). */
@@ -14,10 +14,13 @@
     if (isNode) { try { return require(file).STRINGS; } catch (e) { return {}; } }
     return (root[name] && root[name].STRINGS) || {};
   };
-  const EXTRA = { es: extra('./strings-es.js', 'StringsEs'), de: extra('./strings-de.js', 'StringsDe') };
+  const EXTRA = {
+    es: extra('./strings-es.js', 'StringsEs'), de: extra('./strings-de.js', 'StringsDe'),
+    fr: extra('./strings-fr.js', 'StringsFr'), pt: extra('./strings-pt.js', 'StringsPt'),
+  };
 
-  const LANGS = ['it', 'en', 'es', 'de'];
-  const LOCALES = { it: 'it-IT', en: 'en-GB', es: 'es-ES', de: 'de-DE' };
+  const LANGS = ['it', 'en', 'es', 'de', 'fr', 'pt'];
+  const LOCALES = { it: 'it-IT', en: 'en-GB', es: 'es-ES', de: 'de-DE', fr: 'fr-FR', pt: 'pt-BR' };
   const listeners = [];
 
   function detect() {
@@ -33,7 +36,7 @@
     LANGS,
     lang: 'it',
 
-    // lang: 'auto' | 'it' | 'en' | 'es' | 'de'
+    // lang: 'auto' | 'it' | 'en' | 'es' | 'de' | 'fr' | 'pt'
     setLang(lang) {
       const next = LANGS.includes(lang) ? lang : detect();
       const changed = next !== this.lang;
@@ -69,7 +72,7 @@
     // Locale per date, ore e valute
     locale() { return LOCALES[this.lang] || 'en-GB'; },
 
-    // Separatore decimale della lingua ("," in italiano, spagnolo e tedesco)
+    // Separatore decimale della lingua ("," in tutte tranne l'inglese)
     decimal() { return (1.5).toLocaleString(this.locale()).charAt(1); },
 
     time(d, withSeconds) {

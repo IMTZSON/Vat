@@ -131,6 +131,16 @@
       setTimeout(() => URL.revokeObjectURL(a.href), 2000);
       return true;
     },
+    // Immagine PNG da un canvas (dataURL): nel programma con la finestra "Salva", nel browser come download
+    async saveImage(name, dataUrl) {
+      const base64 = String(dataUrl).split(',')[1] || '';
+      if (bridge && bridge.saveFile) return bridge.saveFile(name, base64);
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = name;
+      a.click();
+      return true;
+    },
     onHotkey: (fn) => bridge && bridge.onHotkey(fn),
     ptt: bridge && bridge.ptt ? bridge.ptt : null,
     sim: bridge && bridge.sim ? bridge.sim : null,
@@ -177,7 +187,8 @@
 
     // PTT di vPilot disponibile (programma per Windows) e impostato
     pttAvailable: false,
-    pttActive() { return !!(this.pttAvailable && this.settings.pttKey); },
+    pttActive() { const k = this.settings.pttKey; return !!(k && (k.kind === 'gamepad' ? this.gamepad : this.pttAvailable)); },
+    gamepad: null,
 
     // Il riconoscimento vocale è configurato? (chiave Groq, server locale o modalità Chrome)
     sttReady() {
@@ -389,7 +400,13 @@
           }
         } catch (e) { this.pttAvailable = false; }
       }
-      document.body.classList.toggle('has-ptt', this.pttAvailable);
+      // PTT sul joystick (Gamepad API): pulsanti di joystick, yoke e throttle
+      if (root.GamepadPtt && navigator.getGamepads) {
+        this.gamepad = root.GamepadPtt.createPoller(() => navigator.getGamepads(), (down) => this.emit('ptt', down));
+        this.gamepad.setBinding(this.settings.pttKey);
+        setInterval(() => { if (this.gamepad.active()) this.gamepad.tick(); }, 30);
+      }
+      document.body.classList.toggle('has-ptt', !!(this.pttAvailable || this.gamepad));
 
       for (const init of this.modules) {
         try { init(this); } catch (e) { console.error(e); }

@@ -140,3 +140,34 @@ test('servizio Pro: configurazione solo con indirizzi https', () => {
   assert.strictEqual(proConfig({ endpoint: '' }), null);
   assert.deepStrictEqual(proConfig({ endpoint: 'https://pro.example.com', checkout: 'javascript:alert(1)' }), { endpoint: 'https://pro.example.com', checkout: '' });
 });
+
+test('suolo dell\'aeroporto da OpenStreetMap: mirror di riserva, cache, richieste non valide', async (t) => {
+  const os = require('os');
+  const fs = require('fs');
+  const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'rc-ground-'));
+  const prev = global.fetch;
+  const asked = [];
+  global.fetch = async (url, init) => {
+    asked.push({ url: String(url), body: init && init.body });
+    if (String(url).includes('overpass-api.de')) return new Response('busy', { status: 429 });
+    return new Response(JSON.stringify({ elements: [
+      { type: 'node', id: 1, lat: 45.0, lon: 9.0 }, { type: 'node', id: 2, lat: 45.001, lon: 9.0, tags: { aeroway: 'holding_position', ref: 'A1' } },
+      { type: 'way', id: 9, nodes: [1, 2], tags: { aeroway: 'taxiway', ref: 'A' } },
+    ] }), { status: 200 });
+  };
+  const { server: srv, port } = await server.start(path.join(__dirname, '..'), { version: 'test', ports: [0], cacheDir });
+  t.after(() => { srv.close(); global.fetch = prev; });
+  const ask = (q) => new Promise((resolve) => http.get({ host: '127.0.0.1', port, path: `/api/ground?${q}`, headers: { host: `127.0.0.1:${port}` } }, (res) => { let b = ''; res.on('data', (c) => { b += c; }); res.on('end', () => resolve({ status: res.statusCode, src: res.headers['x-ground-data'], b })); }));
+  let r = await ask('icao=LIMC&lat=45.63&lon=8.72');
+  assert.strictEqual(r.status, 200);
+  assert.strictEqual(r.src, 'fresh');
+  const g = JSON.parse(r.b);
+  assert.deepStrictEqual([g.icao, g.ways[0].ref, g.points[0].ref], ['LIMC', 'A', 'A1']);
+  assert.strictEqual(asked.length, 2, 'il primo server è occupato: si usa il mirror');
+  assert.match(decodeURIComponent(asked[0].body), /around:4500,45\.63000,8\.72000/);
+  r = await ask('icao=LIMC&lat=45.63&lon=8.72');
+  assert.strictEqual(r.src, 'cache');
+  assert.strictEqual(asked.length, 2);
+  assert.strictEqual((await ask('icao=L;MC&lat=45&lon=8')).status, 400);
+  assert.strictEqual((await ask('icao=LIMC&lat=x&lon=8')).status, 400);
+});

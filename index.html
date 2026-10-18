@@ -182,6 +182,8 @@
           <button id="openChrome" class="pill-btn" data-i18n="listen.openChrome">Apri in Chrome</button>
         </div>
 
+        <button id="emOpen" class="btn em-open block"><i data-icon="siren"></i> <span data-i18n="em.open">Emergenza: MAYDAY / PAN PAN</span></button>
+
         <div class="section-head"><h2 data-i18n="listen.conversation">Conversazione</h2>
           <div class="section-actions">
             <button id="exportHistory" class="icon-btn" data-i18n-title="common.export" title="Esporta"><i data-icon="download"></i></button>
@@ -225,6 +227,11 @@
           <div class="card wx" id="apArr"></div>
         </div>
         <p id="wxMsg" class="footnote"></p>
+
+        <div class="card rehearsal-card">
+          <div><b data-i18n="rehearsal.title">Prova generale del volo</b><p class="hint" data-i18n="rehearsal.hint">Tutte le chiamate del tuo volo, dalla clearance al parcheggio, con frequenze, QNH, fix e taxiway veri. Rispondi a voce e alla fine ricevi il voto.</p></div>
+          <button id="rehearsalBtn" class="btn tinted"><i data-icon="mic"></i> <span data-i18n="rehearsal.start">Inizia</span></button>
+        </div>
 
         <div class="section-head"><h2 data-i18n="flight.yourCalls">Le tue chiamate</h2></div>
         <div class="card form-card three">
@@ -412,6 +419,7 @@
             </div>
           </div>
         </div>
+        <div id="trainReport" class="card train-report" hidden></div>
         <div class="section-head"><h2 data-i18n="train.progress">Progressi</h2>
           <div class="section-actions"><button id="trainResetStats" class="pill-btn danger" data-i18n="cockpit.reset">Azzera</button></div>
         </div>
@@ -425,6 +433,7 @@
       <!-- ============================================================ FRASARIO -->
       <section class="view" data-view="phrases" data-parent="more" data-title="Frasario" data-i18n-title-key="more.phrases" hidden>
         <div class="search"><i data-icon="search"></i><input id="phraseSearch" data-i18n-placeholder="phrases.search" placeholder="Cerca (squawk, taxi, mayday…)" autocomplete="off"></div>
+        <button class="btn em-open block" data-em-open="1"><i data-icon="siren"></i> <span data-i18n="em.open">Emergenza: MAYDAY / PAN PAN</span></button>
         <div id="phrasebook"></div>
         <div class="section-head"><h2 data-i18n="phrases.alphabet">Alfabeto fonetico</h2></div>
         <div id="alphabet" class="alphabet"></div>
@@ -439,7 +448,7 @@
         <div class="group-title" data-i18n="settings.general">Generale</div>
         <div class="group">
           <div class="row"><span class="row-label" data-i18n="settings.language">Lingua</span>
-            <select id="uiLang" data-setting="uiLang" class="row-select"><option value="auto">Auto</option><option value="it">Italiano</option><option value="en">English</option><option value="es">Español</option><option value="de">Deutsch</option></select>
+            <select id="uiLang" data-setting="uiLang" class="row-select"><option value="auto">Auto</option><option value="it">Italiano</option><option value="en">English</option><option value="es">Español</option><option value="de">Deutsch</option><option value="fr">Français</option><option value="pt">Português</option></select>
           </div>
         </div>
 
@@ -481,7 +490,7 @@
         <div class="group-title" data-i18n="coach.group">Coach readback</div>
         <div class="group">
           <label class="row"><span class="row-label"><span data-i18n="coach.enable">Valuta i miei readback in volo</span><small class="row-sub" data-i18n="coach.enableSub">Dopo una chiamata per te ascolta il tuo microfono e ti dice se hai ripetuto tutto.</small></span><input id="coach" data-setting="coach" type="checkbox" class="switch"></label>
-          <div class="row ptt-only"><span class="row-label"><span data-i18n="ptt.title">Tasto PTT di vPilot</span><small class="row-sub" id="pttHint" data-i18n="ptt.hint">Lo stesso tasto con cui trasmetti: il coach registra esattamente quello che dici in radio.</small></span><span id="pttLabel" class="ptt-key" data-i18n="ptt.none">Nessuno</span><button id="pttSet" class="link-btn" type="button" data-i18n="ptt.set">Imposta</button><button id="pttClear" class="icon-btn" type="button" data-i18n-title="common.delete" title="Elimina" hidden><i data-icon="x"></i></button></div>
+          <div class="row ptt-only"><span class="row-label"><span data-i18n="ptt.title">Tasto PTT di vPilot</span><small class="row-sub" id="pttHint" data-i18n="ptt.hint">Lo stesso tasto (o pulsante del joystick) con cui trasmetti: il coach registra esattamente quello che dici in radio.</small></span><span id="pttLabel" class="ptt-key" data-i18n="ptt.none">Nessuno</span><button id="pttSet" class="link-btn" type="button" data-i18n="ptt.set">Imposta</button><button id="pttClear" class="icon-btn" type="button" data-i18n-title="common.delete" title="Elimina" hidden><i data-icon="x"></i></button></div>
         </div>
 
         <div class="group-title" data-i18n="settings.map">Mappa</div>
@@ -566,6 +575,50 @@
   </nav>
 
   <!-- Foglio modale: listino di bordo -->
+  <dialog id="debriefSheet" class="modal glass debrief-modal">
+    <header class="modal-head">
+      <h3 data-i18n="debrief.title">Resoconto del volo</h3>
+      <button class="icon-btn" id="debriefClose" data-i18n-title="common.close" title="Chiudi"><i data-icon="x"></i></button>
+    </header>
+    <img id="debriefImg" class="debrief-img" alt="">
+    <div class="btn-row">
+      <button id="debriefSave" class="btn primary"><i data-icon="download"></i> <span data-i18n="debrief.save">Salva immagine</span></button>
+      <button id="debriefCopy" class="btn tinted"><i data-icon="copy"></i> <span data-i18n="debrief.copy">Copia</span></button>
+    </div>
+  </dialog>
+
+  <!-- Foglio modale: aiuto emergenze (MAYDAY / PAN PAN) -->
+  <dialog id="emergencySheet" class="modal glass emergency-modal">
+    <header class="modal-head">
+      <h3><i data-icon="siren"></i> <span data-i18n="em.title">Aiuto emergenze</span></h3>
+      <button class="icon-btn" id="emClose" data-i18n-title="common.close" title="Chiudi"><i data-icon="x"></i></button>
+    </header>
+    <div class="form-card em-form">
+      <div class="field wide"><select id="emKind" class="seg"><option value="mayday">MAYDAY</option><option value="panpan">PAN PAN</option></select></div>
+      <label class="field"><span data-i18n="em.nature">Cosa succede</span><select id="emNature" class="select"></select></label>
+      <label class="field"><span data-i18n="em.intent">Intenzioni</span><select id="emIntent" class="select"></select></label>
+      <label class="field" id="emDivertField"><span data-i18n="em.divert">Aeroporto</span><select id="emDivert" class="select"></select></label>
+      <label class="field" id="emDescendField"><span data-i18n="em.descendTo">Scendi fino a (ft)</span><input id="emDescend" inputmode="numeric" value="10000"></label>
+      <label class="field"><span data-i18n="em.station">Stazione</span><input id="emStation" autocomplete="off" spellcheck="false" placeholder="Roma Radar"></label>
+      <label class="field"><span data-i18n="em.fuel">Autonomia (minuti)</span><input id="emFuel" inputmode="numeric" placeholder="90"></label>
+      <label class="field"><span data-i18n="em.pob">Persone a bordo</span><input id="emPob" inputmode="numeric" placeholder="160"></label>
+    </div>
+    <div class="em-message card">
+      <div class="em-head"><span class="eyebrow" data-i18n="em.message">Il tuo messaggio</span><span id="emSquawk" class="badge no"></span></div>
+      <ol id="emParts" class="em-parts"></ol>
+      <div class="btn-row">
+        <button id="emSpeak" class="btn primary"><i data-icon="volume-2"></i> <span data-i18n="em.speak">Ascolta</span></button>
+        <button id="emCopy" class="btn tinted"><i data-icon="copy"></i> <span data-i18n="em.copy">Copia</span></button>
+      </div>
+    </div>
+    <div class="eyebrow" data-i18n="em.replies">Cosa può risponderti l'ATC</div>
+    <ol id="emReplies" class="em-replies"></ol>
+    <div class="eyebrow" data-i18n="em.cancelTitle">Quando è tutto risolto</div>
+    <p id="emCancel" class="readback-sm"></p>
+    <p class="notice em-codes" data-i18n-html="em.codes"><b>7700</b> emergenza · <b>7600</b> avaria radio · <b>7500</b> interferenza illecita (vietato simularla su VATSIM)</p>
+    <p class="footnote" data-i18n="em.vatsim">Su VATSIM simula un'emergenza solo se il controllore è d'accordo e il traffico lo permette.</p>
+  </dialog>
+
   <dialog id="catalogSheet" class="modal glass">
     <header class="modal-head">
       <h3 data-i18n="cabin.catalogTitle">Listino di bordo</h3>
@@ -594,6 +647,8 @@
           <button type="button" data-lang="en">🇬🇧 English</button>
           <button type="button" data-lang="es">🇪🇸 Español</button>
           <button type="button" data-lang="de">🇩🇪 Deutsch</button>
+          <button type="button" data-lang="fr">🇫🇷 Français</button>
+          <button type="button" data-lang="pt">🇧🇷 Português</button>
         </div>
       </div>
     </section>
@@ -677,6 +732,8 @@
   <script src="js/strings.js"></script>
   <script src="js/strings-es.js"></script>
   <script src="js/strings-de.js"></script>
+  <script src="js/strings-fr.js"></script>
+  <script src="js/strings-pt.js"></script>
   <script src="js/i18n.js"></script>
   <script src="js/icons.js"></script>
   <script src="js/callsigns.js"></script>
@@ -703,6 +760,10 @@
   <script src="js/phrasebook-data.js"></script>
   <script src="js/announcements-data.js"></script>
   <script src="js/nextcall.js"></script>
+  <script src="js/taxi.js"></script>
+  <script src="js/landing.js"></script>
+  <script src="js/gamepad.js"></script>
+  <script src="js/emergency.js"></script>
   <script src="js/compliance.js"></script>
   <script src="js/app.js"></script>
   <script src="js/sheet.js"></script>
@@ -717,6 +778,9 @@
   <script src="js/announcements.js"></script>
   <script src="js/nextcall-ui.js"></script>
   <script src="js/sim-ui.js"></script>
+  <script src="js/taxi-ui.js"></script>
+  <script src="js/debrief.js"></script>
+  <script src="js/emergency-ui.js"></script>
   <script src="js/pro.js"></script>
   <script src="js/phrasebook.js"></script>
   <script src="js/onboarding.js"></script>

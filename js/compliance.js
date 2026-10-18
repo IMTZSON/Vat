@@ -5,7 +5,7 @@
   'use strict';
 
   // Tempi concessi per eseguire l'istruzione prima di avvisare (ms)
-  const GRACE = { squawk: 20000, freq: 30000, qnh: 45000, level: 25000, heading: 20000 };
+  const GRACE = { squawk: 20000, freq: 30000, qnh: 45000, level: 25000, heading: 20000, levelTrend: 60000, headingTrend: 45000 };
   const EXPIRE = { freq: 180000, qnh: 600000, level: 900000, heading: 300000 };
 
   const emptyState = () => ({ squawk: null, freq: null, qnh: null, level: null, heading: null });
@@ -70,6 +70,16 @@
     if (s.heading && alive(s.heading, 'heading') && typeof sim.hdgSel === 'number' && !sim.onGround) {
       const ok = angle(sim.hdgSel, s.heading.deg) <= 5;
       out.push({ type: 'heading', status: ok ? 'ok' : (due(s.heading, 'heading') ? 'warn' : 'wait'), key: ok ? 'sim.okHeading' : 'sim.badHeading', vars: { want: s.heading.text, have: String(sim.hdgSel).padStart(3, '0') } });
+    }
+    // Aerei senza selettori leggibili (Fenix, PMDG…): si guarda cosa fa davvero l'aereo
+    if (s.level && alive(s.level, 'level') && !(sim.altSel > 0) && typeof sim.alt === 'number' && typeof sim.vs === 'number' && !sim.onGround) {
+      const diff = s.level.ft - sim.alt;
+      const ok = Math.abs(diff) <= 300 || (Math.abs(sim.vs) >= 300 && Math.sign(sim.vs) === Math.sign(diff));
+      out.push({ type: 'level', status: ok ? 'ok' : (t - s.level.at >= GRACE.levelTrend ? 'warn' : 'wait'), key: ok ? 'sim.okLevel' : (diff > 0 ? 'sim.notClimbing' : 'sim.notDescending'), vars: { want: s.level.text, have: `${Math.round(sim.alt / 100) * 100} ft` } });
+    }
+    if (s.heading && alive(s.heading, 'heading') && typeof sim.hdgSel !== 'number' && typeof sim.hdg === 'number' && !sim.onGround) {
+      const ok = angle(sim.hdg, s.heading.deg) <= 10;
+      out.push({ type: 'heading', status: ok ? 'ok' : (t - s.heading.at >= GRACE.headingTrend ? 'warn' : 'wait'), key: ok ? 'sim.okHeading' : 'sim.offHeading', vars: { want: s.heading.text, have: String(sim.hdg).padStart(3, '0') } });
     }
     const rank = { warn: 0, wait: 1, ok: 2 };
     return out.sort((a, b) => rank[a.status] - rank[b.status]);

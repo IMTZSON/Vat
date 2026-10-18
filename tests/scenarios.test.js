@@ -83,3 +83,25 @@ test('METAR decodificato in inglese', () => {
     I18n.lang = 'it';
   }
 });
+
+test('prova generale: il volo completo usa frequenze, fix, QNH e taxiway veri', () => {
+  const Sc = require('../js/scenarios.js');
+  const steps = Sc.fullFlight({
+    seed: 7, callsign: 'AZA123', dep: 'LIRF', arr: 'LIMC', depRwy: '16L', arrRwy: '35R', cruise: 360,
+    freqs: { center: '125.500', arrApproach: '126.750', arrTower: '119.000', arrGround: '121.875' },
+    fixes: ['ELKAP', 'TORLI', 'X1'], qnhDep: 1013, qnhArr: 1009, twys: ['A', 'B', 'C3', 'K'], centerName: 'Roma Control',
+  });
+  const all = steps.map((s) => s.atc).join(' | ');
+  assert.match(all, /contact Roma Control 125\.5\b/);
+  assert.match(all, /(Milano|Malpensa) Approach 126\.75\b/);
+  assert.match(all, /(Milano|Malpensa) Tower 119\.0\b/);
+  assert.match(all, /(Milano|Malpensa) Ground 121\.875\b/);
+  assert.match(all, /QNH 1013/);
+  assert.match(all, /QNH 1009/);
+  assert.match(all, /direct (ELKAP|TORLI)/);
+  assert.doesNotMatch(all, /direct X1/);
+  const taxi = steps.find((s) => /taxi to holding point/.test(s.atc)).atc;
+  assert.match(taxi, /via (Alpha|Bravo|Kilo) (Alpha|Bravo|Kilo)/, taxi);
+  assert.strictEqual(Sc.normFreq('121.800'), '121.8');
+  assert.strictEqual(Sc.normFreq('132.905'), '132.905');
+});

@@ -20,7 +20,7 @@ test('ogni testo ha italiano e inglese, con gli stessi segnaposto', () => {
   }
 });
 
-for (const lang of ['es', 'de']) {
+for (const lang of ['es', 'de', 'fr', 'pt']) {
   test(`${lang}: ogni chiave tradotta, stessi segnaposto e markup dell'inglese, nessuna chiave in più`, () => {
     const X = require(`../js/strings-${lang}.js`).STRINGS;
     const ph = (s) => (s.match(/\{\w+\}/g) || []).sort().join(',');
@@ -56,6 +56,27 @@ test('spagnolo e tedesco: testi, contenuti con ripiego inglese, formati locali',
     assert.match(M.decode('EDDF 121250Z 24008KT 9999 -SHRA BKN030 12/08 Q1009').lines.join(' | '), /Wind: aus 240° mit 8 kt.*Schauer, Regen \(leicht\).*stark bewölkt in 3000 ft/);
     I18n.lang = 'es';
     assert.match(M.decode('LEMD 121250Z VRB02KT CAVOK 18/05 Q1020').lines.join(' | '), /Viento: variable a 2 kt.*CAVOK: visibilidad/);
+  } finally {
+    I18n.lang = was;
+  }
+});
+
+test('francese e portoghese: testi, ripiego inglese per i contenuti, formati locali, METAR', () => {
+  const was = I18n.lang;
+  try {
+    for (const lang of ['fr', 'pt']) {
+      I18n.lang = lang;
+      const X = require(`../js/strings-${lang}.js`).STRINGS;
+      assert.strictEqual(I18n.t('em.title'), X['em.title']);
+      assert.strictEqual(I18n.pick(['Ciao', 'Hello', 'Hola', 'Hallo']), 'Hello');
+      assert.strictEqual(I18n.decimal(), ',');
+      assert.strictEqual(I18n.locale(), lang === 'fr' ? 'fr-FR' : 'pt-BR');
+    }
+    const M = require('../js/metar.js');
+    I18n.lang = 'fr';
+    assert.match(M.decode('LFPG 121250Z 24008KT 9999 -SHRA BKN030 12/08 Q1009').lines.join(' | '), /Vent: du 240° à 8 kt.*averses, pluie \(faible\).*nuageux à 3000 ft/);
+    I18n.lang = 'pt';
+    assert.match(M.decode('SBGR 121250Z VRB02KT CAVOK 18/05 Q1020').lines.join(' | '), /Vento: variável a 2 kt.*CAVOK: visibilidade/);
   } finally {
     I18n.lang = was;
   }
