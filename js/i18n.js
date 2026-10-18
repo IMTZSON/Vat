@@ -1,16 +1,23 @@
-/* Traduzioni (italiano / inglese).
+/* Traduzioni: italiano, inglese, spagnolo, tedesco.
    I testi stanno in strings.js come { chiave: [italiano, inglese] }: tenere le due lingue
    affiancate rende impossibile dimenticarne una (lo controlla anche tests/i18n.test.js).
+   Spagnolo e tedesco stanno in strings-es.js e strings-de.js ({ chiave: testo }); una chiave
+   mancante, e i contenuti bilingui ["italiano", "inglese"] (checklist, frasario…), usano l'inglese.
    Nell'HTML: data-i18n="chiave" (testo), data-i18n-html (testo con markup fidato),
    data-i18n-title, data-i18n-placeholder, data-i18n-aria (attributi). */
 (function (root) {
   'use strict';
 
-  const STRINGS = (typeof require === 'function' && typeof module !== 'undefined')
-    ? require('./strings.js').STRINGS
-    : (root.Strings && root.Strings.STRINGS) || {};
+  const isNode = typeof require === 'function' && typeof module !== 'undefined';
+  const STRINGS = isNode ? require('./strings.js').STRINGS : (root.Strings && root.Strings.STRINGS) || {};
+  const extra = (file, name) => {
+    if (isNode) { try { return require(file).STRINGS; } catch (e) { return {}; } }
+    return (root[name] && root[name].STRINGS) || {};
+  };
+  const EXTRA = { es: extra('./strings-es.js', 'StringsEs'), de: extra('./strings-de.js', 'StringsDe') };
 
-  const LANGS = ['it', 'en'];
+  const LANGS = ['it', 'en', 'es', 'de'];
+  const LOCALES = { it: 'it-IT', en: 'en-GB', es: 'es-ES', de: 'de-DE' };
   const listeners = [];
 
   function detect() {
@@ -26,7 +33,7 @@
     LANGS,
     lang: 'it',
 
-    // lang: 'auto' | 'it' | 'en'
+    // lang: 'auto' | 'it' | 'en' | 'es' | 'de'
     setLang(lang) {
       const next = LANGS.includes(lang) ? lang : detect();
       const changed = next !== this.lang;
@@ -47,19 +54,23 @@
       const entry = STRINGS[key];
       let s;
       if (!entry) s = key;
+      else if (EXTRA[this.lang]) s = EXTRA[this.lang][key] || entry[1] || entry[0];
       else s = entry[LANGS.indexOf(this.lang)] || entry[0];
       if (vars) s = s.replace(/\{(\w+)\}/g, (m, k) => (vars[k] === undefined || vars[k] === null ? '' : String(vars[k])));
       return s;
     },
 
-    // Testo di contenuto bilingue: "testo" oppure ["italiano", "inglese"]
+    // Testo di contenuto: "testo" oppure ["italiano", "inglese"(, "español", "deutsch")]; senza la lingua, l'inglese
     pick(x) {
       if (!Array.isArray(x)) return x;
-      return x[LANGS.indexOf(this.lang)] || x[0];
+      return x[LANGS.indexOf(this.lang)] || x[1] || x[0];
     },
 
     // Locale per date, ore e valute
-    locale() { return this.lang === 'it' ? 'it-IT' : 'en-GB'; },
+    locale() { return LOCALES[this.lang] || 'en-GB'; },
+
+    // Separatore decimale della lingua ("," in italiano, spagnolo e tedesco)
+    decimal() { return (1.5).toLocaleString(this.locale()).charAt(1); },
 
     time(d, withSeconds) {
       const opts = { hour: '2-digit', minute: '2-digit' };

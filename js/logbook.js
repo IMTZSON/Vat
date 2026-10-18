@@ -110,7 +110,7 @@
       if (!list.length) { App.toast(t('log.emptyExport')); return; }
       const head = t('log.csvHead');
       const iso = (t) => (t ? new Date(t).toISOString().slice(11, 16) : '');
-      const dec = root.I18n.lang === 'it' ? ',' : '.';
+      const dec = root.I18n.decimal();
       const rows = list.map((x) => [x.date, x.callsign, x.dep, x.arr, x.aircraft, iso(x.offBlock), iso(x.takeoff), iso(x.landing), iso(x.onBlock), hhmm(x.blockMin), hhmm(x.airMin), (Number(x.revenue) || 0).toFixed(2).replace('.', dec), x.sold || ''].join(';'));
       const ok = await App.desktop.saveText(`logbook-${new Date().toISOString().slice(0, 10)}.csv`, [head, ...rows].join('\n'));
       if (ok) App.toast(t('log.exported'));

@@ -50,7 +50,7 @@
           <button class="icon-btn" title="${t('common.delete')}">${root.Icons.svg('trash-2')}</button>`;
         const [name, price, stock] = [row.querySelector('.name'), row.querySelector('.price'), row.querySelector('.stock')];
         name.value = it.name;
-        price.value = root.I18n.lang === 'it' ? String(it.price).replace('.', ',') : String(it.price);
+        price.value = String(it.price).replace('.', root.I18n.decimal());
         stock.value = it.stock;
         name.addEventListener('change', () => { it.name = name.value; saveCatalog(); });
         price.addEventListener('change', () => { it.price = Math.max(0, Number(price.value.replace(',', '.')) || 0); saveCatalog(); });
@@ -64,7 +64,7 @@
       if (!name) return;
       const cat = (prompt(t('cabin.promptCat'), 'snack') || 'snack').toLowerCase().trim();
       const map = { bevande: 'drink', bevanda: 'drink', drink: 'drink', drinks: 'drink', snack: 'snack', snacks: 'snack', pasti: 'meal', pasto: 'meal', meal: 'meal', meals: 'meal', 'duty free': 'duty', duty: 'duty' };
-      const price = Number((prompt(t('cabin.promptPrice'), root.I18n.lang === 'it' ? '3,00' : '3.00') || '0').replace(',', '.')) || 0;
+      const price = Number((prompt(t('cabin.promptPrice'), `3${root.I18n.decimal()}00`) || '0').replace(',', '.')) || 0;
       catalog().push({ id: `x${Date.now()}`, name, cat: map[cat] || 'snack', price, stock: 20, pop: 0.6 });
       saveCatalog();
       renderCatalog();

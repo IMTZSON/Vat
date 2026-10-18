@@ -2,7 +2,7 @@
 
 **Il tuo copilota radio per VATSIM.** Ascolta l'ATC e ti mostra subito, in grande, **cosa ripetere**, verificando ogni numero. Ti allena con un ATC simulato, valuta i readback che dici davvero, prepara il volo con SimBrief, meteo e controllori online, e contiene un frasario completo.
 
-Programma per **Windows (.exe)** e pagina web · Interfaccia in **italiano e inglese** · [English below](#english)
+Programma per **Windows (.exe)** e pagina web · Interfaccia in **italiano, inglese, spagnolo e tedesco** · [English below](#english)
 
 ---
 
@@ -126,7 +126,7 @@ npm run dist         # crea gli .exe (su Windows)
 node scripts/eval-audio.js cartella   # precisione su audio reali (GROQ_API_KEY o --local URL)
 ```
 
-**Traduzioni**: ogni testo sta in `js/strings.js` con italiano e inglese affiancati; `tests/i18n.test.js` fallisce se manca una lingua, una chiave o un segnaposto.
+**Traduzioni**: ogni testo sta in `js/strings.js` con italiano e inglese affiancati; spagnolo e tedesco in `js/strings-es.js` e `js/strings-de.js` (chiave → testo; ciò che manca usa l'inglese). `tests/i18n.test.js` fallisce se manca una lingua, una chiave, un segnaposto o un tag.
 
 **Firma del codice**: aggiungi ai secret del repository `WIN_CSC_LINK` (certificato `.pfx` in base64) e `WIN_CSC_KEY_PASSWORD`: la CI firma gli .exe da sola.
 
@@ -144,7 +144,7 @@ node scripts/eval-audio.js cartella   # precisione su audio reali (GROQ_API_KEY 
 
 ## English
 
-**Your radio copilot for VATSIM.** It listens to ATC and instantly shows you, in big letters, **what to read back**, checking every number. It trains you with simulated ATC, scores the readbacks you actually say, prepares your flight with SimBrief, weather and online controllers, and includes a full phrasebook. Windows app and web page; the interface is in **English and Italian** (Settings → Language, or the first-run setup).
+**Your radio copilot for VATSIM.** It listens to ATC and instantly shows you, in big letters, **what to read back**, checking every number. It trains you with simulated ATC, scores the readbacks you actually say, prepares your flight with SimBrief, weather and online controllers, and includes a full phrasebook. Windows app and web page; the interface is in **English, Italian, Spanish and German** (Settings → Language, or the first-run setup).
 
 **Download** the latest build from **Releases** (`Setup` installer or `Portable`). If Windows says "Windows protected your PC", click **More info → Run anyway**. On first launch a **guided setup** walks you through language, callsign, speech recognition (with a key test) and a **live audio test**.
 

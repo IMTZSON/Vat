@@ -8,7 +8,7 @@
 |---|---|---|
 | Precisione | Prompt di Whisper con numeri di esempio (rischio di numeri "copiati"); trascrizioni fuori ordine; soglia manuale | Prompt senza numeri, filtro frasi fantasma ed eco, ordine garantito, soglia automatica, AudioWorklet |
 | Copertura | 14 aeroporti italiani, ~45 compagnie | 13.850 aeroporti con piste, 860 compagnie, centri VATSIM di tutto il mondo |
-| Lingue | Solo italiano | Italiano e inglese, verificati da test |
+| Lingue | Solo italiano | Italiano, inglese, spagnolo e tedesco, verificati da test |
 | Primo avvio | 3 card statiche, VB-Cable spiegato a parole | Configurazione guidata con prova audio dal vivo e trascrizione |
 | Dati | `localStorage` legato alla porta (impostazioni perse se cambiava) | File nella cartella utente, condiviso con Chrome |
 | Differenziazione | Readback suggerito | + **Coach**: valuta il readback che dici davvero e cosa dimentichi più spesso |
@@ -35,7 +35,7 @@ Messaggio in una riga: *"Vola su VATSIM senza paura della radio."*
 
 Segmenti, in ordine:
 1. **Nuovi piloti VATSIM** (il blocco principale all'ingresso è la fraseologia): bisogno forte, alta disponibilità a provare.
-2. **Piloti non madrelingua inglese**: Italia (già coperta), poi Spagna, Germania, Francia, Brasile. L'interfaccia bilingue è il primo passo; spagnolo e tedesco sono i prossimi (l'architettura delle traduzioni è pronta).
+2. **Piloti non madrelingua inglese**: Italia (già coperta), poi Spagna, Germania, Francia, Brasile. Interfaccia già in spagnolo e tedesco; francese e portoghese sono i prossimi (basta un file di traduzione).
 3. **Scuole e vACC training departments**: il coach e l'harness di precisione sono strumenti didattici misurabili.
 
 ## 4. Modello di ricavo
@@ -54,7 +54,7 @@ Serve un piccolo backend (proxy di trascrizione con autenticazione e limiti, pag
 ## 5. Lancio (prime 6 settimane)
 
 1. **Settimana 1**: merge su `main`, certificato, release 4.0 stabile, landing page (screenshot + video di 60 secondi con un volo reale).
-2. **Settimana 2**: post su forum VATSIM, subreddit r/flightsim e r/VATSIM, gruppi Facebook e Discord italiani (es. comunità vACC Italia). Messaggio: "gratis, in italiano e inglese, non parla al posto tuo".
+2. **Settimana 2**: post su forum VATSIM, subreddit r/flightsim e r/VATSIM, gruppi Facebook e Discord italiani (es. comunità vACC Italia). Messaggio: "gratis, in italiano, inglese, spagnolo e tedesco, non parla al posto tuo".
 3. **Settimane 3–4**: 5–10 creator YouTube/Twitch di flight sim (volo in diretta con l'overlay compatto: è l'immagine più forte del prodotto).
 4. **Settimane 5–6**: contatto con i training department dei vACC (Italia, Spagna, Germania): coach e allenamento come materiale per gli studenti.
 
@@ -79,7 +79,7 @@ Il dato sulla precisione misurata è il più importante: raccogliere un set di 1
 
 ## 8. Roadmap tecnica successiva
 
-1. Spagnolo e tedesco (solo `js/strings.js`).
+1. ~~Spagnolo e tedesco~~ — fatto in 4.x (interfaccia e METAR/TAF; checklist, frasario e annunci restano in inglese/italiano). Prossime: francese e portoghese (Brasile), un file `js/strings-xx.js` ciascuna.
 2. Telemetria opt-in e anonima per le metriche sopra.
 3. ~~Rilevamento del PTT di vPilot~~ — fatto in 4.0 (tastiera e pulsanti del mouse; i pulsanti del joystick non sono ancora supportati).
 4. Proxy di trascrizione Pro (backend minimo) e pagamenti.

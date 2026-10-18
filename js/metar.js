@@ -4,33 +4,47 @@
 
   const isNode = typeof require === 'function' && typeof module !== 'undefined';
   const I18n = isNode ? require('./i18n.js') : root.I18n;
-  const en = () => !!I18n && I18n.lang === 'en';
-  const P = (pair) => pair[en() ? 1 : 0];
+  const LANGS = ['it', 'en', 'es', 'de'];
+  const lang = () => (I18n && LANGS.includes(I18n.lang) ? I18n.lang : 'it');
+  const en = () => lang() === 'en';
+  const P = (row) => row[LANGS.indexOf(lang())] || row[1];
 
-  // Fenomeni [italiano, inglese]
+  // Fenomeni [italiano, inglese, spagnolo, tedesco]
   const WX = {
-    MI: ['sottile', 'shallow'], BC: ['a banchi', 'patches of'], PR: ['parziale', 'partial'], DR: ['scaccia-', 'low drifting'], BL: ['sollevata', 'blowing'],
-    SH: ['rovesci di', 'showers of'], TS: ['temporale', 'thunderstorm'], FZ: ['congelante', 'freezing'],
-    DZ: ['pioviggine', 'drizzle'], RA: ['pioggia', 'rain'], SN: ['neve', 'snow'], SG: ['neve granulosa', 'snow grains'], IC: ['cristalli di ghiaccio', 'ice crystals'], PL: ['ghiaccio granulare', 'ice pellets'],
-    GR: ['grandine', 'hail'], GS: ['granella', 'small hail'], UP: ['precipitazione', 'precipitation'], BR: ['foschia', 'mist'], FG: ['nebbia', 'fog'], FU: ['fumo', 'smoke'], VA: ['cenere vulcanica', 'volcanic ash'],
-    DU: ['polvere', 'dust'], SA: ['sabbia', 'sand'], HZ: ['caligine', 'haze'], PO: ['turbini di polvere', 'dust whirls'], SQ: ['groppo', 'squalls'], FC: ['tromba d\'aria', 'funnel cloud'],
-    SS: ['tempesta di sabbia', 'sandstorm'], DS: ['tempesta di polvere', 'duststorm'],
+    MI: ['sottile', 'shallow', 'baja', 'flach'], BC: ['a banchi', 'patches of', 'en bancos', 'Schwaden'], PR: ['parziale', 'partial', 'parcial', 'teilweise'],
+    DR: ['scaccia-', 'low drifting', 'ventisca baja', 'fegend'], BL: ['sollevata', 'blowing', 'ventisca alta', 'treibend'],
+    SH: ['rovesci di', 'showers of', 'chubascos', 'Schauer'], TS: ['temporale', 'thunderstorm', 'tormenta', 'Gewitter'], FZ: ['congelante', 'freezing', 'engelante', 'gefrierend'],
+    DZ: ['pioviggine', 'drizzle', 'llovizna', 'Niesel'], RA: ['pioggia', 'rain', 'lluvia', 'Regen'], SN: ['neve', 'snow', 'nieve', 'Schnee'],
+    SG: ['neve granulosa', 'snow grains', 'cinarra', 'Schneegriesel'], IC: ['cristalli di ghiaccio', 'ice crystals', 'cristales de hielo', 'Eiskristalle'],
+    PL: ['ghiaccio granulare', 'ice pellets', 'hielo granulado', 'Eiskörner'], GR: ['grandine', 'hail', 'granizo', 'Hagel'], GS: ['granella', 'small hail', 'granizo menudo', 'Graupel'],
+    UP: ['precipitazione', 'precipitation', 'precipitación', 'Niederschlag'], BR: ['foschia', 'mist', 'neblina', 'feuchter Dunst'], FG: ['nebbia', 'fog', 'niebla', 'Nebel'],
+    FU: ['fumo', 'smoke', 'humo', 'Rauch'], VA: ['cenere vulcanica', 'volcanic ash', 'ceniza volcánica', 'Vulkanasche'], DU: ['polvere', 'dust', 'polvo', 'Staub'],
+    SA: ['sabbia', 'sand', 'arena', 'Sand'], HZ: ['caligine', 'haze', 'calima', 'trockener Dunst'], PO: ['turbini di polvere', 'dust whirls', 'remolinos de polvo', 'Staubwirbel'],
+    SQ: ['groppo', 'squalls', 'turbonada', 'Böen'], FC: ['tromba d\'aria', 'funnel cloud', 'nube embudo', 'Trichterwolke'],
+    SS: ['tempesta di sabbia', 'sandstorm', 'tempestad de arena', 'Sandsturm'], DS: ['tempesta di polvere', 'duststorm', 'tempestad de polvo', 'Staubsturm'],
   };
   const COVER = {
-    FEW: ['poche nubi', 'few clouds'], SCT: ['nubi sparse', 'scattered clouds'], BKN: ['molto nuvoloso', 'broken clouds'], OVC: ['coperto', 'overcast'],
-    VV: ['cielo invisibile, visibilità verticale', 'sky obscured, vertical visibility'],
+    FEW: ['poche nubi', 'few clouds', 'pocas nubes', 'wenige Wolken'], SCT: ['nubi sparse', 'scattered clouds', 'nubes dispersas', 'aufgelockert'],
+    BKN: ['molto nuvoloso', 'broken clouds', 'nuboso', 'stark bewölkt'], OVC: ['coperto', 'overcast', 'cubierto', 'bedeckt'],
+    VV: ['cielo invisibile, visibilità verticale', 'sky obscured, vertical visibility', 'cielo oculto, visibilidad vertical', 'Himmel nicht erkennbar, Vertikalsicht'],
   };
   const WX_RE = /^(\+|-|VC)?((?:MI|BC|PR|DR|BL|SH|TS|FZ)*)((?:DZ|RA|SN|SG|IC|PL|GR|GS|UP|BR|FG|FU|VA|DU|SA|HZ|PO|SQ|FC|SS|DS)*)$/;
   const T = {
-    time: ['giorno {d} alle {h}:{m} UTC', 'day {d} at {h}:{m} UTC'],
-    light: ['leggera', 'light'], heavy: ['forte', 'heavy'], vicinity: ['nelle vicinanze', 'in the vicinity'],
-    wind: ['Vento', 'Wind'], calm: ['calmo', 'calm'], variable: ['variabile', 'variable'], from: ['da {dir}°', 'from {dir}°'], at: ['a', 'at'],
-    kt: ['nodi', 'kt'], gusts: ['raffiche', 'gusting'], varBetween: ['variabile tra {a}° e {b}°', 'varying between {a}° and {b}°'],
-    cavok: ['CAVOK: visibilità 10 km o più, nessuna nube significativa', 'CAVOK: visibility 10 km or more, no significant cloud'],
-    vis: ['Visibilità', 'Visibility'], vis10: ['10 km o più', '10 km or more'], phen: ['Fenomeni', 'Weather'], clouds: ['Nubi', 'Clouds'],
-    at_ft: ['a {ft} ft', 'at {ft} ft'], cb: ['(cumulonembi!)', '(cumulonimbus!)'], tcu: ['(cumuli torreggianti)', '(towering cumulus)'],
-    noClouds: ['nessuna significativa', 'none significant'], temp: ['Temperatura {t}°C, rugiada {d}', 'Temperature {t}°C, dew point {d}'], na: ['n/d', 'n/a'],
-    altimeter: ['Altimetro', 'Altimeter'], trend: ['Tendenza', 'Trend'], nosig: ['nessun cambiamento significativo', 'no significant change'],
+    time: ['giorno {d} alle {h}:{m} UTC', 'day {d} at {h}:{m} UTC', 'día {d} a las {h}:{m} UTC', 'Tag {d} um {h}:{m} UTC'],
+    light: ['leggera', 'light', 'débil', 'leicht'], heavy: ['forte', 'heavy', 'fuerte', 'stark'], vicinity: ['nelle vicinanze', 'in the vicinity', 'en las proximidades', 'in der Nähe'],
+    wind: ['Vento', 'Wind', 'Viento', 'Wind'], calm: ['calmo', 'calm', 'en calma', 'still'], variable: ['variabile', 'variable', 'variable', 'umlaufend'],
+    from: ['da {dir}°', 'from {dir}°', 'de {dir}°', 'aus {dir}°'], at: ['a', 'at', 'a', 'mit'],
+    kt: ['nodi', 'kt', 'kt', 'kt'], gusts: ['raffiche', 'gusting', 'rachas', 'Böen'],
+    varBetween: ['variabile tra {a}° e {b}°', 'varying between {a}° and {b}°', 'variable entre {a}° y {b}°', 'wechselnd zwischen {a}° und {b}°'],
+    cavok: ['CAVOK: visibilità 10 km o più, nessuna nube significativa', 'CAVOK: visibility 10 km or more, no significant cloud', 'CAVOK: visibilidad de 10 km o más, sin nubes significativas', 'CAVOK: Sicht 10 km oder mehr, keine signifikante Bewölkung'],
+    vis: ['Visibilità', 'Visibility', 'Visibilidad', 'Sicht'], vis10: ['10 km o più', '10 km or more', '10 km o más', '10 km oder mehr'],
+    phen: ['Fenomeni', 'Weather', 'Fenómenos', 'Wetter'], clouds: ['Nubi', 'Clouds', 'Nubes', 'Wolken'],
+    at_ft: ['a {ft} ft', 'at {ft} ft', 'a {ft} ft', 'in {ft} ft'], cb: ['(cumulonembi!)', '(cumulonimbus!)', '(¡cumulonimbos!)', '(Cumulonimbus!)'],
+    tcu: ['(cumuli torreggianti)', '(towering cumulus)', '(cúmulos de desarrollo)', '(Cumulus congestus)'],
+    noClouds: ['nessuna significativa', 'none significant', 'ninguna significativa', 'keine signifikanten'],
+    temp: ['Temperatura {t}°C, rugiada {d}', 'Temperature {t}°C, dew point {d}', 'Temperatura {t}°C, punto de rocío {d}', 'Temperatur {t}°C, Taupunkt {d}'], na: ['n/d', 'n/a', 'n/d', 'k. A.'],
+    altimeter: ['Altimetro', 'Altimeter', 'Altímetro', 'Höhenmesser'], trend: ['Tendenza', 'Trend', 'Tendencia', 'Trend'],
+    nosig: ['nessun cambiamento significativo', 'no significant change', 'sin cambios significativos', 'keine signifikante Änderung'],
   };
   const tx = (k, v) => P(T[k]).replace(/\{(\w+)\}/g, (m, x) => (v && v[x] !== undefined ? v[x] : ''));
 
@@ -41,7 +55,12 @@
     const desc = (m[2].match(/../g) || []).map((c) => P(WX[c]));
     const phen = (m[3].match(/../g) || []).map((c) => P(WX[c]));
     let txt;
-    if (en()) {
+    if (lang() === 'es' || lang() === 'de') {
+      // "chubascos, lluvia (débil)" / "Schauer, Regen (leicht)"
+      const k = m[1] === '-' ? tx('light') : m[1] === '+' ? tx('heavy') : '';
+      txt = [...desc, ...phen].join(', ') + (k ? ` (${k})` : '');
+      if (m[1] === 'VC') txt += ` ${tx('vicinity')}`;
+    } else if (en()) {
       // "light showers of rain", "thunderstorm with rain", "rain in the vicinity"
       const d = desc.map((x) => (x === 'thunderstorm' && phen.length ? 'thunderstorm with' : x));
       txt = [m[1] === '-' ? tx('light') : m[1] === '+' ? tx('heavy') : '', ...d, ...phen].filter(Boolean).join(' ');
