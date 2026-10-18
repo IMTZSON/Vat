@@ -46,7 +46,55 @@
     for (let i = best.i + 1; i < legs.length; i++) remaining += legs[i];
     remaining = Math.min(remaining, total + best.d);
     const flown = Math.max(0, total - remaining);
-    return { total, flown, remaining, pct: total ? Math.min(1, flown / total) : 0, next: route[best.i + 1], offRoute: best.d };
+    const a = route[best.i];
+    const b = route[best.i + 1];
+    const at = { lat: a.lat + (b.lat - a.lat) * best.t, lon: a.lon + (b.lon - a.lon) * best.t };
+    return { total, flown, remaining, pct: total ? Math.min(1, flown / total) : 0, next: b, offRoute: best.d, leg: best.i, at };
+  }
+
+  // Punto intermedio sull'arco di cerchio massimo tra a e b (f da 0 a 1)
+  function interpolate(a, b, f) {
+    const p1 = rad(a.lat); const l1 = rad(a.lon);
+    const p2 = rad(b.lat); const l2 = rad(b.lon);
+    const d = 2 * Math.asin(Math.sqrt(Math.sin((p2 - p1) / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin((l2 - l1) / 2) ** 2));
+    if (d < 1e-9) return { lat: a.lat, lon: a.lon };
+    const A = Math.sin((1 - f) * d) / Math.sin(d);
+    const B = Math.sin(f * d) / Math.sin(d);
+    const x = A * Math.cos(p1) * Math.cos(l1) + B * Math.cos(p2) * Math.cos(l2);
+    const y = A * Math.cos(p1) * Math.sin(l1) + B * Math.cos(p2) * Math.sin(l2);
+    const z = A * Math.sin(p1) + B * Math.sin(p2);
+    return { lat: (Math.atan2(z, Math.sqrt(x * x + y * y)) * 180) / Math.PI, lon: (Math.atan2(y, x) * 180) / Math.PI };
+  }
+
+  // Posizione dopo `nm` miglia in direzione `hdg` (stima tra un dato VATSIM e l'altro)
+  function destination(p, hdg, nm) {
+    const d = nm / R_NM;
+    const t = rad(hdg);
+    const p1 = rad(p.lat);
+    const p2 = Math.asin(Math.sin(p1) * Math.cos(d) + Math.cos(p1) * Math.sin(d) * Math.cos(t));
+    const l2 = rad(p.lon) + Math.atan2(Math.sin(t) * Math.sin(d) * Math.cos(p1), Math.cos(d) - Math.sin(p1) * Math.sin(p2));
+    return { lat: (p2 * 180) / Math.PI, lon: ((((l2 * 180) / Math.PI) + 540) % 360) - 180 };
+  }
+
+  /* Top of Descent con la regola 3:1 (3 NM ogni 1000 ft da perdere) + 10 NM per rallentare.
+     targetFt = quota dell'aeroporto di arrivo (0 se non nota). */
+  function todDistance(altFt, targetFt) {
+    if (!altFt || altFt < 3000) return 0;
+    return Math.max(0, ((altFt - (targetFt || 0)) / 1000) * 3 + 10);
+  }
+
+  // Punto della rotta che si trova a `nm` miglia dalla fine
+  function pointAlong(route, nm) {
+    if (!route || route.length < 2) return null;
+    let left = Math.max(0, nm);
+    for (let i = route.length - 1; i > 0; i--) {
+      const a = route[i - 1];
+      const b = route[i];
+      const leg = distance(a, b);
+      if (left <= leg) return interpolate(b, a, leg ? left / leg : 0);
+      left -= leg;
+    }
+    return { lat: route[0].lat, lon: route[0].lon };
   }
 
   /* Arco di cerchio massimo da a a b in n segmenti: [[lat, lon], ...]. Le longitudini restano continue
@@ -122,7 +170,7 @@
     return out;
   }
 
-  const api = { distance, bearing, greatCircle, routeProgress, eta, phase, events, PHASES };
+  const api = { distance, bearing, routeProgress, interpolate, greatCircle, destination, todDistance, pointAlong, eta, phase, events, PHASES };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Geo = api;
 })(this);

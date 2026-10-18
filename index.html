@@ -97,6 +97,7 @@
       <div>
         <div class="eyebrow" data-i18n="hud.phase">Fase</div>
         <div id="trkPhase" class="hud-phase" data-i18n="hud.notTracked">Non tracciato</div>
+        <div id="trkTod" class="hud-tod" hidden></div>
       </div>
       <button id="trackToggle" class="pill-btn accent"><i data-icon="navigation"></i> <span data-i18n="hud.follow">Segui volo</span></button>
     </div>
@@ -185,6 +186,7 @@
       <!-- ============================================================ VOLO -->
       <section class="view" data-view="flight" data-title="Volo" data-i18n-title-key="tab.flight" hidden>
         <div id="flightSummary" class="route-card card"></div>
+        <div id="fuelCard" class="card fuel-card" hidden></div>
 
         <details class="card plan-card" id="planCard" open>
           <summary><i data-icon="route"></i><span data-i18n="flight.plan">Piano di volo</span><i data-icon="chevron-down" class="chev"></i></summary>
@@ -226,6 +228,28 @@
 
       <!-- ============================================================ BORDO -->
       <section class="view" data-view="cabin" data-title="Bordo" data-i18n-title-key="tab.cabin" hidden>
+        <div class="segmented big" id="cabinSeg">
+          <button data-sub="service" class="active" data-i18n="cabin.segService">Servizio</button>
+          <button data-sub="pa" data-i18n="cabin.segPa">Annunci</button>
+        </div>
+
+        <div class="subview" data-sub="pa" hidden>
+          <div class="card pa-hero" id="paHero"></div>
+          <div class="card form-card">
+            <div class="field wide"><span data-i18n="pa.lang">Lingua degli annunci</span>
+              <select id="paLang" data-setting="paLang" class="seg"><option value="it-en" data-i18n="pa.langBoth">IT + EN</option><option value="it">Italiano</option><option value="en">English</option></select>
+            </div>
+            <label class="field"><span data-i18n="pa.captain">Comandante</span><input id="captainName" data-setting="captainName" data-i18n-placeholder="pa.captainPh" placeholder="cognome (facoltativo)" autocomplete="off"></label>
+            <label class="field"><span data-i18n="pa.airline">Compagnia</span><input id="airlineName" data-setting="airlineName" data-i18n-placeholder="pa.airlinePh" placeholder="dal nominativo" autocomplete="off"></label>
+          </div>
+          <div class="section-head"><h2 data-i18n="pa.all">Tutti gli annunci</h2>
+            <div class="section-actions"><button id="paReset" class="icon-btn" data-i18n-title="pa.reset" title="Nuovo volo: azzera gli annunci letti"><i data-icon="rotate-ccw"></i></button></div>
+          </div>
+          <ol id="paList" class="pa-list"></ol>
+          <p class="footnote" data-i18n="pa.note">Gli annunci si compilano con il tuo volo.</p>
+        </div>
+
+        <div class="subview" data-sub="service">
         <div class="card cabin-hero">
           <div class="ring-wrap">
             <svg class="ring" viewBox="0 0 120 120"><circle class="ring-bg" cx="60" cy="60" r="52"/><circle id="cabRing" class="ring-fg" cx="60" cy="60" r="52"/></svg>
@@ -261,6 +285,7 @@
           <div class="section-actions"><button id="cabEditCatalog" class="pill-btn"><i data-icon="package"></i> <span data-i18n="cabin.catalog">Listino</span></button></div>
         </div>
         <ol id="cabTop" class="top-list card"></ol>
+        </div>
       </section>
 
       <!-- ============================================================ COCKPIT -->
@@ -643,6 +668,7 @@
   <script src="js/cabin-sim.js"></script>
   <script src="js/checklists-data.js"></script>
   <script src="js/phrasebook-data.js"></script>
+  <script src="js/announcements-data.js"></script>
   <script src="js/app.js"></script>
   <script src="js/sheet.js"></script>
   <script src="js/listen.js"></script>
@@ -653,6 +679,7 @@
   <script src="js/logbook.js"></script>
   <script src="js/cockpit.js"></script>
   <script src="js/cabin.js"></script>
+  <script src="js/announcements.js"></script>
   <script src="js/phrasebook.js"></script>
   <script src="js/onboarding.js"></script>
   <script src="js/updates.js"></script>

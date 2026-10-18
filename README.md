@@ -42,12 +42,20 @@ Il centro è la **mappa** con il tuo volo; sopra, in vetro, il pannello con 5 sc
 
 ### ✈️ Volo
 - **Tracking live** dal feed VATSIM: rotta, scia, fase del volo, livello, GS, NM rimanenti, ETA.
+  - L'aereo si muove **in modo fluido** anche tra un dato VATSIM e l'altro.
+  - La rotta già volata è piena, quella che manca è tratteggiata; con solo partenza e arrivo segue l'arco di cerchio massimo.
+- **Top of Descent**: in crociera l'HUD mostra "T/D tra X NM" e sulla mappa compare il punto T/D (regola 3:1). Poco prima ti avvisa di chiedere la discesa all'ATC.
+- Con SimBrief, card **Carburante**: rampa, trip, contingency, alternato, riserva, extra e pesi ZFW/TOW/LDW rispetto ai massimi.
 - Piano da **SimBrief** o a mano, **13.850 aeroporti** con piste in tutto il mondo.
 - **Meteo come un'app**: METAR spiegato in chiaro e **previsione TAF** ora per ora (icone, vento, visibilità, colore per categoria VFR/MVFR/IFR/LIFR), con le condizioni previste **alla partenza e all'arrivo** (segue l'ETA del tracking) e i peggioramenti temporanei (TEMPO/PROB) in evidenza.
 - **ATC online** con frequenze e ATIS, **le tue chiamate** già compilate con i nomi radio giusti.
 
 ### 🛒 Bordo · 📋 Cockpit · ⋯ Altro
 - Simulazione del **servizio di bordo** con listino modificabile.
+- **Annunci di cabina** (Bordo › Annunci), in italiano e/o inglese:
+  - 10 annunci pronti, compilati con il tuo volo: compagnia, destinazione, tempo che manca e meteo all'arrivo;
+  - li legge la voce di Windows, preceduti dal "din-don";
+  - l'app propone quello giusto per la fase del volo.
 - **Checklist** A320 e 737 suggerite dalla fase del volo, **note CRAFT** compilate da sole, **logbook** automatico (CSV).
 - **Allenamento** con ATC simulato a voce (anche un volo completo in 18 passi), **frasario** ICAO, impostazioni, privacy.
 
@@ -101,6 +109,7 @@ Pagina statica (`index.html`, `css/`, `js/`, `data/`) dentro una shell Electron 
 | `js/i18n.js`, `js/strings.js` | Traduzioni: `{ chiave: [italiano, inglese] }`, `data-i18n` nell'HTML |
 | `js/onboarding.js`, `js/updates.js` | Configurazione guidata, aggiornamenti (automatici o avviso) |
 | `electron/ptt.js`, `electron/updater.js` | Tasto PTT di sistema (uiohook-napi, solo osservazione), aggiornamento automatico (electron-updater) |
+| `js/announcements-data.js`, `js/announcements.js` | Annunci di cabina compilati con i dati del volo |
 | `js/app.js`, `js/listen.js`, `js/flight.js`, `js/tracking.js`, … | Interfaccia |
 | `electron/main.js`, `electron/store.js`, `electron/server.js` | Finestra, archivio dati su file, server locale (proxy, mappe, archivio per Chrome) |
 | `scripts/build-data.js` | Rigenera `data/world.json` e i dati della mappa (confini FIR, TRACON) da OurAirports, OpenFlights, VATSpy e SimAware |
@@ -148,7 +157,9 @@ node scripts/eval-audio.js cartella   # precisione su audio reali (GROQ_API_KEY 
 - **Radar map**: built-in offline base map; **all VATSIM and IVAO traffic** live with filters (network, ground/airborne/above FL245, your airports, search); controllers drawn on their **real sectors** — centres on their actual FIR/UIR (VATSpy), approaches on their TRACON area (SimAware), towers/ground/delivery as **D G T A** letters, no fake circles.
 - **Weather like an app**: decoded METAR plus the **TAF forecast** hour by hour (icons, wind, visibility, colour by flight category), with the conditions expected **at departure and at arrival** (following the tracking ETA) and temporary deteriorations highlighted.
 - **Worldwide data**: 13,850 airports with runways, 860 airline callsigns, VATSIM centre names.
-- Live flight tracking, SimBrief, pre-filled calls, cabin service simulation, A320/737 checklists, CRAFT notes, automatic logbook, training with voice ATC, ICAO phrasebook.
+- Live flight tracking with a **smooth aircraft** between VATSIM updates, flown/remaining route and the **Top of Descent** on the HUD and map (with a "request descent" reminder).
+- **Cabin announcements** (Italian and/or English) filled in with your flight, with the cabin chime, suggested by flight phase; SimBrief **fuel and weights** card.
+- SimBrief, pre-filled calls, cabin service simulation, A320/737 checklists, CRAFT notes, automatic logbook, training with voice ATC, ICAO phrasebook.
 - Data stays on your PC; see [PRIVACY.md](PRIVACY.md).
 
 **Shortcuts** (work with the simulator in front): `Ctrl+Shift+L` start/stop listening · `Ctrl+Shift+R` repeat the readback · `Ctrl+Shift+O` compact overlay.

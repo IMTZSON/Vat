@@ -52,6 +52,29 @@
     }
 
     // Card del percorso in stile Flighty: codici grandi, linea con l'aereo, dati essenziali
+    // Carburante e pesi dall'OFP SimBrief
+    function renderFuel() {
+      const f = App.flight;
+      const el = $('fuelCard');
+      const fp = f && f.fuelPlan;
+      el.hidden = !fp;
+      if (!fp) return;
+      const I = root.Icons.svg;
+      const u = (f.units || 'kgs').toLowerCase().startsWith('lb') ? 'lb' : 'kg';
+      const n = (v) => (v === null || v === undefined ? '—' : Number(v).toLocaleString(root.I18n.locale()));
+      const seg = ['trip', 'cont', 'altn', 'reserve', 'extra', 'taxi'].map((k) => [k, t(`fuel.${k}`), fp[k]]).filter((x) => x[2]);
+      const sum = seg.reduce((acc, x) => acc + x[2], 0) || 1;
+      const w = f.weights || {};
+      const wRow = (label, v, max) => (v ? `<div class="wt"><span>${label}</span><b>${n(v)}</b>${max ? `<small>${t('fuel.max', { v: n(max) })}${v > max ? ' ⚠️' : ''}</small>` : ''}<div class="wt-bar"><div style="width:${max ? Math.min(100, Math.round((v / max) * 100)) : 0}%"${v > max ? ' class="over"' : ''}></div></div></div>` : '');
+      el.innerHTML = `
+        <div class="fuel-head"><span class="pa-ico">${I('fuel')}</span><div><span class="eyebrow">${t('fuel.onboard')}</span><b class="fuel-big">${n(fp.ramp)} <small>${u}</small></b></div>
+          ${fp.landing ? `<div class="fuel-land"><span class="eyebrow">${t('fuel.landing')}</span><b>${n(fp.landing)} <small>${u}</small></b></div>` : ''}</div>
+        <div class="fuel-bar">${seg.map((x) => `<span class="fs-${x[0]}" style="flex:${x[2] / sum}" title="${x[1]} ${n(x[2])} ${u}"></span>`).join('')}</div>
+        <div class="fuel-legend">${seg.map((x) => `<span><i class="fs-${x[0]}"></i>${x[1]} <b>${n(x[2])}</b></span>`).join('')}</div>
+        ${w.zfw ? `<div class="weights">${wRow('ZFW', w.zfw, w.maxZfw)}${wRow('TOW', w.tow, w.maxTow)}${wRow('LDW', w.ldw, w.maxLdw)}</div>` : ''}
+        ${fp.flow ? `<p class="footnote">${t('fuel.note', { flow: n(fp.flow), u })}</p>` : ''}`;
+    }
+
     function renderSummary() {
       const f = App.flight;
       const el = $('flightSummary');
@@ -69,7 +92,7 @@
       if (f.pax) meta.push(`<span><b>${f.pax}</b> pax</span>`);
       if (f.depRwy || f.arrRwy) meta.push(`<span>${esc(t('flight.runways'))} <b>${esc([f.depRwy, f.arrRwy].filter(Boolean).join(' → '))}</b></span>`);
       if (f.sid || f.star) meta.push(`<span>${esc([f.sid, f.star].filter(Boolean).join(' / '))}</span>`);
-      if (f.fuel) meta.push(`<span>Fuel <b>${esc(f.fuel)}</b> ${esc(f.units || '')}</span>`);
+      if (f.fuel && !f.fuelPlan) meta.push(`<span>Fuel <b>${esc(f.fuel)}</b> ${esc(f.units || '')}</span>`);
       if (f.altn) meta.push(`<span>Alt. <b>${esc(f.altn)}</b></span>`);
       const pct = App.track && App.track.progress ? Math.round(App.track.progress.pct * 100) : 0;
       el.innerHTML = `
@@ -82,6 +105,7 @@
         <div class="route-meta">${meta.join('')}</div>
         ${f.route ? `<div class="route-text">${esc(f.route)}</div>` : ''}`;
       $('planCard').open = false;
+      renderFuel();
     }
     let lastEta = 0;
     App.on('track', (e) => {

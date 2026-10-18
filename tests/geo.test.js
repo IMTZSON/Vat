@@ -71,3 +71,27 @@ test('greatCircle: estremi, punto medio e antimeridiano', () => {
   assert.ok(Math.max(...pac.map((p) => p[0])) > 45, 'la rotta sale verso nord');
   assert.deepEqual(G.greatCircle({ lat: 1, lon: 2 }, { lat: 1, lon: 2 }, 2), [[1, 2], [1, 2], [1, 2]]);
 });
+
+test('arco di cerchio massimo e posizione stimata', () => {
+  const half = Geo.interpolate(LIRF, LIMC, 0.5);
+  assert.ok(Math.abs(Geo.distance(LIRF, half) - Geo.distance(half, LIMC)) < 0.1);
+  // Londra–New York: l'arco passa molto più a nord della retta
+  const mid = Geo.interpolate({ lat: 51.47, lon: -0.46 }, { lat: 40.64, lon: -73.78 }, 0.5);
+  assert.ok(mid.lat > 52, String(mid.lat));
+  const p = Geo.destination(LIRF, 90, 60);
+  assert.ok(Math.abs(Geo.distance(LIRF, p) - 60) < 0.1);
+  assert.ok(Math.abs(Geo.bearing(LIRF, p) - 90) < 1);
+});
+
+test('Top of Descent con la regola 3:1', () => {
+  assert.strictEqual(Geo.todDistance(36000, 0), 118);
+  assert.strictEqual(Geo.todDistance(36000, 1000), 115);
+  assert.strictEqual(Geo.todDistance(2000), 0);
+  const route = [LIRF, { lat: 43.7, lon: 10.5 }, LIMC];
+  const total = Geo.distance(route[0], route[1]) + Geo.distance(route[1], route[2]);
+  const td = Geo.pointAlong(route, 100);
+  const prog = Geo.routeProgress(route, td);
+  assert.ok(Math.abs(prog.remaining - 100) < 1, String(prog.remaining));
+  assert.deepStrictEqual(Geo.pointAlong(route, total + 50), { lat: LIRF.lat, lon: LIRF.lon });
+  assert.ok(prog.at && prog.leg === 1);
+});

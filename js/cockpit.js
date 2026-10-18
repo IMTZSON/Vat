@@ -16,10 +16,12 @@
     let manualAt = 0; // ultima scelta manuale: per 2 minuti il tracking non cambia checklist
 
     // ------------------------------------------------------------ sotto-schede
-    document.querySelectorAll('#cockpitSeg button').forEach((b) => b.addEventListener('click', () => {
-      document.querySelectorAll('#cockpitSeg button').forEach((x) => x.classList.toggle('active', x === b));
-      document.querySelectorAll('[data-view="cockpit"] .subview').forEach((v) => { v.hidden = v.dataset.sub !== b.dataset.sub; });
-    }));
+    for (const [seg, view] of [['cockpitSeg', 'cockpit'], ['cabinSeg', 'cabin']]) {
+      document.querySelectorAll(`#${seg} button`).forEach((b) => b.addEventListener('click', () => {
+        document.querySelectorAll(`#${seg} button`).forEach((x) => x.classList.toggle('active', x === b));
+        document.querySelectorAll(`[data-view="${view}"] .subview`).forEach((v) => { v.hidden = v.dataset.sub !== b.dataset.sub; });
+      }));
+    }
 
     // ------------------------------------------------------------ checklist
     const lists = () => CHECKLISTS[S.aircraft] || CHECKLISTS.A320;

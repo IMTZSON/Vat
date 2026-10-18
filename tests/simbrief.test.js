@@ -11,8 +11,8 @@ const OFP = {
   alternate: { icao_code: 'LIML' },
   aircraft: { icaocode: 'A20N', name: 'A320neo', reg: 'EI-DTA' },
   atc: { callsign: 'AZA1234' },
-  fuel: { plan_ramp: '6500' },
-  weights: { est_zfw: '58000', est_tow: '64000' },
+  fuel: { plan_ramp: '6500', taxi: '200', enroute_burn: '3900', contingency: '195', alternate_burn: '900', reserve: '1100', extra: '205', plan_takeoff: '6300', plan_landing: '2400', avg_fuel_flow: '2350' },
+  weights: { est_zfw: '58000', max_zfw: '62500', est_tow: '64000', max_tow: '79000', est_ldw: '60100', max_ldw: '67400', payload: '13200' },
   times: { est_time_enroute: '3900', sched_out: '1760000000' },
   navlog: { fix: [
     { ident: 'BOLLA', via_airway: 'BOLLA5A', is_sid_star: '1', pos_lat: '42.1', pos_long: '11.9' },
@@ -35,6 +35,9 @@ test('legge un OFP SimBrief', () => {
   assert.deepStrictEqual(f.depPos, { lat: 41.800278, lon: 12.238889 });
   assert.strictEqual(f.fixes.length, 3);
   assert.deepStrictEqual(f.fixes[1], { ident: 'TORLI', lat: 43.7, lon: 10.5 });
+  assert.deepStrictEqual(f.fuelPlan, { ramp: 6500, taxi: 200, trip: 3900, cont: 195, altn: 900, reserve: 1100, extra: 205, takeoff: 6300, landing: 2400, flow: 2350 });
+  assert.strictEqual(f.weights.maxTow, 79000);
+  assert.strictEqual(f.fuel, '6500', 'il vecchio campo resta per compatibilità');
 });
 
 test('errore SimBrief leggibile', () => {
