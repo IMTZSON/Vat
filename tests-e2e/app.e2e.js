@@ -349,3 +349,118 @@ test('mappa radar: settori reali, traffico VATSIM e IVAO, filtri, ricerca e clic
   assert.strictEqual(saved.phase, 'air');
   assert.deepStrictEqual(errors, []);
 });
+
+test('4.2: Pro, riascolto della radio, prossima chiamata e collegamento al simulatore', { skip: !chromium && 'playwright non installato', timeout: 120000 }, async (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rc-e2e-'));
+  const PRO = 'https://pro.example.com';
+  const { server: srv, port } = await server.start(ROOT, { version: 'e2e', ports: [0], pro: { endpoint: PRO, checkout: 'https://shop.example.com/buy/pro' } });
+  const wav = await fakeWav(dir);
+  const browser = await chromium.launch({
+    executablePath: process.env.PW_CHROMIUM || undefined,
+    args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', `--use-file-for-fake-audio-capture=${wav}`, '--autoplay-policy=no-user-gesture-required'],
+  });
+  t.after(async () => { await browser.close(); srv.close(); });
+  const ctx = await browser.newContext({ locale: 'en-GB', viewport: { width: 1280, height: 820 } });
+  await ctx.addInitScript(() => {
+    window.__store = {};
+    window.__opened = [];
+    window.desktop = {
+      setOnTop() {}, setCompact() {}, openExternal(u) { window.__opened.push(u); }, saveText: async () => true, onHotkey(fn) { window.__hotkey = fn; },
+      info: async () => ({ version: '4.2.0', build: 1, origin: location.origin }),
+      store: {
+        load: async () => ({ isNew: false, data: { 'readback-copilot-settings': { callsign: 'BAW123', groqKey: '', mode: 'groq', onboarded: true, uiLang: 'en', coach: false, audioSource: 'device' } } }),
+        set: (k, v) => { window.__store[k] = v; },
+        merge: async () => 0,
+      },
+      // Simulatore finto: si "collega" a MSFS e manda i dati che il test decide
+      sim: {
+        enable: (on) => { window.__simOn = on; if (on) setTimeout(() => window.__simStatus('msfs'), 50); },
+        status: async () => 'searching',
+        onData: (fn) => { window.__simData = fn; },
+        onStatus: (fn) => { window.__simStatus = fn; },
+      },
+    };
+  });
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('dialog', (d) => d.accept());
+  const state = { stt: 0, atc: 'Speedbird 123, squawk 4521, contact London Control 127.1', pilot: 'Squawk 4521, London Control 127.1, Speedbird 123', ai: 'Squawk 4521, London Control 127.1, Speedbird 123' };
+  await mockNetwork(page, state);
+  const pro = { calls: [], auth: [] };
+  await page.route('**/api/proxy**', async (route) => {
+    const u = new URL(route.request().url()).searchParams.get('url');
+    if (!u.startsWith(PRO)) return route.fallback();
+    pro.calls.push(new URL(u).pathname);
+    pro.auth.push(route.request().headers().authorization || '');
+    if (u.endsWith('/v1/license/activate')) {
+      const body = JSON.parse(route.request().postData());
+      if (body.license_key !== 'LIC-123') return route.fulfill({ status: 403, json: { error: { message: 'license_key not found.' } } });
+      return route.fulfill({ json: { ok: true, instance_id: 'inst-9', status: 'active' } });
+    }
+    if (u.endsWith('/v1/license/status')) return route.fulfill({ json: { ok: true, used_seconds: 1500, limit_seconds: 72000, period: '2026-10' } });
+    return route.fallback();
+  });
+
+  await page.goto(`http://127.0.0.1:${port}/`);
+  await page.waitForFunction(() => window.App && window.Net && Net.pro);
+
+  // Pro: attivazione dalla scheda Impostazioni
+  await page.click('.tab[data-tab="more"]');
+  await page.click('[data-go="settings"]');
+  await page.click('#sttProvider + .segmented button[data-value="pro"]');
+  assert.ok(await page.isVisible('#proActivate'));
+  assert.ok(!(await page.isVisible('#groqKey')), 'col Pro niente chiave Groq');
+  await page.click('#proBuy');
+  assert.deepStrictEqual(await page.evaluate(() => window.__opened), ['https://shop.example.com/buy/pro']);
+  await page.fill('#proKeyInput', 'sbagliata');
+  await page.click('#proActivate');
+  await page.waitForFunction(() => /not found/.test(document.getElementById('proStatus').textContent));
+  await page.fill('#proKeyInput', 'LIC-123');
+  await page.click('#proActivate');
+  await page.waitForFunction(() => /25 of 1200 minutes/.test(document.getElementById('proStatus').textContent));
+  assert.deepStrictEqual(await page.evaluate(() => [App.settings.proKey, App.settings.proInstance, App.sttReady()]), ['LIC-123', 'inst-9', true]);
+
+  // Ascolto col Pro: la trascrizione e l'AI passano dal server Pro con la licenza
+  await page.click('.tab[data-tab="listen"]');
+  await page.evaluate(async () => {
+    App.setFlight({ source: 'manual', dep: 'EGLL', arr: 'LIRF', depName: 'London Heathrow', arrName: 'Rome Fiumicino' });
+    const d = (await navigator.mediaDevices.enumerateDevices()).find((x) => x.kind === 'audioinput' && x.deviceId && x.deviceId !== 'default');
+    App.set('device', d.deviceId);
+  });
+  await page.waitForTimeout(400);
+  // Prossima chiamata prima di partire: autorizzazione
+  // EGLL_TWR è online e nessun Delivery: l'autorizzazione si chiede alla Torre
+  assert.match(await page.textContent('#nextText'), /^London (Delivery|Tower), Speedbird 123, request IFR clearance to Rom/);
+  state.stt = 0;
+  await page.click('#toggle');
+  await page.waitForFunction(() => /Squawk 4521/.test(document.getElementById('readback').textContent), null, { timeout: 20000 });
+  await page.click('#toggle');
+  assert.ok(pro.calls.includes('/v1/audio/transcriptions'), 'trascrizione sul server Pro');
+  assert.ok(pro.auth.filter(Boolean).every((a) => a === 'Bearer LIC-123::inst-9'));
+
+  // Prossima chiamata: primo contatto con London Control, frequenza copiabile
+  await page.waitForFunction(() => !document.getElementById('nextCall').hidden && /London Control/.test(document.getElementById('nextText').textContent));
+  assert.strictEqual(await page.textContent('#nextText'), 'London Control, Speedbird 123');
+  assert.strictEqual(await page.textContent('#nextFreq'), 'London Control 127.1');
+  await page.click('#nextDone');
+  assert.ok(await page.isHidden('#nextCall') || !/London Control/.test(await page.textContent('#nextText')));
+
+  // Riascolto: l'ultima chiamata si riascolta (anche dal tasto rapido)
+  assert.ok(!(await page.$eval('#replay', (b) => b.classList.contains('dim'))));
+  await page.click('#replaySlow');
+  await page.waitForFunction(() => document.getElementById('replaySlow').classList.contains('replay-on'));
+  await page.evaluate(() => window.__hotkey('replay'));
+  await page.waitForFunction(() => document.getElementById('replay').classList.contains('replay-on'));
+  assert.ok(await page.$('#history .bubble-replay'), 'pulsante di riascolto sul fumetto ATC');
+
+  // Simulatore: MSFS collegato, squawk e frequenza giusti -> conferme; squawk sbagliato -> avviso
+  await page.waitForFunction(() => /MSFS/.test(document.getElementById('simLabel').textContent));
+  await page.evaluate(() => window.__simData({ source: 'msfs', com1: 127.1, xpdr: '4521', baro: 1013, altSel: 0, hdgSel: null, alt: 0, onGround: true }));
+  await page.waitForFunction(() => document.querySelectorAll('#simChecks .sim-chip.ok').length === 2);
+  assert.ok(await page.isHidden('#simAlert'));
+  await page.evaluate(() => { const real = Date.now; Date.now = () => real() + 60000; window.__simData({ source: 'msfs', com1: 127.1, xpdr: '2000', baro: 1013, altSel: 0, alt: 0, onGround: true }); });
+  await page.waitForFunction(() => !document.getElementById('simAlert').hidden);
+  assert.strictEqual(await page.textContent('#simAlert'), '⚠ Transponder on 2000: ATC assigned 4521');
+  assert.deepStrictEqual(errors, []);
+});

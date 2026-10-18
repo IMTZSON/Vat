@@ -6,6 +6,7 @@
 
   const Net = {
     proxy: false,
+    pro: null,
     desktop: false,
 
     async init() {
@@ -17,6 +18,7 @@
         if (r.ok) {
           const info = await r.json();
           this.proxy = !!info.ok;
+          this.pro = info.pro || null;
         }
       } catch (e) { /* nessun server locale */ }
     },

@@ -132,3 +132,11 @@ test('dati della mappa: scaricati una volta al giorno, poi cache, senza rete la 
   assert.strictEqual(r.src, 'bundled');
   assert.ok(!fs.existsSync(path.join(cacheDir, 'fir-boundaries.json')));
 });
+
+test('servizio Pro: configurazione solo con indirizzi https', () => {
+  const { proConfig } = require('../electron/server.js');
+  assert.deepStrictEqual(proConfig({ endpoint: 'https://pro.example.com/', checkout: 'https://shop.example.com/buy' }), { endpoint: 'https://pro.example.com', checkout: 'https://shop.example.com/buy' });
+  assert.strictEqual(proConfig({ endpoint: 'http://pro.example.com' }), null);
+  assert.strictEqual(proConfig({ endpoint: '' }), null);
+  assert.deepStrictEqual(proConfig({ endpoint: 'https://pro.example.com', checkout: 'javascript:alert(1)' }), { endpoint: 'https://pro.example.com', checkout: '' });
+});

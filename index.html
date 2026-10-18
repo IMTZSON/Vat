@@ -78,6 +78,10 @@
         <span id="coachBadge" class="badge" hidden></span>
         <span id="txBadge" class="badge tx" hidden>TX</span>
       </div>
+      <div class="replay-pill">
+        <button id="replay" class="mini-btn dim" data-i18n-title="replay.title" title="Riascolta l'ultima chiamata ATC (Ctrl+Shift+A)"><i data-icon="rotate-ccw"></i></button>
+        <button id="replaySlow" class="mini-btn slow dim" data-i18n-title="replay.slowTitle" title="Riascolta rallentato (Ctrl+Shift+D)">0.75×</button>
+      </div>
       <button id="speak" class="mini-btn" data-i18n-title="activity.speak" title="Ascolta la pronuncia (Ctrl+Shift+R)"><i data-icon="volume-2"></i></button>
       <button id="activityToggle" class="mini-btn" data-i18n-title="activity.toggle" title="Espandi / riduci"><i data-icon="chevron-down"></i></button>
     </div>
@@ -88,6 +92,15 @@
       <ul id="warnings" class="warnings"></ul>
       <p class="heard"><span class="eyebrow">ATC</span> <span id="heard">—</span></p>
       <div id="coachOut" class="coach-out" hidden></div>
+    </div>
+    <div id="simAlert" class="sim-alert" hidden></div>
+    <div id="nextCall" class="next-call" hidden>
+      <div class="next-head"><span class="eyebrow" data-i18n="next.title">Prossima chiamata</span><button id="nextFreq" class="next-freq" hidden></button></div>
+      <p id="nextText" class="next-text"></p>
+      <div class="next-actions">
+        <button id="nextSpeak" class="mini-btn" data-i18n-title="next.speak" title="Ascolta come dirla"><i data-icon="volume-2"></i></button>
+        <button id="nextDone" class="mini-btn" data-i18n-title="next.doneTitle" title="Fatto: nascondi finché l'ATC non risponde"><i data-icon="check"></i></button>
+      </div>
     </div>
   </section>
 
@@ -108,6 +121,7 @@
       <div><span>ETA</span><b id="trkEta">—</b></div>
     </div>
     <div class="hud-track"><div id="trkProgress" class="hud-fill"></div><i data-icon="plane" class="hud-plane"></i></div>
+    <div id="simRow" class="sim-row" hidden><span class="sim-dot"></span><span id="simLabel" class="sim-label"></span><div id="simChecks" class="sim-checks"></div></div>
     <p class="hud-foot"><span id="trkUpdated"></span><span id="trackMsg"></span></p>
   </section>
 
@@ -432,17 +446,23 @@
         <div class="group-title" data-i18n="settings.stt">Riconoscimento vocale (Whisper)</div>
         <div class="group">
           <div class="row"><span class="row-label" data-i18n="settings.sttProvider">Servizio</span>
-            <select id="sttProvider" data-setting="sttProvider" class="seg"><option value="groq">Groq</option><option value="local" data-i18n="settings.sttLocal">Locale</option></select>
+            <select id="sttProvider" data-setting="sttProvider" class="seg"><option value="groq">Groq</option><option value="local" data-i18n="settings.sttLocal">Locale</option><option value="pro" data-pro>Pro</option></select>
           </div>
           <label class="row groq-only"><span class="row-label" data-i18n="settings.apiKey">Chiave API</span><input id="groqKey" data-setting="groqKey" type="password" class="row-input mono" placeholder="gsk_…" autocomplete="off"></label>
           <label class="row local-only"><span class="row-label" data-i18n="settings.localUrl">Indirizzo server</span><input id="localSttUrl" data-setting="localSttUrl" class="row-input mono" placeholder="http://127.0.0.1:8080/v1" autocomplete="off" spellcheck="false"></label>
-          <label class="row"><span class="row-label" data-i18n="settings.whisperModel">Modello Whisper</span><input id="whisperModel" data-setting="whisperModel" list="modelList" class="row-input" data-i18n-placeholder="settings.automatic" placeholder="automatico" spellcheck="false"></label>
+          <div class="row pro-only pro-row">
+            <div class="pro-state"><span id="proBadge" class="badge">Pro</span><span id="proStatus" class="pro-status" data-i18n="pro.notActive">Non attivo</span></div>
+            <div id="proUsage" class="pro-usage" hidden><div id="proUsageBar"></div></div>
+          </div>
+          <label class="row pro-only"><span class="row-label" data-i18n="pro.key">Chiave di licenza</span><input id="proKeyInput" class="row-input mono" placeholder="XXXXXXXX-XXXX-…" autocomplete="off" spellcheck="false"></label>
+          <div class="row pro-only"><button id="proActivate" class="link-btn" type="button" data-i18n="pro.activate">Attiva</button><button id="proBuy" class="link-btn" type="button" data-i18n="pro.buy">Acquista Pro</button><button id="proDeactivate" class="link-btn danger" type="button" data-i18n="pro.deactivate" hidden>Disattiva su questo PC</button></div>
+          <label class="row not-pro"><span class="row-label" data-i18n="settings.whisperModel">Modello Whisper</span><input id="whisperModel" data-setting="whisperModel" list="modelList" class="row-input" data-i18n-placeholder="settings.automatic" placeholder="automatico" spellcheck="false"></label>
           <label class="row groq-only"><span class="row-label" data-i18n="settings.useAi">AI per il readback</span><input id="useAI" data-setting="useAI" type="checkbox" class="switch"></label>
           <label class="row groq-only"><span class="row-label" data-i18n="settings.aiModel">Modello AI</span><input id="llmModel" data-setting="llmModel" list="modelList" class="row-input" data-i18n-placeholder="settings.automatic" placeholder="automatico" spellcheck="false"></label>
-          <div class="row"><button id="testGroq" class="link-btn" type="button" data-i18n="settings.test">Verifica</button><button id="loadModels" class="link-btn" type="button" data-i18n="settings.models">Modelli disponibili</button></div>
+          <div class="row"><button id="testGroq" class="link-btn" type="button" data-i18n="settings.test">Verifica</button><button id="loadModels" class="link-btn not-pro" type="button" data-i18n="settings.models">Modelli disponibili</button></div>
         </div>
         <datalist id="modelList"></datalist>
-        <p class="footnote"><span id="modelsMsg"></span> <span class="groq-only" data-i18n-html="settings.groqFoot">Chiave gratuita su <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com</a>. Resta salvata solo su questo computer.</span><span class="local-only" data-i18n-html="settings.localFoot">Qualsiasi server compatibile con l'API OpenAI (<code>/v1/audio/transcriptions</code>), ad esempio <b>whisper.cpp</b> o <b>faster-whisper-server</b>: gratis, senza limiti e l'audio non lascia il tuo PC.</span></p>
+        <p class="footnote"><span id="modelsMsg"></span> <span class="groq-only" data-i18n-html="settings.groqFoot">Chiave gratuita su <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com</a>. Resta salvata solo su questo computer.</span><span class="pro-only" data-i18n="pro.foot">Con il Pro la trascrizione e l'AI sono incluse: niente chiave da creare.</span><span class="local-only" data-i18n-html="settings.localFoot">Qualsiasi server compatibile con l'API OpenAI (<code>/v1/audio/transcriptions</code>), ad esempio <b>whisper.cpp</b> o <b>faster-whisper-server</b>: gratis, senza limiti e l'audio non lascia il tuo PC.</span></p>
 
         <div class="group-title" data-i18n="settings.audio">Audio</div>
         <div class="group">
@@ -477,6 +497,13 @@
           <div class="row"><button id="ttsTest" class="link-btn"><i data-icon="volume-2"></i> <span data-i18n="settings.testVoice">Prova voce</span></button></div>
         </div>
 
+        <div class="group-title" data-i18n="sim.group">Simulatore</div>
+        <div class="group">
+          <label class="row"><span class="row-label" data-i18n="sim.setting">Collega al simulatore (MSFS / X-Plane)</span><input id="simLink" data-setting="simLink" type="checkbox" class="switch"></label>
+          <div class="row"><span class="row-label" data-i18n="sim.statusLabel">Stato</span><span id="simStatusText" class="row-value">—</span></div>
+        </div>
+        <p class="footnote" data-i18n="sim.hint">Legge radio, transponder, altimetro e autopilota (solo lettura) e ti avvisa se un'istruzione ATC non è stata eseguita.</p>
+
         <div class="group-title" data-i18n="settings.program">Programma</div>
         <div class="group">
           <label class="row"><span class="row-label" data-i18n="settings.onTop">Sempre in primo piano</span><input id="onTop" data-setting="onTop" type="checkbox" class="switch"></label>
@@ -484,6 +511,8 @@
           <div class="row"><span class="row-label"><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>L</kbd></span><span class="row-value" data-i18n="settings.hkListen">Avvia / ferma ascolto</span></div>
           <div class="row"><span class="row-label"><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>R</kbd></span><span class="row-value" data-i18n="settings.hkRepeat">Ripeti il readback</span></div>
           <div class="row"><span class="row-label"><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>O</kbd></span><span class="row-value" data-i18n="settings.hkCompact">Modalità compatta</span></div>
+          <div class="row"><span class="row-label"><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>A</kbd></span><span class="row-value" data-i18n="settings.hkReplay">Riascolta l'ultima chiamata ATC</span></div>
+          <div class="row"><span class="row-label"><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>D</kbd></span><span class="row-value" data-i18n="settings.hkReplaySlow">Riascolta rallentato</span></div>
           <div class="row"><button id="resetAll" class="link-btn danger" data-i18n="settings.reset">Ripristina impostazioni</button></div>
         </div>
         <p class="footnote" id="desktopInfo" data-i18n="settings.hkFoot">Le scorciatoie funzionano col simulatore in primo piano solo nel programma per Windows.</p>
@@ -673,6 +702,8 @@
   <script src="js/checklists-data.js"></script>
   <script src="js/phrasebook-data.js"></script>
   <script src="js/announcements-data.js"></script>
+  <script src="js/nextcall.js"></script>
+  <script src="js/compliance.js"></script>
   <script src="js/app.js"></script>
   <script src="js/sheet.js"></script>
   <script src="js/listen.js"></script>
@@ -684,6 +715,9 @@
   <script src="js/cockpit.js"></script>
   <script src="js/cabin.js"></script>
   <script src="js/announcements.js"></script>
+  <script src="js/nextcall-ui.js"></script>
+  <script src="js/sim-ui.js"></script>
+  <script src="js/pro.js"></script>
   <script src="js/phrasebook.js"></script>
   <script src="js/onboarding.js"></script>
   <script src="js/updates.js"></script>

@@ -82,6 +82,11 @@ Il dato sulla precisione misurata è il più importante: raccogliere un set di 1
 1. ~~Spagnolo e tedesco~~ — fatto in 4.x (interfaccia e METAR/TAF; checklist, frasario e annunci restano in inglese/italiano). Prossime: francese e portoghese (Brasile), un file `js/strings-xx.js` ciascuna.
 2. Telemetria opt-in e anonima per le metriche sopra.
 3. ~~Rilevamento del PTT di vPilot~~ — fatto in 4.0 (tastiera e pulsanti del mouse; i pulsanti del joystick non sono ancora supportati).
-4. Proxy di trascrizione Pro (backend minimo) e pagamenti.
+4. Proxy di trascrizione Pro (backend minimo) e pagamenti: vedi punto 9.
 5. Build per macOS (Electron è già multipiattaforma; serve la cattura audio di sistema su macOS).
 6. ~~Aggiornamento automatico in un clic~~ — fatto in 4.0 (dalle release stabili di `main`; con la firma del codice sparirà anche l'avviso di SmartScreen al primo download).
+7. ~~Riascolto della radio rallentato e "Prossima chiamata"~~: fatto in 4.2.
+8. ~~Collegamento al simulatore con controllo dell'esecuzione delle istruzioni~~: fatto in 4.2 (MSFS via SimConnect, X-Plane via UDP).
+   - Da fare: selettori di livello e prua degli add-on con SDK propri (Fenix, PMDG, FBW via L-var).
+9. ~~Proxy di trascrizione Pro e licenze~~: il codice è pronto in 4.2 (`server/pro/`, Lemon Squeezy).
+   - Da fare: pubblicazione (account Cloudflare, Lemon Squeezy, Groq a pagamento), poi compilare `pro` in `package.json`. Guida in `docs/PRO-SETUP.md`.

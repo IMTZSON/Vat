@@ -9,6 +9,8 @@ const server = require('./server');
 const { Store } = require('./store');
 const { PttController, keyNames } = require('./ptt');
 const { createUpdater } = require('./updater');
+const { SimLink } = require('./sim');
+const dgram = require('dgram');
 
 let win = null;
 let origin = '';
@@ -16,6 +18,7 @@ let normalBounds = null;
 let store = null;
 let ptt = null;
 let updater = null;
+let sim = null;
 
 const send = (channel, data) => { if (win && !win.isDestroyed()) win.webContents.send(channel, data); };
 
@@ -27,6 +30,13 @@ function loadPtt() {
   } catch (e) {
     return null;
   }
+}
+
+// Collegamento al simulatore: MSFS (node-simconnect, se presente) e X-Plane (UDP, sempre disponibile)
+function loadSim() {
+  let simconnect = null;
+  try { simconnect = require('node-simconnect'); } catch (e) { simconnect = null; }
+  return new SimLink({ simconnect, dgram, onData: (d) => send('sim-data', d), onStatus: (s) => send('sim-status', s) });
 }
 
 function loadUpdater() {
@@ -43,6 +53,8 @@ const HOTKEYS = {
   'CommandOrControl+Shift+L': 'toggle-listen',
   'CommandOrControl+Shift+R': 'speak',
   'CommandOrControl+Shift+O': 'overlay',
+  'CommandOrControl+Shift+A': 'replay',
+  'CommandOrControl+Shift+D': 'replay-slow',
 };
 
 if (!app.requestSingleInstanceLock()) {
@@ -78,6 +90,7 @@ async function init() {
 
   ptt = loadPtt();
   updater = loadUpdater();
+  sim = loadSim();
   createWindow();
   for (const [accel, name] of Object.entries(HOTKEYS)) {
     try { globalShortcut.register(accel, () => win && win.webContents.send('hotkey', name)); } catch (e) { /* scorciatoia occupata */ }
@@ -159,6 +172,9 @@ ipcMain.on('store-set', (e, key, value) => { store.set(String(key), value); });
 ipcMain.handle('store-merge', (e, obj) => store.merge(obj));
 
 // Tasto PTT (vedi ptt.js)
+ipcMain.on('sim-enable', (e, on) => { if (sim) { if (on) sim.start(); else sim.stop(); } });
+ipcMain.handle('sim-status', () => (sim ? sim.status : 'off'));
+
 ipcMain.handle('ptt-available', () => !!ptt);
 ipcMain.handle('ptt-set', (e, binding) => (ptt ? ptt.setBinding(binding) : null));
 ipcMain.handle('ptt-capture', () => (ptt ? ptt.capture(15000) : null));
@@ -173,6 +189,7 @@ function buildInfo() {
 }
 
 app.on('will-quit', () => {
+  if (sim) sim.stop();
   globalShortcut.unregisterAll();
   try { if (ptt) ptt.release(); } catch (e) { /* ignora */ }
   try { if (store) store.flush(); } catch (e) { /* ignora */ }

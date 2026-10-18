@@ -30,10 +30,19 @@
     let order = Promise.resolve();
     let pending = 0;
 
-    // Trascrizione: Groq o server Whisper locale (stessa API)
-    const sttOpts = () => (S.sttProvider === 'local'
-      ? { key: '', model: S.whisperModel, base: S.localSttUrl }
-      : { key: S.groqKey, model: S.whisperModel });
+    // Trascrizione: Groq, server Whisper locale o Pro (stessa API compatibile OpenAI)
+    const proToken = () => `${S.proKey}::${S.proInstance}`;
+    const sttOpts = () => {
+      if (S.sttProvider === 'local') return { key: '', model: S.whisperModel, base: S.localSttUrl };
+      if (S.sttProvider === 'pro' && root.Net.pro) return { key: proToken(), model: '', base: root.Net.pro.endpoint };
+      return { key: S.groqKey, model: S.whisperModel };
+    };
+    // AI per il readback: con la chiave Groq o col Pro (il server locale non ha un LLM)
+    const aiOpts = () => {
+      if (S.sttProvider === 'pro' && root.Net.pro && S.proInstance) return { key: proToken(), base: root.Net.pro.endpoint };
+      if (S.sttProvider !== 'local' && S.sttProvider !== 'pro' && S.groqKey) return { key: S.groqKey, model: S.llmModel };
+      return null;
+    };
     const transcribe = (wav, extra) => root.Groq.transcribe(wav, { ...sttOpts(), ...extra });
 
     // ------------------------------------------------------------ nominativo e modalità
@@ -200,6 +209,14 @@
         atc.innerHTML = '<div class="bubble"></div><div class="meta"></div>';
         atc.querySelector('.bubble').textContent = item.heard;
         atc.querySelector('.meta').textContent = `ATC · ${item.time}`;
+        if (item.clip) {
+          const b = document.createElement('button');
+          b.className = 'bubble-replay';
+          b.title = t('replay.this');
+          b.innerHTML = root.Icons.svg('rotate-ccw');
+          b.addEventListener('click', (e) => { e.stopPropagation(); replay(item, 1); });
+          atc.querySelector('.meta').append(b);
+        }
         const me = document.createElement('li');
         const state = v && v.status === 'bad' ? 'bad' : (v && v.status === 'warn' ? 'warn' : '');
         me.className = `msg me ${r.forUs === false ? 'other' : state}`;
@@ -384,7 +401,54 @@
 
     // ------------------------------------------------------------ elaborazione
 
-    async function handleTranscript(text, origin, audio, prompt) {
+    // ------------------------------------------------------------ riascolto della radio
+    // Ultime trasmissioni registrate (solo in memoria): si possono riascoltare, anche rallentate
+    const clips = [];
+    let player = null;
+    function keepClip(wav) {
+      if (!wav || typeof Blob !== 'function' || !(wav instanceof Blob)) return null;
+      const clip = { wav, t: Date.now() };
+      clips.push(clip);
+      if (clips.length > 12) clips.shift();
+      updateReplayUI();
+      return clip;
+    }
+    // Trasmissione da riascoltare: quella mostrata, altrimenti l'ultima per te, altrimenti l'ultima sentita
+    function replayTarget(item) {
+      if (item && item.clip) return item.clip;
+      if (current && current.clip) return current.clip;
+      const mine = history.find((h) => h.clip && h.result.forUs !== false);
+      return (mine && mine.clip) || clips[clips.length - 1] || null;
+    }
+    function stopReplay() {
+      if (player) { player.pause(); URL.revokeObjectURL(player.src); player = null; }
+      document.querySelectorAll('.replay-on').forEach((b) => b.classList.remove('replay-on'));
+    }
+    function replay(item, rate) {
+      const clip = replayTarget(item);
+      if (!clip) { App.toast(t(S.mode === 'groq' ? 'replay.none' : 'replay.needWhisper')); return; }
+      stopReplay();
+      root.TTS.stop();
+      const a = new Audio(URL.createObjectURL(clip.wav));
+      // velocità ridotta senza voce "da orco"
+      a.preservesPitch = true;
+      a.playbackRate = rate || 1;
+      a.volume = 1;
+      player = a;
+      const btn = $(rate && rate < 1 ? 'replaySlow' : 'replay');
+      if (btn) btn.classList.add('replay-on');
+      a.onended = () => { if (player === a) stopReplay(); };
+      // un riascolto interrotto da quello nuovo non deve fermare il nuovo
+      a.play().catch(() => { if (player === a) stopReplay(); });
+    }
+    function updateReplayUI() {
+      const has = clips.length > 0;
+      for (const id of ['replay', 'replaySlow']) $(id).classList.toggle('dim', !has);
+    }
+    $('replay').addEventListener('click', () => replay(null, 1));
+    $('replaySlow').addEventListener('click', () => replay(null, 0.75));
+
+    async function handleTranscript(text, origin, audio, prompt, clip) {
       text = (text || '').trim();
       if (!text) return;
       const cs = App.callsignInfo();
@@ -397,6 +461,7 @@
         rules: result,
         audio: audio || null,
         prompt: prompt || '',
+        clip: clip || null,
         date: root.I18n.date(now),
         time: root.I18n.time(now, true),
       };
@@ -405,7 +470,7 @@
       if (history.length > 100) history.pop();
 
       const show = origin === 'prova' || !(S.hideOthers && result.forUs === false);
-      const wantAI = S.mode === 'groq' && S.sttProvider !== 'local' && S.useAI && S.groqKey && show;
+      const wantAI = S.mode === 'groq' && S.useAI && !!aiOpts() && show;
       if (wantAI) item.aiPending = true;
       if (show) {
         render(item, true);
@@ -418,7 +483,7 @@
 
       if (wantAI) {
         try {
-          const ai = await root.Groq.readback(text, { key: S.groqKey, model: S.llmModel, callsign: cs ? cs.display : '' });
+          const ai = await root.Groq.readback(text, { ...aiOpts(), callsign: cs ? cs.display : '' });
           item.verify = verify(item, ai.readback);
           // Se l'AI ha messo un numero che l'ATC non ha detto, vince il readback a regole
           item.result = item.verify.useRules
@@ -495,13 +560,14 @@
           const prompt = root.Groq.buildPrompt(csName, context);
           pending++;
           App.setStatus(t('listen.transcribing'), 'busy');
+          const clip = keepClip(wav);
           const job = transcribe(wav, { callsign: csName, context }).then((r) => ({ r }), (e) => ({ e }));
           order = order.then(async () => {
             const { r, e } = await job;
             try {
               if (e) $('live').textContent = e.message;
               else if (r.text && root.Precision.phantom(r.text)) $('live').textContent = t('listen.ignoredNoise', { text: r.text });
-              else if (r.text) await handleTranscript(r.text, 'whisper', root.Precision.audioConfidence(r.segments), prompt);
+              else if (r.text) await handleTranscript(r.text, 'whisper', root.Precision.audioConfidence(r.segments), prompt, clip);
             } finally {
               pending--;
               if (running && !pending) App.setStatus(t('status.listening'), 'listening');
@@ -562,7 +628,10 @@
     App.on('hotkey', (name) => {
       if (name === 'toggle-listen') (running ? stop() : start());
       if (name === 'speak') speakCurrent();
+      if (name === 'replay') replay(null, 1);
+      if (name === 'replay-slow') replay(null, 0.75);
     });
+    updateReplayUI();
     App.isListening = () => running;
 
     // ------------------------------------------------------------ modelli e verifica del servizio
@@ -594,6 +663,11 @@
     App.testStt = async (opts) => {
       const o = { provider: S.sttProvider, key: S.groqKey, url: S.localSttUrl, ...(opts || {}) };
       try {
+        if (o.provider === 'pro') {
+          if (!root.Net.pro || !S.proInstance) return { ok: false, message: t('pro.needActivation') };
+          const ai = await root.Groq.readback('Alitalia 123, descend flight level 80, turn left heading 270', { key: proToken(), base: root.Net.pro.endpoint, callsign: 'Alitalia 123' });
+          return { ok: true, message: t('pro.testOk', { readback: ai.readback }) };
+        }
         if (o.provider === 'local') {
           if (!o.url) return { ok: false, message: t('settings.needUrl') };
           // Un secondo di silenzio: il server deve rispondere con una trascrizione (anche vuota)

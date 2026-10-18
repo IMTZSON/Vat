@@ -22,6 +22,12 @@ contextBridge.exposeInMainWorld('desktop', {
     install: () => ipcRenderer.invoke('updater-install'),
     onState: (fn) => ipcRenderer.on('updater', (_e, s) => fn(s)),
   },
+  sim: {
+    enable: (on) => ipcRenderer.send('sim-enable', !!on),
+    status: () => ipcRenderer.invoke('sim-status'),
+    onData: (fn) => ipcRenderer.on('sim-data', (_e, d) => fn(d)),
+    onStatus: (fn) => ipcRenderer.on('sim-status', (_e, s) => fn(String(s))),
+  },
   store: {
     load: () => ipcRenderer.invoke('store-load'),
     set: (key, value) => ipcRenderer.send('store-set', String(key), value),

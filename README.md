@@ -32,6 +32,12 @@ Il centro è la **mappa** con il tuo volo; sopra, in vetro, il pannello con 5 sc
   - frequenza contro i **controllori online** (anche centri come `LON_S_CTR` per Heathrow), pista contro gli **aeroporti del volo**, QNH contro il **METAR**, squawk valido.
 - **Precisione**: il prompt dato a Whisper non contiene mai numeri (con audio sporco Whisper tende a copiarli); le chiamate si mostrano nell'ordine in cui l'ATC ha parlato; la **soglia del microfono si regola da sola** sul rumore di fondo.
 - **Coach readback** (opzionale): dopo una chiamata per te ascolta il tuo microfono e ti dice cosa hai dimenticato, con le statistiche di ciò che sbagli più spesso. Con il **tasto PTT di vPilot** impostato (*Impostazioni → Coach readback*) registra esattamente la tua trasmissione, dalla pressione al rilascio; mentre trasmetti compare l'indicatore **TX**.
+- **Riascolta la radio**: con un tasto (o `Ctrl+Shift+A`) ripeti l'ultima chiamata ATC. Con `Ctrl+Shift+D` la senti **rallentata** a 0,75× senza voce distorta. Ogni fumetto ATC ha il suo pulsante di riascolto.
+- **Prossima chiamata**: nella Live Activity c'è sempre la prossima frase da dire, alla stazione giusta e con la frequenza da copiare. Segue le istruzioni ricevute (autorizzazione, push, rullaggio, passaggi di frequenza, discesa, finale, pista liberata) e la fase del volo.
+- **Collegamento al simulatore** (MSFS via SimConnect, X-Plane via UDP; solo lettura). Confronta le istruzioni ATC con il cockpit e ti avvisa se qualcosa non torna, per esempio:
+  - «Transponder su 2000: l'ATC ha assegnato 4521»;
+  - «Contatta London Control su 127.100: la COM1 è su 121.900».
+  - Controlla anche altimetro, livello e prua dell'autopilota. Alcuni add-on usano selettori propri e per loro livello e prua non si controllano.
 - Bip per le chiamate per te, modalità compatta sopra il simulatore, storico esportabile.
 
 ### 🗺️ Mappa radar
@@ -65,6 +71,8 @@ Il centro è la **mappa** con il tuo volo; sopra, in vetro, il pannello con 5 sc
 | `Ctrl+Shift+L` | Avvia o ferma l'ascolto |
 | `Ctrl+Shift+R` | Ripete a voce l'ultimo readback |
 | `Ctrl+Shift+O` | Modalità compatta sopra il simulatore |
+| `Ctrl+Shift+A` | Riascolta l'ultima chiamata ATC |
+| `Ctrl+Shift+D` | Riascolta rallentato (0,75×) |
 
 ---
 
@@ -110,6 +118,9 @@ Pagina statica (`index.html`, `css/`, `js/`, `data/`) dentro una shell Electron 
 | `js/onboarding.js`, `js/updates.js` | Configurazione guidata, aggiornamenti (automatici o avviso) |
 | `electron/ptt.js`, `electron/updater.js` | Tasto PTT di sistema (uiohook-napi, solo osservazione), aggiornamento automatico (electron-updater) |
 | `js/announcements-data.js`, `js/announcements.js` | Annunci di cabina compilati con i dati del volo |
+| `js/nextcall.js`, `js/nextcall-ui.js` | Prossima chiamata da fare, dalle istruzioni ricevute e dalla fase del volo |
+| `electron/sim.js`, `js/compliance.js`, `js/sim-ui.js` | Collegamento a MSFS (SimConnect) e X-Plane (UDP) e controllo dell'esecuzione delle istruzioni |
+| `server/pro/`, `js/pro.js` | Server Pro (Cloudflare Worker con licenze Lemon Squeezy) e attivazione nel programma; guida in `docs/PRO-SETUP.md` |
 | `js/app.js`, `js/listen.js`, `js/flight.js`, `js/tracking.js`, … | Interfaccia |
 | `electron/main.js`, `electron/store.js`, `electron/server.js` | Finestra, archivio dati su file, server locale (proxy, mappe, archivio per Chrome) |
 | `scripts/build-data.js` | Rigenera `data/world.json` e i dati della mappa (confini FIR, TRACON) da OurAirports, OpenFlights, VATSpy e SimAware |
@@ -131,6 +142,7 @@ node scripts/eval-audio.js cartella   # precisione su audio reali (GROQ_API_KEY 
 **Firma del codice**: aggiungi ai secret del repository `WIN_CSC_LINK` (certificato `.pfx` in base64) e `WIN_CSC_KEY_PASSWORD`: la CI firma gli .exe da sola.
 
 ### Licenze di terze parti
+- node-simconnect (collegamento a MSFS): LGPL-3.0, incluso come libreria non modificata e sostituibile (`resources/app.asar.unpacked/node_modules/node-simconnect`)
 - Aeroporti e piste: [OurAirports](https://ourairports.com/data/) (pubblico dominio)
 - Nominativi radio delle compagnie: [OpenFlights](https://openflights.org/data) (ODbL 1.0) — `data/world.json` → `airlines`
 - Centri di controllo e FIR: [VATSpy Data Project](https://github.com/vatsimnetwork/vatspy-data-project) (CC BY-SA 4.0) — `data/world.json` → `firs`, `firIds`; `data/vatspy.dat`, `data/fir-boundaries.json`
@@ -159,10 +171,12 @@ node scripts/eval-audio.js cartella   # precisione su audio reali (GROQ_API_KEY 
 - **Worldwide data**: 13,850 airports with runways, 860 airline callsigns, VATSIM centre names.
 - Live flight tracking with a **smooth aircraft** between VATSIM updates, flown/remaining route and the **Top of Descent** on the HUD and map (with a "request descent" reminder).
 - **Cabin announcements** (Italian and/or English) filled in with your flight, with the cabin chime, suggested by flight phase; SimBrief **fuel and weights** card.
+- **Radio replay** of the last ATC call (`Ctrl+Shift+A`, slowed down to 0.75× with `Ctrl+Shift+D`), a **Next call** card with what to say, to whom and on which frequency, and a **simulator link** (MSFS via SimConnect, X-Plane via UDP, read only) that warns you when the transponder, radio, altimeter or autopilot doesn't match the ATC instruction.
+- **Pro** (optional): transcription and AI included, no Groq key to create — see [docs/PRO-SETUP.md](docs/PRO-SETUP.md).
 - SimBrief, pre-filled calls, cabin service simulation, A320/737 checklists, CRAFT notes, automatic logbook, training with voice ATC, ICAO phrasebook.
 - Data stays on your PC; see [PRIVACY.md](PRIVACY.md).
 
-**Shortcuts** (work with the simulator in front): `Ctrl+Shift+L` start/stop listening · `Ctrl+Shift+R` repeat the readback · `Ctrl+Shift+O` compact overlay.
+**Shortcuts** (work with the simulator in front): `Ctrl+Shift+L` start/stop listening · `Ctrl+Shift+R` repeat the readback · `Ctrl+Shift+O` compact overlay · `Ctrl+Shift+A` replay the last ATC call · `Ctrl+Shift+D` replay slowed down.
 
 **Developers**: see the table and commands above (`npm test`, `npm run test:e2e`, `npm run build:data`, `scripts/eval-audio.js`). Translations live in `js/strings.js` as `[italian, english]` pairs.
 

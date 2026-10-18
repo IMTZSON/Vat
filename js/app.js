@@ -31,6 +31,9 @@
     onTop: false,
     mapKey: '',
     paLang: 'it-en',
+    simLink: true,
+    proKey: '',
+    proInstance: '',
     captainName: '',
     airlineName: '',
     aircraft: 'A320',
@@ -130,6 +133,7 @@
     },
     onHotkey: (fn) => bridge && bridge.onHotkey(fn),
     ptt: bridge && bridge.ptt ? bridge.ptt : null,
+    sim: bridge && bridge.sim ? bridge.sim : null,
     updater: bridge && bridge.updater ? bridge.updater : null,
     info: () => (bridge ? bridge.info() : Promise.resolve(null)),
   };
@@ -179,6 +183,7 @@
     sttReady() {
       const s = this.settings;
       if (s.mode === 'free') return true;
+      if (s.sttProvider === 'pro') return !!(root.Net && root.Net.pro && s.proKey && s.proInstance);
       return s.sttProvider === 'local' ? !!s.localSttUrl : !!s.groqKey;
     },
 
@@ -295,12 +300,20 @@
       exit.addEventListener('click', () => this.setCompact(false));
       document.body.append(exit);
 
+      // Il Pro compare solo quando il suo server è configurato (package.json "pro")
+      if (!(root.Net && root.Net.pro)) {
+        document.querySelectorAll('option[data-pro]').forEach((o) => o.remove());
+        if (this.settings.sttProvider === 'pro') this.settings.sttProvider = 'groq';
+      }
       this.bindSettings();
       this.buildSegmented();
       // Cambio lingua: si ricarica la pagina (tutti i testi si rigenerano nella nuova lingua)
       this.on('setting:uiLang', () => setTimeout(() => Promise.resolve(this._lastSave).then(() => location.reload()), 120));
       // Groq o server Whisper locale: mostra solo i campi che servono
-      const sttUi = () => document.body.classList.toggle('stt-local', this.settings.sttProvider === 'local');
+      const sttUi = () => {
+        document.body.classList.toggle('stt-local', this.settings.sttProvider === 'local');
+        document.body.classList.toggle('stt-pro', this.settings.sttProvider === 'pro');
+      };
       this.on('setting:sttProvider', sttUi);
       sttUi();
       document.querySelectorAll('[data-onboard]').forEach((b) => b.addEventListener('click', () => this.emit('onboard')));
@@ -352,7 +365,7 @@
       // Scorciatoie da tastiera (nel browser funzionano solo con la finestra attiva)
       document.addEventListener('keydown', (e) => {
         if (!e.ctrlKey || !e.shiftKey) return;
-        const map = { KeyL: 'toggle-listen', KeyR: 'speak', KeyO: 'overlay' };
+        const map = { KeyL: 'toggle-listen', KeyR: 'speak', KeyO: 'overlay', KeyA: 'replay', KeyD: 'replay-slow' };
         if (map[e.code]) { e.preventDefault(); this.emit('hotkey', map[e.code]); }
       });
       desktop.onHotkey((name) => this.emit('hotkey', name));
@@ -390,7 +403,7 @@
         steps.forEach((ok, k) => $(`wStep${k + 1}`).classList.toggle('done', ok));
         $('welcome').hidden = steps.every(Boolean);
       };
-      for (const k of ['callsign', 'telephony', 'groqKey', 'sttProvider', 'localSttUrl', 'mode', 'onboarded']) this.on(`setting:${k}`, welcome);
+      for (const k of ['callsign', 'telephony', 'groqKey', 'sttProvider', 'localSttUrl', 'mode', 'onboarded', 'proInstance']) this.on(`setting:${k}`, welcome);
       this.on('flight', welcome);
       welcome();
       if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) this.refreshDevices(false);

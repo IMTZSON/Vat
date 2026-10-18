@@ -18,6 +18,14 @@ const MIME = {
   '.ico': 'image/x-icon',
 };
 
+// Servizio Pro (package.json "pro": { endpoint, checkout }): vuoto finché il server non è pubblicato
+function proConfig(p) {
+  const cfg = p || (() => { try { return require('../package.json').pro || {}; } catch (e) { return {}; } })();
+  const ok = (u) => { try { return new URL(u).protocol === 'https:' ? String(u).replace(/\/+$/, '') : ''; } catch (e) { return ''; } };
+  const endpoint = ok(cfg.endpoint);
+  return endpoint ? { endpoint, checkout: ok(cfg.checkout) } : null;
+}
+
 const ALLOWED_HOSTS = new Set(['api.groq.com', 'www.simbrief.com', 'metar.vatsim.net', 'data.vatsim.net', 'api.github.com', 'api.ivao.aero', 'aviationweather.gov']);
 
 /* Dati della mappa radar (settori ATC): aggiornati dalla fonte ufficiale al massimo una volta al giorno,
@@ -145,7 +153,8 @@ function createHandler(root, opts) {
 
     const url = new URL(req.url, `http://127.0.0.1:${port}`);
 
-    if (url.pathname === '/api/ping') return send(res, 200, { ok: true, desktop: !!opts.desktop, version: opts.version || '', store: !!opts.store });
+    const pro = proConfig(opts.pro);
+    if (url.pathname === '/api/ping') return send(res, 200, { ok: true, desktop: !!opts.desktop, version: opts.version || '', store: !!opts.store, pro });
 
     // Dati dell'app condivisi con Chrome ("Apri in Chrome" ritrova nominativo e impostazioni).
     // Scrittura solo con l'intestazione X-Readback-Copilot: una pagina di un altro sito non può
@@ -187,7 +196,7 @@ function createHandler(root, opts) {
       }
       let target;
       try { target = new URL(url.searchParams.get('url') || ''); } catch (e) { return send(res, 400, { error: { message: 'URL non valido' } }); }
-      const publicOk = target.protocol === 'https:' && ALLOWED_HOSTS.has(target.hostname);
+      const publicOk = target.protocol === 'https:' && (ALLOWED_HOSTS.has(target.hostname) || (pro && target.origin === new URL(pro.endpoint).origin));
       const privateOk = /^https?:$/.test(target.protocol) && isPrivateHost(target.hostname);
       if (!publicOk && !privateOk) return send(res, 403, { error: { message: 'Destinazione non consentita' } });
       try {
@@ -233,7 +242,7 @@ function start(root, opts) {
   });
 }
 
-module.exports = { start, ALLOWED_HOSTS, TILE_CACHE, isPrivateHost, MAP_DATA };
+module.exports = { start, proConfig, ALLOWED_HOSTS, TILE_CACHE, isPrivateHost, MAP_DATA };
 
 if (require.main === module) {
   const pkg = require('../package.json');

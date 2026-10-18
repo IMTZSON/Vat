@@ -42,8 +42,10 @@
       let code = '';
       try { const j = await res.json(); detail = j.error.message || ''; code = j.error.code || ''; } catch (e) { /* risposta non JSON */ }
       let msg = `${res.status} ${detail}`.trim();
-      if (res.status === 401) msg = tr('groq.badKey');
-      if (res.status === 429) msg = tr('groq.rateLimit');
+      // Server Pro: il suo messaggio (licenza scaduta, minuti finiti) è più utile di quello generico
+      if (res.status === 401) msg = base && detail ? detail : tr('groq.badKey');
+      if (res.status === 403 && base && detail) msg = detail;
+      if (res.status === 429) msg = base && detail ? detail : tr('groq.rateLimit');
       const err = new Error(msg);
       err.status = res.status;
       err.modelMissing = res.status === 404 || code === 'model_not_found' || code === 'model_decommissioned' || /model.*(does not exist|decommissioned|not found|not supported)/i.test(detail);
@@ -156,8 +158,10 @@ Answer ONLY with JSON: {"for_us": boolean, "readback": string, "spoken": string 
     return JSON.parse(m[0]);
   }
 
-  function readback(transcript, { key, model, callsign }) {
-    return withModel(key, 'chat', model, async (m) => {
+  function readback(transcript, { key, model, callsign, base }) {
+    const server = normalizeBase(base);
+    const run = server ? (fn) => fn(model || 'readback-pro') : (fn) => withModel(key, 'chat', model, fn);
+    return run(async (m) => {
       const body = {
         model: m,
         temperature: 0,
@@ -167,7 +171,7 @@ Answer ONLY with JSON: {"for_us": boolean, "readback": string, "spoken": string 
           { role: 'user', content: `Pilot's own callsign: ${callsign || '(not set)'}\nATC transmission: "${transcript}"` },
         ],
       };
-      const send = () => call('/chat/completions', key, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const send = () => call('/chat/completions', key, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, server);
       let data;
       try {
         data = await send();

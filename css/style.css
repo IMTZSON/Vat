@@ -1089,3 +1089,49 @@ body:not(.has-ptt) .ptt-only { display: none !important; }
   .weights { grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
 }
 
+
+/* ================================================================== 4.2: riascolto */
+.replay-pill { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border-radius: 999px; background: var(--fill); flex: none; }
+.replay-pill .mini-btn { background: transparent; width: 30px; height: 28px; }
+.replay-pill .mini-btn.slow { width: auto; padding: 0 9px; font: 700 11.5px var(--font); font-variant-numeric: tabular-nums; }
+.replay-pill .mini-btn:hover { background: var(--fill-2); }
+.mini-btn.dim { opacity: 0.45; }
+.mini-btn.replay-on { background: var(--accent) !important; color: #fff; opacity: 1; animation: breathe 1.4s ease-in-out infinite; }
+.bubble-replay { display: inline-grid; place-items: center; width: 22px; height: 22px; margin-left: 6px; vertical-align: middle; border: 0; border-radius: 50%; background: var(--accent-soft); color: var(--accent); cursor: pointer; }
+.bubble-replay .icon { width: 12px; height: 12px; }
+.bubble-replay:hover { background: var(--accent); color: #fff; }
+
+/* ================================================================== 4.2: prossima chiamata */
+.next-call { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; margin-top: 10px; padding: 10px 12px; border-radius: 16px; background: var(--accent-soft); }
+.next-call[hidden] { display: none; }
+.next-head { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.next-head .eyebrow { color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.next-freq { border: 0; border-radius: 8px; padding: 2px 8px; font: 700 11.5px var(--mono); color: var(--accent); background: var(--surface-solid); cursor: pointer; white-space: nowrap; }
+.next-freq:hover { background: var(--accent); color: #fff; }
+.next-text { margin: 0; font-size: 15px; font-weight: 640; line-height: 1.35; letter-spacing: -0.01em; }
+.next-actions { display: flex; gap: 4px; }
+.next-actions .mini-btn { background: var(--surface-solid); color: var(--accent); }
+
+/* ================================================================== 4.2: simulatore */
+.sim-row { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin: 6px 0 2px; padding-top: 8px; border-top: 1px solid var(--separator); font-size: 11.5px; }
+.sim-row[hidden] { display: none; }
+.sim-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-3); flex: none; }
+.sim-row.on .sim-dot { background: var(--green); box-shadow: 0 0 0 3px var(--ok-bg); }
+.sim-label { font-weight: 650; color: var(--text-2); }
+.sim-checks { display: flex; flex-wrap: wrap; gap: 4px; }
+.sim-chip { padding: 2px 7px; border-radius: 999px; font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sim-chip.ok { background: var(--ok-bg); color: var(--green); }
+.sim-chip.warn { background: var(--warn-bg); color: var(--orange); }
+.sim-alert { margin-top: 10px; padding: 9px 12px; border-radius: 14px; background: var(--warn-bg); color: var(--orange); font-size: 14px; font-weight: 650; line-height: 1.35; animation: breathe 1.8s ease-in-out infinite; }
+.sim-alert[hidden] { display: none; }
+
+/* ================================================================== 4.2: Pro */
+body.stt-pro .groq-only, body.stt-pro .not-pro { display: none !important; }
+body:not(.stt-pro) .pro-only { display: none !important; }
+.pro-row { display: grid; gap: 8px; }
+.pro-state { display: flex; align-items: center; gap: 8px; }
+#proBadge { background: linear-gradient(135deg, var(--accent), #8b5cf6); color: #fff; font-weight: 800; letter-spacing: 0.04em; }
+.pro-status { font-size: 13.5px; font-weight: 600; }
+.pro-usage { height: 6px; border-radius: 3px; background: var(--fill-2); overflow: hidden; }
+.pro-usage div { height: 100%; width: 0; background: var(--accent); border-radius: 3px; transition: width 0.4s; }
+.pro-usage div.high { background: var(--orange); }

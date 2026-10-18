@@ -1,0 +1,22 @@
+# Readback Copilot Pro: server di trascrizione su Cloudflare Workers (guida: docs/PRO-SETUP.md)
+name = "readback-copilot-pro"
+main = "worker.mjs"
+compatibility_date = "2025-06-01"
+
+[vars]
+# ID del tuo negozio Lemon Squeezy (Settings → Stores)
+LS_STORE_ID = ""
+# ID dei prodotti Pro, separati da virgola (facoltativo: vuoto = tutti i prodotti del negozio)
+LS_PRODUCT_IDS = ""
+# Minuti di audio inclusi al mese per licenza (20 ore)
+MONTHLY_MINUTES = "1200"
+STT_MODEL = "whisper-large-v3-turbo"
+# Vuoto = il server sceglie da solo il miglior modello disponibile su Groq
+CHAT_MODEL = ""
+
+# Crea il namespace con: npx wrangler kv namespace create PRO_KV  e incolla qui l'id
+[[kv_namespaces]]
+binding = "PRO_KV"
+id = ""
+
+# Segreto (non va mai nel repository): npx wrangler secret put GROQ_API_KEY

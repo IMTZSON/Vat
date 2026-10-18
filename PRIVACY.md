@@ -11,6 +11,8 @@ Impostazioni (compresa la chiave Groq), storico delle chiamate, statistiche di a
 | Destinatario | Cosa | Quando |
 |---|---|---|
 | **Groq** (api.groq.com) | L'audio di ogni frase dell'ATC; col coach attivo, anche l'audio del tuo readback. Il testo trascritto, se è attiva l'AI per il readback. | Solo mentre l'ascolto è attivo e se scegli Groq. Si applicano i [termini di Groq](https://groq.com/privacy-policy/). |
+| **Server Pro** (se configurato) | Lo stesso audio e testo di Groq, più la tua chiave di licenza. Il server controlla la licenza su Lemon Squeezy, conta i minuti del mese e inoltra a Groq: l'audio non viene salvato. | Solo se scegli "Pro". |
+| **Simulatore** (MSFS / X-Plane) | Niente esce dal PC: il programma legge radio, transponder, altimetro e autopilota dal simulatore sul tuo computer, solo in lettura. | Se "Collega al simulatore" è attivo (Impostazioni → Simulatore). |
 | **Server Whisper locale** | Lo stesso audio, ma al server che indichi tu (di solito sul tuo PC). | Se scegli "Locale": nessun dato esce dalla tua rete. |
 | **Chrome/Edge** | Con il riconoscimento di Chrome, l'audio va al servizio vocale del browser (Google/Microsoft). | Solo in modalità Chrome. |
 | **VATSIM** (data.vatsim.net, metar.vatsim.net) | Nessun dato personale: si scaricano dati pubblici. Il tuo nominativo serve solo a cercarti nel feed, sul tuo PC. | Scheda Volo, tracking, verifiche, mappa radar. |
@@ -42,6 +44,8 @@ Readback Copilot has no accounts, no servers of its own and no usage analytics. 
 
 **Sent out**
 - **Groq**: the audio of each ATC transmission (and, with the coach on, of your readback); the transcript if the AI readback is on. Only while listening, only if you choose Groq. [Groq's terms](https://groq.com/privacy-policy/) apply.
+- **Pro server** (if configured): the same audio and text as Groq plus your license key; it checks the license with Lemon Squeezy, counts monthly minutes and forwards to Groq without storing audio. Only if you choose "Pro".
+- **Simulator** (MSFS / X-Plane): nothing leaves your PC; radios, transponder, altimeter and autopilot are read locally, read only.
 - **Local Whisper server**: the same audio, to the server you configure (usually your own PC) — nothing leaves your network.
 - **Chrome/Edge**: in Chrome mode the audio goes to the browser's speech service.
 - **VATSIM**: public data is downloaded; nothing personal is sent.

@@ -212,6 +212,7 @@
     function updateTod(phase, alt, gs, remaining) {
       const el = $('trkTod');
       const f = App.flight || {};
+      App.todNm = null;
       if (phase !== 'cruise' || remaining === null || route.length < 2) {
         el.hidden = true;
         if (todMarker) { todMarker.remove(); todMarker = null; }
@@ -219,6 +220,7 @@
       }
       const tod = Geo.todDistance(alt, f.arrElev || 0);
       const toTod = remaining - tod;
+      App.todNm = toTod;
       const min = gs > 100 ? Math.round((Math.max(0, toTod) / gs) * 60) : null;
       el.hidden = false;
       el.classList.toggle('now', toTod <= 10);
