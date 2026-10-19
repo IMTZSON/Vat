@@ -320,6 +320,7 @@
         coachStats = root.Coach.record(coachStats, ev);
         App.storage.set(COACH_KEY, coachStats);
         App.emit('coach', coachStats);
+        App.emit('coach-score', ev);
         finish({ state: 'done', score: ev.score, said: ev.said, missed: ev.missed.map((m) => ({ type: m.type, expected: m.expected })), ptt: !!item.coachPtt });
       } catch (e) {
         finish({ state: 'error', error: e.message });

@@ -196,9 +196,14 @@
         stats.byPhase[cur.phase] = p;
         App.storage.set(STATS_KEY, stats);
         renderStats();
+        App.emit('train-answer', { score: res.score, phase: cur.phase });
         if (report && flightSteps && flightSteps.includes(cur)) {
           report.steps.push({ station: cur.station, score: res.score, items: res.items });
-          if (stepIdx >= flightSteps.length) renderReport();
+          if (stepIdx >= flightSteps.length) {
+            renderReport();
+            const avg = Math.round(report.steps.reduce((s, x) => s + x.score, 0) / report.steps.length);
+            App.emit('rehearsal-done', { avg, n: report.steps.length });
+          }
         }
       }
       if (res.perfect) App.toast(t('train.perfect'));

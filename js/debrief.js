@@ -148,7 +148,7 @@
     ctx.fillStyle = C.dim;
     ctx.font = font(600, 24);
     ctx.textAlign = 'center';
-    ctx.fillText(t('debrief.footer'), W / 2, H - 40);
+    ctx.fillText(`${t('debrief.footer')}${entry.rank ? `  ·  ${entry.rank}` : ''}`, W / 2, H - 40);
     return cv;
   }
 
@@ -165,7 +165,8 @@
     App.openDebrief = (e) => {
       entry = e;
       const trail = App.flight && App.flight.dep === e.dep && App.flight.arr === e.arr ? App.storage.get('readback-copilot-trail', []) : null;
-      canvas = render(e, trail, t);
+      const rank = App.career ? t(`career.rank.${App.career.summary().rank}`) : '';
+      canvas = render({ ...e, rank }, trail, t);
       $('debriefImg').src = canvas.toDataURL('image/png');
       if (!dlg.open) dlg.showModal();
     };

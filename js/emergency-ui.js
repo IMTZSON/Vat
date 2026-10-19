@@ -107,6 +107,7 @@
       $('emKind').dispatchEvent(new Event('sync'));
       render();
       if (!dlg.open) dlg.showModal();
+      App.emit('emergency-open');
     };
     // la natura suggerisce il tipo (fumo -> MAYDAY, malore -> PAN PAN) e le intenzioni più probabili
     $('emNature').addEventListener('change', () => {

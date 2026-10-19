@@ -368,6 +368,7 @@
         <div class="hero-links">
           <button class="hero-link" data-go="train"><span class="hero-icon"><i data-icon="graduation-cap"></i></span><b data-i18n="more.train">Allenamento</b><span data-i18n="more.trainSub">ATC simulato a voce, con correzione</span></button>
           <button class="hero-link" data-go="phrases"><span class="hero-icon"><i data-icon="book-open"></i></span><b data-i18n="more.phrases">Frasario</b><span data-i18n="more.phrasesSub">40 frasi ICAO, alfabeto e glossario</span></button>
+          <button class="hero-link" data-go="career"><span class="hero-icon gold"><i data-icon="trophy"></i></span><b data-i18n="more.career">Carriera</b><span data-i18n="more.careerSub">Grado, badge e sfide del giorno</span></button>
         </div>
         <div class="group">
           <button class="row link" data-go="settings"><span class="row-icon"><i data-icon="settings"></i></span><span class="row-label" data-i18n="more.settings">Impostazioni</span><i data-icon="chevron-right" class="chev"></i></button>
@@ -375,6 +376,18 @@
           <button class="row link" data-go="about"><span class="row-icon gray"><i data-icon="shield"></i></span><span class="row-label" data-i18n="more.about">Privacy e informazioni</span><i data-icon="chevron-right" class="chev"></i></button>
         </div>
         <p class="footnote center" id="aboutLine">Readback Copilot</p>
+      </section>
+
+      <!-- ============================================================ CARRIERA -->
+      <section class="view" id="careerView" data-view="career" data-parent="more" data-title="Carriera" data-i18n-title-key="more.career" hidden>
+        <div class="card career-hero" id="careerHero"></div>
+        <div class="section-head"><h2 data-i18n="career.today">Sfide di oggi</h2></div>
+        <ol class="card career-daily" id="careerDaily"></ol>
+        <div class="kpis six" id="careerKpis"></div>
+        <div class="section-head"><h2 data-i18n="career.progress">Progressi settimanali</h2></div>
+        <div class="card career-weeks" id="careerWeeks"></div>
+        <div class="section-head"><h2 data-i18n="career.badges">Badge</h2></div>
+        <ul class="career-badges" id="careerBadges"></ul>
       </section>
 
       <!-- ============================================================ ALLENAMENTO -->
@@ -764,6 +777,7 @@
   <script src="js/landing.js"></script>
   <script src="js/gamepad.js"></script>
   <script src="js/emergency.js"></script>
+  <script src="js/career.js"></script>
   <script src="js/compliance.js"></script>
   <script src="js/app.js"></script>
   <script src="js/sheet.js"></script>
@@ -781,6 +795,7 @@
   <script src="js/taxi-ui.js"></script>
   <script src="js/debrief.js"></script>
   <script src="js/emergency-ui.js"></script>
+  <script src="js/career-ui.js"></script>
   <script src="js/pro.js"></script>
   <script src="js/phrasebook.js"></script>
   <script src="js/onboarding.js"></script>
