@@ -30,6 +30,14 @@ contextBridge.exposeInMainWorld('desktop', {
     onStatus: (fn) => ipcRenderer.on('sim-status', (_e, s) => fn(String(s))),
     onTouchdown: (fn) => ipcRenderer.on('sim-touchdown', (_e, ev) => fn(ev)),
   },
+  // Collegamento col telefono in Wi-Fi
+  link: {
+    enable: (on) => ipcRenderer.invoke('link-enable', !!on),
+    info: () => ipcRenderer.invoke('link-info'),
+    regenerate: () => ipcRenderer.invoke('link-regenerate'),
+    publish: (type, data) => ipcRenderer.send('link-publish', String(type), data),
+    onCommand: (fn) => ipcRenderer.on('link-command', (_e, c) => fn(c)),
+  },
   store: {
     load: () => ipcRenderer.invoke('store-load'),
     set: (key, value) => ipcRenderer.send('store-set', String(key), value),

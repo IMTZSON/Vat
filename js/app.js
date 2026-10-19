@@ -50,6 +50,10 @@
     telemetry: false,
     crashReports: false,
     telemetryId: '',
+    phoneLink: false,
+    linkHost: '',
+    linkToken: '',
+    linkName: '',
   };
 
   /* Archivio dati. Backend scelto all'avvio (storage.init):

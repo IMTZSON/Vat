@@ -637,6 +637,19 @@
     });
     updateReplayUI();
     App.isListening = () => running;
+    // Readback arrivato dal PC collegato (telefono): si mostra come uno ascoltato qui
+    App.showRemoteReadback = (x) => {
+      if (!x || !x.result) return;
+      const when = new Date(x.ts || Date.now());
+      const item = { heard: x.heard || '', origin: 'pc', result: x.result, rules: x.result, ts: x.ts || Date.now(), date: root.I18n.date(when), time: root.I18n.time(when, true), verify: x.verify ? { reasons: [], ...x.verify } : null };
+      if (history.some((h) => h.origin === 'pc' && h.ts === item.ts)) return;
+      history.unshift(item);
+      if (history.length > 100) history.pop();
+      render(item, true);
+      renderHistory();
+      saveHistory();
+      if (item.result.forUs === true) { beep(); if (navigator.vibrate) navigator.vibrate(120); }
+    };
     // Statistiche radio di un volo (per il resoconto): chiamate per te, verificate, audio non chiaro, voto del coach
     App.radioStats = (since) => {
       const mine = history.filter((h) => h.result && h.result.forUs === true && h.origin !== 'prova' && (!since || (h.ts || 0) >= since));

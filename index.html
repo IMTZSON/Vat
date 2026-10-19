@@ -368,6 +368,7 @@
         <div class="hero-links">
           <button class="hero-link" data-go="train"><span class="hero-icon"><i data-icon="graduation-cap"></i></span><b data-i18n="more.train">Allenamento</b><span data-i18n="more.trainSub">ATC simulato a voce, con correzione</span></button>
           <button class="hero-link" data-go="phrases"><span class="hero-icon"><i data-icon="book-open"></i></span><b data-i18n="more.phrases">Frasario</b><span data-i18n="more.phrasesSub">40 frasi ICAO, alfabeto e glossario</span></button>
+          <button class="hero-link link-phone-only" data-go="pc"><span class="hero-icon"><i data-icon="monitor"></i></span><b data-i18n="link.title">Collega al PC</b><span data-i18n="link.titleSub">Readback e comandi dal programma per Windows</span></button>
           <button class="hero-link" data-go="career"><span class="hero-icon gold"><i data-icon="trophy"></i></span><b data-i18n="more.career">Carriera</b><span data-i18n="more.careerSub">Grado, badge e sfide del giorno</span></button>
         </div>
         <div class="group">
@@ -376,6 +377,40 @@
           <button class="row link" data-go="about"><span class="row-icon gray"><i data-icon="shield"></i></span><span class="row-label" data-i18n="more.about">Privacy e informazioni</span><i data-icon="chevron-right" class="chev"></i></button>
         </div>
         <p class="footnote center" id="aboutLine">Readback Copilot</p>
+      </section>
+
+      <!-- ============================================================ COLLEGA AL PC (telefono) -->
+      <section class="view" data-view="pc" data-parent="more" data-title="Collega al PC" data-i18n-title-key="link.title" hidden>
+        <div class="card pc-head"><span class="pc-icon"><i data-icon="monitor"></i></span><div><b data-i18n="link.title">Collega al PC</b><span id="pcState" class="badge muted"></span></div></div>
+        <p id="pcMsg" class="footnote"></p>
+        <div id="pcPair">
+          <button id="pcScan" class="btn primary block big"><i data-icon="qr-code"></i> <span data-i18n="link.scanBtn">Inquadra il QR del PC</span></button>
+          <p class="hint" data-i18n-html="link.pairHint">Sul PC: <b>Impostazioni → Telefono → Collega il telefono in Wi-Fi</b>. Telefono e PC devono essere sulla stessa rete Wi-Fi.</p>
+          <div class="card form-card">
+            <label class="field"><span data-i18n="link.address">Indirizzo</span><input id="pcHost" class="mono" placeholder="192.168.1.20:47810" inputmode="url" autocomplete="off" spellcheck="false"></label>
+            <label class="field"><span data-i18n="link.code">Codice</span><input id="pcCode" class="mono" placeholder="XXXXX-XXXXX" autocomplete="off" spellcheck="false"></label>
+          </div>
+          <button id="pcConnect" class="btn tinted block"><i data-icon="wifi"></i> <span data-i18n="link.connect">Collega</span></button>
+        </div>
+        <div id="pcLive" hidden>
+          <div class="card pc-next" id="pcNext" hidden>
+            <span class="eyebrow" data-i18n="next.title">Prossima chiamata</span>
+            <p id="pcNextText" class="readback-sm"></p>
+            <div class="btn-row"><span id="pcNextFreq" class="freq-chip"></span><button id="pcNextDone" class="pill-btn"><i data-icon="check"></i> <span data-i18n="link.done">Fatto</span></button></div>
+          </div>
+          <div class="pc-grid">
+            <button id="pcListen" class="pc-btn"><i data-icon="mic"></i><span data-i18n="link.startListen">Avvia ascolto</span></button>
+            <button id="pcReplay" class="pc-btn"><i data-icon="rotate-ccw"></i><span data-i18n="link.replay">Riascolta</span></button>
+            <button id="pcReplaySlow" class="pc-btn"><i data-icon="timer"></i><span data-i18n="link.replaySlow">Riascolta lento</span></button>
+            <button id="pcSpeak" class="pc-btn"><i data-icon="volume-2"></i><span data-i18n="link.speak">Ripeti readback</span></button>
+          </div>
+          <div class="group">
+            <button class="row link" id="pcSendFlight"><span class="row-icon"><i data-icon="send"></i></span><span class="row-label" data-i18n="link.sendFlight">Invia il volo al PC</span></button>
+            <button class="row link" id="pcSync"><span class="row-icon green"><i data-icon="refresh-cw"></i></span><span class="row-label" data-i18n="link.sync">Sincronizza carriera e logbook</span></button>
+            <button class="row link" id="pcUnpair"><span class="row-icon gray"><i data-icon="x"></i></span><span class="row-label" data-i18n="link.unpair">Scollega</span></button>
+          </div>
+          <p class="footnote" data-i18n="link.liveHint">I readback del PC compaiono anche nella scheda ATC, il percorso di rullaggio sulla mappa.</p>
+        </div>
       </section>
 
       <!-- ============================================================ CARRIERA -->
@@ -525,6 +560,23 @@
           <div class="row"><span class="row-label" data-i18n="sim.statusLabel">Stato</span><span id="simStatusText" class="row-value">—</span></div>
         </div>
         <p class="footnote" data-i18n="sim.hint">Legge radio, transponder, altimetro e autopilota (solo lettura) e ti avvisa se un'istruzione ATC non è stata eseguita.</p>
+
+        <div class="group-title link-host-only" data-i18n="link.group">Telefono</div>
+        <div class="group link-host-only">
+          <label class="row"><span class="row-label"><span data-i18n="link.enable">Collega il telefono in Wi-Fi</span><small class="row-sub" data-i18n="link.enableSub">Il telefono mostra readback, prossima chiamata e simulatore, e comanda l'ascolto. Solo nella rete di casa, protetto da un codice.</small></span><input id="phoneLink" data-setting="phoneLink" type="checkbox" class="switch"></label>
+        </div>
+        <div class="card link-box link-host-only" id="linkBox" hidden>
+          <div class="link-qr" id="linkQr" aria-label="QR"></div>
+          <div class="link-info">
+            <span class="eyebrow" data-i18n="link.scan">Inquadra con il telefono</span>
+            <p class="hint" data-i18n="link.scanHint">Apri l'app Readback Copilot sul telefono → Altro → Collega al PC, oppure inquadra il QR con la fotocamera.</p>
+            <div class="link-kv"><span data-i18n="link.address">Indirizzo</span><b id="linkAddr" class="mono"></b></div>
+            <div class="link-kv"><span data-i18n="link.code">Codice</span><b id="linkCode" class="mono"></b></div>
+            <span id="linkStatus" class="link-status"></span>
+            <button id="linkRegen" class="link-btn" type="button" data-i18n="link.regen">Nuovo codice (scollega i telefoni)</button>
+          </div>
+        </div>
+        <p class="footnote link-host-only" data-i18n="link.firewall">La prima volta Windows chiede il permesso del firewall: consenti l'accesso alle reti private.</p>
 
         <div class="group-title" data-i18n="settings.program">Programma</div>
         <div class="group">
@@ -752,6 +804,7 @@
 
   <script src="js/vendor/leaflet.js"></script>
   <script src="js/vendor/topojson-client.min.js"></script>
+  <script src="js/vendor/qrcode.js"></script>
   <script src="js/strings.js"></script>
   <script src="js/strings-es.js"></script>
   <script src="js/strings-de.js"></script>
@@ -807,6 +860,7 @@
   <script src="js/emergency-ui.js"></script>
   <script src="js/career-ui.js"></script>
   <script src="js/telemetry.js"></script>
+  <script src="js/link-ui.js"></script>
   <script src="js/pro.js"></script>
   <script src="js/phrasebook.js"></script>
   <script src="js/onboarding.js"></script>

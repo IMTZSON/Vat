@@ -40,6 +40,22 @@
       render();
     }
 
+    // Logbook del telefono e del PC uniti (per id, si tiene la voce più completa)
+    App.logbook = {
+      list: () => list,
+      merge(other) {
+        const byId = new Map(list.map((e) => [e.id, e]));
+        for (const e of other || []) {
+          if (!e || !e.id) continue;
+          const mine = byId.get(e.id);
+          if (!mine || Object.keys(e).length > Object.keys(mine).length) byId.set(e.id, e);
+        }
+        list = [...byId.values()].sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.id).localeCompare(String(a.id)));
+        save();
+        render();
+      },
+    };
+
     App.on('track', (e) => {
       if (!e.events || !e.events.length) return;
       const c = ensureCurrent();

@@ -10,6 +10,8 @@ const { Store } = require('./store');
 const { PttController, keyNames } = require('./ptt');
 const { createUpdater } = require('./updater');
 const { SimLink } = require('./sim');
+const { startLink, LinkHub } = require('./link');
+const os = require('os');
 const dgram = require('dgram');
 
 let win = null;
@@ -19,6 +21,7 @@ let store = null;
 let ptt = null;
 let updater = null;
 let sim = null;
+let link = null; // { server, port, hub, addresses } quando il collegamento col telefono è attivo
 
 const send = (channel, data) => { if (win && !win.isDestroyed()) win.webContents.send(channel, data); };
 
@@ -198,12 +201,40 @@ ipcMain.handle('updater-state', () => (updater ? { ...updater.state, supported: 
 ipcMain.handle('updater-check', () => (updater ? updater.check() : null));
 ipcMain.handle('updater-install', () => (updater ? updater.install() : false));
 
+// Collegamento col telefono in Wi-Fi (vedi link.js): il codice resta salvato, così il telefono resta abbinato
+const LINK_TOKEN_KEY = 'readback-copilot-link-token';
+function linkInfo() {
+  if (!link) return null;
+  return { port: link.port, addresses: require('./link').lanAddresses(), token: link.hub.token, name: os.hostname(), connected: link.hub.connected() };
+}
+ipcMain.handle('link-enable', async (e, on) => {
+  if (!on) {
+    if (link) { link.server.close(); link = null; }
+    return null;
+  }
+  if (!link) {
+    const hub = new LinkHub({ token: store && store.get(LINK_TOKEN_KEY), onCommand: (cmd, data) => send('link-command', { cmd, data }) });
+    if (store) store.set(LINK_TOKEN_KEY, hub.token);
+    link = await startLink({ hub, root: path.join(__dirname, '..'), name: os.hostname(), version: app.getVersion() });
+  }
+  return linkInfo();
+});
+ipcMain.handle('link-info', () => linkInfo());
+ipcMain.handle('link-regenerate', () => {
+  if (!link) return null;
+  link.hub.regenerate();
+  if (store) store.set(LINK_TOKEN_KEY, link.hub.token);
+  return linkInfo();
+});
+ipcMain.on('link-publish', (e, type, data) => { if (link) link.hub.publish(String(type), data); });
+
 function buildInfo() {
   try { return require('../package.json').buildNumber || null; } catch (e) { return null; }
 }
 
 app.on('will-quit', () => {
   if (sim) sim.stop();
+  if (link) link.server.close();
   globalShortcut.unregisterAll();
   try { if (ptt) ptt.release(); } catch (e) { /* ignora */ }
   try { if (store) store.flush(); } catch (e) { /* ignora */ }

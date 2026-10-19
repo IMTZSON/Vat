@@ -60,6 +60,7 @@
       const box = $('nextCall');
       const c = ctx();
       current = c.cs && App.flight ? N.suggest(state, c) : null;
+      App.emit('next-call', current);
       box.hidden = !current;
       if (!current) return;
       box.querySelector('.eyebrow').textContent = `${t('next.title')} · ${t(current.key)}`;
@@ -70,6 +71,7 @@
       fq.title = t('next.copyFreq');
     }
 
+    App.on('hotkey', (name) => { if (name === 'next-done') $('nextDone').click(); });
     // Stazione con cui si parla adesso (per l'aiuto emergenze)
     App.nextCallStation = () => (current && current.station) || '';
     $('nextSpeak').addEventListener('click', () => current && root.TTS.speak(current.spoken));

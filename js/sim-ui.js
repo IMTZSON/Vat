@@ -12,6 +12,7 @@
     let state = C.emptyState();
     let sim = null;
     let status = 'off';
+    let remote = null; // { status, checks } dal PC collegato (telefono)
     const warned = new Set();
 
     function setStatus(s) {
@@ -22,11 +23,13 @@
 
     function render() {
       const row = $('simRow');
+      if (remote) status = remote.status;
       const connected = status === 'msfs' || status === 'xplane';
-      row.hidden = !bridge || status === 'off';
+      row.hidden = (!bridge && !remote) || status === 'off';
       row.classList.toggle('on', connected);
       $('simLabel').textContent = t(`sim.${status}`);
-      const checks = connected && sim ? C.check(state, sim, Date.now()) : [];
+      const checks = remote ? remote.checks || [] : (connected && sim ? C.check(state, sim, Date.now()) : []);
+      App.simChecks = checks;
       const box = $('simChecks');
       box.innerHTML = '';
       if (App.lastLanding) {
@@ -89,5 +92,6 @@
     // Le attese scadono anche senza nuovi dati dal simulatore
     setInterval(() => { if (sim) render(); }, 5000);
     App.sim = () => ({ status, data: sim });
+    App.setRemoteSim = (r) => { remote = r; if (r && r.data) sim = r.data; if (r && r.landing && (!App.lastLanding || App.lastLanding.t !== r.landing.t)) App.lastLanding = r.landing; render(); };
   });
 })(this);

@@ -130,6 +130,13 @@
     // decollo, arrivo allo stand o nuovo volo: il percorso sparisce
     App.on('track', (e) => { if (current && ['takeoff', 'climb', 'arrived'].includes(e.phase) && Date.now() - current.at > 30000) clear(); });
     App.on('flight', clear);
+    // Percorso arrivato dal PC collegato: si disegna così com'è (senza dati del suolo)
+    App.drawRemoteTaxi = (plan, route) => {
+      clear();
+      if (!route || !route.ok || !route.points || route.points.length < 2) return;
+      current = { icao: '', plan, at: Date.now() };
+      drawRoute({ crossings: [], ...route }, plan || {});
+    };
     App.clearTaxi = clear;
     App.showTaxi = show;
     // Nomi dei taxiway dell'aeroporto (per la prova generale): [] se i dati del suolo non ci sono
