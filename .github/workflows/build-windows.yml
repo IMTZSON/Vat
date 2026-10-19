@@ -1,0 +1,282 @@
+name: Build Windows, Android, iOS
+
+on:
+  push:
+    branches: [main, 'claude/**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # Test veloci su Linux: unitari (motore, verifiche, dati, server) + end-to-end nel browser
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installa dipendenze
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+
+      - name: Test unitari
+        run: npm test
+
+      - name: Browser per i test end-to-end
+        run: npx playwright install --with-deps chromium
+
+      - name: Test end-to-end (onboarding, ascolto, coach, lingue)
+        run: npm run test:e2e
+
+  build:
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installa dipendenze
+        run: npm ci
+
+      # Il numero di build finisce nel programma (avviso di aggiornamento, tag build-N) e nella versione:
+      # 4.0.N cresce a ogni build, così l'aggiornamento automatico riconosce quella più nuova.
+      - name: Numero di build e versione
+        shell: bash
+        run: |
+          npm pkg set buildNumber=${{ github.run_number }}
+          npm pkg set version=$(node -p "require('./package.json').version.split('.').slice(0,2).join('.')").${{ github.run_number }}
+
+      # Firma del codice: si attiva da sola quando i secret WIN_CSC_LINK (certificato .pfx in base64)
+      # e WIN_CSC_KEY_PASSWORD sono configurati nel repository. Senza, l'exe resta non firmato.
+      - name: Crea installer e versione portatile
+        run: npx electron-builder --win --x64 --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+
+      # latest.yml (e il .blockmap per scaricare solo le differenze) servono all'aggiornamento automatico
+      - name: Controlla i file per l'aggiornamento automatico
+        shell: bash
+        run: |
+          ls -la dist
+          test -f dist/latest.yml
+          grep -q "ReadbackCopilot-Setup-" dist/latest.yml
+          cat dist/latest.yml
+
+      - name: Carica gli .exe come artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ReadbackCopilot-Windows
+          path: |
+            dist/*.exe
+            dist/*.blockmap
+            dist/latest.yml
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------- Android (APK da installare + AAB per Google Play)
+  android:
+    needs: test
+    runs-on: ubuntu-latest
+    env:
+      HAS_SIGNING: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Installa dipendenze
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+
+      - name: Prepara l'app (www + progetto Android)
+        run: |
+          node scripts/build-web.js
+          npx cap sync android
+
+      # Firma per Google Play: si attiva da sola con i secret ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD,
+      # ANDROID_KEY_ALIAS e ANDROID_KEY_PASSWORD (guida: docs/MOBILE-SETUP.md). Senza: APK di prova installabile.
+      - name: Keystore
+        if: env.HAS_SIGNING == 'true'
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+
+      - name: Compila
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          VER="1.0.${{ github.run_number }}"
+          mkdir -p ../dist-mobile
+          if [ "$HAS_SIGNING" = "true" ]; then
+            ./gradlew --no-daemon assembleRelease bundleRelease -PversionCode=${{ github.run_number }} -PversionName=$VER
+            cp app/build/outputs/apk/release/app-release.apk ../dist-mobile/ReadbackCopilot-Android-$VER.apk
+            cp app/build/outputs/bundle/release/app-release.aab ../dist-mobile/ReadbackCopilot-Android-$VER.aab
+          else
+            ./gradlew --no-daemon assembleDebug -PversionCode=${{ github.run_number }} -PversionName=$VER
+            cp app/build/outputs/apk/debug/app-debug.apk ../dist-mobile/ReadbackCopilot-Android-$VER-test.apk
+          fi
+          ls -la ../dist-mobile
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ReadbackCopilot-Android
+          path: dist-mobile/*
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------- iOS (Mac di GitHub): compila; con i certificati invia a TestFlight
+  ios:
+    needs: test
+    runs-on: macos-15
+    env:
+      HAS_SIGNING: ${{ secrets.IOS_CERT_P12_BASE64 != '' && secrets.IOS_PROFILE_BASE64 != '' && secrets.APPSTORE_KEY_P8 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installa dipendenze
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+
+      - name: Prepara l'app (www + progetto iOS + CocoaPods)
+        run: |
+          node scripts/build-web.js
+          npx cap sync ios
+
+      - name: Compila (senza firma, per verificare)
+        if: env.HAS_SIGNING != 'true'
+        run: |
+          set -o pipefail
+          xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Release \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            MARKETING_VERSION=1.0.${{ github.run_number }} CURRENT_PROJECT_VERSION=${{ github.run_number }} \
+            CODE_SIGNING_ALLOWED=NO build | tail -n 40
+
+      # Firma e TestFlight: secret IOS_CERT_P12_BASE64, IOS_CERT_PASSWORD, IOS_PROFILE_BASE64, IOS_TEAM_ID,
+      # APPSTORE_KEY_ID, APPSTORE_ISSUER_ID, APPSTORE_KEY_P8 (guida: docs/MOBILE-SETUP.md)
+      - name: Certificato e profilo
+        if: env.HAS_SIGNING == 'true'
+        run: |
+          KC="$RUNNER_TEMP/build.keychain-db"
+          security create-keychain -p ci "$KC"
+          security set-keychain-settings -lut 21600 "$KC"
+          security unlock-keychain -p ci "$KC"
+          echo "${{ secrets.IOS_CERT_P12_BASE64 }}" | base64 -d > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -P "${{ secrets.IOS_CERT_PASSWORD }}" -A -t cert -f pkcs12 -k "$KC"
+          security set-key-partition-list -S apple-tool:,apple: -k ci "$KC"
+          security list-keychain -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
+          echo "${{ secrets.IOS_PROFILE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/app.mobileprovision"
+          security cms -D -i "$RUNNER_TEMP/app.mobileprovision" > "$RUNNER_TEMP/profile.plist"
+          UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$RUNNER_TEMP/profile.plist")
+          NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$RUNNER_TEMP/profile.plist")
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp "$RUNNER_TEMP/app.mobileprovision" "$HOME/Library/MobileDevice/Provisioning Profiles/$UUID.mobileprovision"
+          echo "PROFILE_NAME=$NAME" >> "$GITHUB_ENV"
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          echo "${{ secrets.APPSTORE_KEY_P8 }}" > "$HOME/.appstoreconnect/private_keys/AuthKey_${{ secrets.APPSTORE_KEY_ID }}.p8"
+
+      - name: Archivio firmato e invio a TestFlight
+        if: env.HAS_SIGNING == 'true'
+        run: |
+          set -o pipefail
+          xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Release \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" -destination 'generic/platform=iOS' \
+            MARKETING_VERSION=1.0.${{ github.run_number }} CURRENT_PROJECT_VERSION=${{ github.run_number }} \
+            CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=${{ secrets.IOS_TEAM_ID }} CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" archive | tail -n 40
+          cat > "$RUNNER_TEMP/export.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>teamID</key><string>${{ secrets.IOS_TEAM_ID }}</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>provisioningProfiles</key><dict><key>app.readbackcopilot.mobile</key><string>$PROFILE_NAME</string></dict>
+          </dict></plist>
+          PLIST
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/App.xcarchive" -exportOptionsPlist "$RUNNER_TEMP/export.plist" -exportPath "$RUNNER_TEMP/export"
+          mkdir -p dist-mobile
+          cp "$RUNNER_TEMP"/export/*.ipa dist-mobile/ReadbackCopilot-iOS-1.0.${{ github.run_number }}.ipa
+          xcrun altool --upload-app -f dist-mobile/*.ipa -t ios --apiKey ${{ secrets.APPSTORE_KEY_ID }} --apiIssuer ${{ secrets.APPSTORE_ISSUER_ID }}
+
+      - uses: actions/upload-artifact@v4
+        if: env.HAS_SIGNING == 'true'
+        with:
+          name: ReadbackCopilot-iOS
+          path: dist-mobile/*.ipa
+
+  # ---------------------------------------------------------------- Release: Windows sempre, Android e iOS se compilati
+  publish:
+    needs: [build, android, ios]
+    if: ${{ !cancelled() && github.event_name != 'pull_request' && needs.build.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ReadbackCopilot-Windows
+          path: dist
+
+      - uses: actions/download-artifact@v4
+        if: needs.android.result == 'success'
+        with:
+          name: ReadbackCopilot-Android
+          path: dist
+
+      - name: Pubblica nella pagina Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Readback Copilot – build ${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          prerelease: ${{ github.ref_name != 'main' }}
+          files: |
+            dist/*.exe
+            dist/*.blockmap
+            dist/latest.yml
+            dist/*.apk
+            dist/*.aab
+          body: |
+            **Windows 10/11 (64 bit)**
+            - `ReadbackCopilot-Setup-*.exe`: installer con collegamento sul desktop · installer with desktop shortcut.
+            - `ReadbackCopilot-Portable-*.exe`: si avvia senza installazione · runs without installing.
+
+            Se Windows mostra "Windows ha protetto il PC" clicca **Ulteriori informazioni → Esegui comunque**.
+            If Windows shows "Windows protected your PC", click **More info → Run anyway**.
+
+            **Android**: `ReadbackCopilot-Android-*.apk` si installa direttamente sul telefono (consenti "installa app sconosciute") · install directly on your phone. `*.aab` è il file per Google Play.
+            **iOS**: la build firmata va su TestFlight (App Store Connect) · signed builds go to TestFlight.
+
+            Android: ${{ needs.android.result }} · iOS: ${{ needs.ios.result }}
+            Commit: ${{ github.sha }} (`${{ github.ref_name }}`)
