@@ -557,3 +557,84 @@ test('4.3: rullaggio sulla mappa, atterraggio e resoconto, prova generale, PTT s
   assert.match(await page.textContent('#emParts'), /PAN PAN/);
   assert.deepStrictEqual(errors, []);
 });
+
+test('4.4: telefono collegato al PC (QR e codice), readback e comandi, carriera sincronizzata, consenso statistiche', { skip: !chromium && 'playwright non installato', timeout: 120000 }, async (t) => {
+  const { startLink, LinkHub } = require('../electron/link.js');
+  const { server: srv, port } = await server.start(ROOT, { version: 'e2e', ports: [0] });
+  const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || undefined });
+  let link = null;
+  t.after(async () => { await browser.close(); srv.close(); if (link) link.server.close(); });
+  const errors = [];
+  // PC: ponte di Electron finto, collegato a un server di rete vero (link.js)
+  const pcCtx = await browser.newContext({ locale: 'en-GB', viewport: { width: 1280, height: 820 } });
+  const pc = await pcCtx.newPage();
+  pc.on('pageerror', (e) => errors.push(`pc: ${e.message}`));
+  const info = () => (link ? { port: link.port, addresses: ['127.0.0.1'], token: link.hub.token, name: 'SIM-PC', connected: link.hub.connected() } : null);
+  await pc.exposeFunction('__linkEnable', async (on) => {
+    if (!on) { if (link) link.server.close(); link = null; return null; }
+    if (!link) link = await startLink({ root: ROOT, ports: [0], host: '127.0.0.1', name: 'SIM-PC', hub: new LinkHub({ onCommand: (cmd, data) => pc.evaluate(([c, d]) => window.__linkCmd({ cmd: c, data: d }), [cmd, data]) }) });
+    return info();
+  });
+  await pc.exposeFunction('__linkInfo', info);
+  await pc.exposeFunction('__linkPublish', (type, data) => { if (link) link.hub.publish(type, data); });
+  await pcCtx.addInitScript(() => {
+    window.desktop = {
+      setOnTop() {}, setCompact() {}, openExternal() {}, saveText: async () => true, onHotkey() {},
+      info: async () => ({ version: '4.4.0', build: 1, origin: location.origin }),
+      store: { load: async () => ({ isNew: false, data: { 'readback-copilot-settings': { callsign: 'AZA123', mode: 'free', onboarded: true, uiLang: 'en' } } }), set() {}, merge: async () => 0 },
+      link: { enable: (on) => window.__linkEnable(on), info: () => window.__linkInfo(), regenerate: async () => null, publish: (ty, d) => window.__linkPublish(ty, d), onCommand: (fn) => { window.__linkCmd = fn; } },
+    };
+  });
+  await mockNetwork(pc, { stt: 0, atc: '', pilot: '', ai: '' });
+  await pc.goto(`http://127.0.0.1:${port}/`);
+  await pc.waitForFunction(() => window.App && App.career);
+  await pc.evaluate(() => { App.switchTab('settings'); App.set('phoneLink', true); App.setFlight({ source: 'manual', dep: 'LIRF', arr: 'LIMC', aircraft: 'A320' }); });
+  await pc.waitForFunction(() => document.querySelector('#linkQr svg') && /\w{5}-\w{5}/.test(document.getElementById('linkCode').textContent));
+  const code = await pc.textContent('#linkCode');
+
+  // Telefono (pagina web, viewport da telefono): indirizzo e codice
+  const phCtx = await browser.newContext({ locale: 'en-GB', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  await phCtx.addInitScript(() => localStorage.setItem('readback-copilot-settings', JSON.stringify({ callsign: 'AZA123', mode: 'free', onboarded: true, uiLang: 'en' })));
+  const phone = await phCtx.newPage();
+  phone.on('pageerror', (e) => errors.push(`phone: ${e.message}`));
+  await mockNetwork(phone, { stt: 0, atc: '', pilot: '', ai: '' });
+  await phone.goto(`http://127.0.0.1:${port}/`);
+  await phone.waitForFunction(() => window.App && App.linkStatus);
+  assert.ok(await phone.evaluate(() => !document.body.classList.contains('has-link-host')), 'sul telefono niente impostazioni del PC');
+  await phone.evaluate(() => { App.switchTab('pc'); App.setDetent('full'); });
+  await phone.fill('#pcHost', `127.0.0.1:${link.port}`);
+  await phone.fill('#pcCode', code.toLowerCase());
+  await phone.click('#pcConnect');
+  await phone.waitForFunction(() => App.linkStatus() === 'on', null, { timeout: 10000 });
+  assert.match(await phone.textContent('#pcState'), /Connected to SIM-PC/);
+  await phone.waitForFunction(() => App.flight && App.flight.dep === 'LIRF' && App.flight.arr === 'LIMC');
+
+  // Readback ascoltato dal PC -> anche sul telefono
+  await pc.evaluate(() => App.emit('readback', { heard: 'Alitalia 123, climb flight level 120', origin: 'vpilot', ts: Date.now(), result: Readback.generateReadback('Alitalia 123, climb flight level 120', { callsign: App.callsignInfo() }), verify: { status: 'ok', reasons: [] } }));
+  await phone.waitForFunction(() => /Climb FL120, Alitalia 123/.test(document.getElementById('readback').textContent), null, { timeout: 10000 });
+  assert.strictEqual(await phone.evaluate(() => document.querySelectorAll('#history li.msg').length), 2);
+
+  // Comando dal telefono -> scorciatoia sul PC
+  await pc.evaluate(() => { window.__hk = []; App.on('hotkey', (n) => window.__hk.push(n)); });
+  await phone.click('#pcReplay');
+  await pc.waitForFunction(() => window.__hk.includes('replay'), null, { timeout: 5000 });
+
+  // Carriera: un volo finito sul PC arriva al telefono con la sincronizzazione
+  await pc.evaluate(() => {
+    const e = { id: 'e2e1', date: '2026-10-19', dep: 'LIRF', arr: 'LIMC', blockMin: 70, auto: true };
+    App.logbook.merge([e]);
+    App.emit('flight-finished', e);
+  });
+  assert.strictEqual(await pc.evaluate(() => App.career.summary().totals.flights), 1);
+  await phone.click('#pcSync');
+  await phone.waitForFunction(() => App.career.summary().totals.flights === 1 && App.logbook.list().some((e) => e.id === 'e2e1'), null, { timeout: 10000 });
+  await phone.evaluate(() => App.switchTab('career'));
+  await phone.waitForFunction(() => /First flight|Primo volo/.test(document.getElementById('careerBadges').textContent));
+
+  // Statistiche anonime: spente di default, si accendono solo col consenso
+  assert.deepStrictEqual(await phone.evaluate(() => [App.settings.telemetry, App.settings.crashReports]), [false, false]);
+  await phone.evaluate(() => App.switchTab('settings'));
+  await phone.check('#telemetry', { force: true });
+  assert.strictEqual(await phone.evaluate(() => App.settings.telemetry), true);
+  assert.deepStrictEqual(errors, []);
+});

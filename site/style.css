@@ -4,6 +4,7 @@
   --font: Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html { scroll-behavior: smooth; }
 body { margin: 0; background: radial-gradient(1200px 600px at 80% -10%, #16305c 0%, transparent 60%), var(--bg); color: var(--text); font: 16px/1.6 var(--font); -webkit-font-smoothing: antialiased; }
 a { color: var(--accent); text-decoration: none; }

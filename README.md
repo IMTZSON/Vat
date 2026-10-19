@@ -2,7 +2,7 @@
 
 **Il tuo copilota radio per VATSIM.** Ascolta l'ATC e ti mostra subito, in grande, **cosa ripetere**, verificando ogni numero. Ti allena con un ATC simulato, valuta i readback che dici davvero, prepara il volo con SimBrief, meteo e controllori online, e contiene un frasario completo.
 
-Programma per **Windows (.exe)** e pagina web · Interfaccia in **italiano, inglese, spagnolo, tedesco, francese e portoghese** · [English below](#english)
+Programma per **Windows (.exe)**, app per **iPhone e Android** e pagina web · Interfaccia in **italiano, inglese, spagnolo, tedesco, francese e portoghese** · [English below](#english)
 
 ---
 
@@ -15,6 +15,8 @@ Programma per **Windows (.exe)** e pagina web · Interfaccia in **italiano, ingl
 3. Se Windows mostra **"Windows ha protetto il PC"**: **Ulteriori informazioni → Esegui comunque** (vale finché il programma non è firmato digitalmente).
 
 Al primo avvio parte la **configurazione guidata** (2 minuti): lingua, nominativo, riconoscimento vocale con verifica della chiave e **prova dell'audio dal vivo**.
+
+**App per telefono**: nella stessa pagina Releases c'è l'**APK per Android** (si installa direttamente; consenti "installa app sconosciute"). La versione per iPhone arriva tramite TestFlight e App Store; la guida alla pubblicazione è in [docs/MOBILE-SETUP.md](docs/MOBILE-SETUP.md).
 
 **Aggiornamenti in un clic**: la versione installata scarica da sola le nuove versioni stabili e ti propone **"Riavvia e aggiorna"** (non si riavvia mai a sorpresa durante un volo; se rimandi, si aggiorna alla chiusura). La versione portatile e le build di prova ti avvisano con un link.
 
@@ -58,6 +60,23 @@ Il centro è la **mappa** con il tuo volo; sopra, in vetro, il pannello con 5 sc
 - Piano da **SimBrief** o a mano, **13.850 aeroporti** con piste in tutto il mondo.
 - **Meteo come un'app**: METAR spiegato in chiaro e **previsione TAF** ora per ora (icone, vento, visibilità, colore per categoria VFR/MVFR/IFR/LIFR), con le condizioni previste **alla partenza e all'arrivo** (segue l'ETA del tracking) e i peggioramenti temporanei (TEMPO/PROB) in evidenza.
 - **ATC online** con frequenze e ATIS, **le tue chiamate** già compilate con i nomi radio giusti.
+
+### 📱 Telefono collegato al PC
+- **App per iPhone e Android**, completa anche da sola:
+  - piano di volo, meteo, mappa con traffico, tracking del tuo volo, prossima chiamata;
+  - allenamento a voce, prova generale, checklist, emergenze, carriera;
+  - ascolto dell'ATC dal microfono.
+- **Collegamento in Wi-Fi**: in *Impostazioni → Telefono* il programma mostra un QR. Lo inquadri e sul telefono vedi:
+  - i readback in diretta (anche nella scheda ATC), la prossima chiamata, i dati del simulatore e il percorso di rullaggio;
+  - i comandi per avviare l'ascolto e riascoltare.
+  - Inquadrando il QR con la fotocamera si apre anche una versione web, senza installare niente.
+- **Sincronizzazione**: carriera e logbook si uniscono tra PC e telefono.
+- **Sicurezza**: solo nella rete di casa, protetto da un codice; nessun server esterno.
+
+### 🏆 Carriera e obiettivi
+- 8 gradi, da Allievo pilota a Training Captain, con XP guadagnati volando, atterrando bene, facendo readback corretti e allenandoti.
+- 23 badge (primo volo, atterraggio "burro", 100 readback verificati, 7 giorni di fila…).
+- 3 sfide al giorno e grafici dei progressi settimanali. Il grado compare anche nell'immagine del resoconto.
 
 ### 🛒 Bordo · 📋 Cockpit · ⋯ Altro
 - Simulazione del **servizio di bordo** con listino modificabile.
@@ -124,6 +143,12 @@ Pagina statica (`index.html`, `css/`, `js/`, `data/`) dentro una shell Electron 
 | `js/announcements-data.js`, `js/announcements.js` | Annunci di cabina compilati con i dati del volo |
 | `js/nextcall.js`, `js/nextcall-ui.js` | Prossima chiamata da fare, dalle istruzioni ricevute e dalla fase del volo |
 | `electron/sim.js`, `js/compliance.js`, `js/sim-ui.js` | Collegamento a MSFS (SimConnect) e X-Plane (UDP) e controllo dell'esecuzione delle istruzioni |
+| `js/career.js`, `js/career-ui.js` | Carriera: XP, gradi, badge, sfide del giorno (modulo puro) e pagina Altro › Carriera |
+| `electron/link.js`, `js/link-ui.js` | Collegamento PC ↔ telefono in Wi-Fi: server di rete con codice, long-poll, comandi, sincronizzazione |
+| `js/native.js`, `capacitor.config.json`, `android/`, `ios/` | App per iPhone e Android (Capacitor): voce, riconoscimento vocale, QR, condivisione |
+| `scripts/build-web.js`, `scripts/mobile-icons.py`, `scripts/screenshots.js` | Prepara `www/` per l'app, icone e schermate di avvio, screenshot per sito e store |
+| `js/telemetry.js` | Statistiche anonime e segnalazione errori, solo col consenso |
+| `site/`, `scripts/build-site.js` | Sito del prodotto (GitHub Pages) |
 | `server/pro/`, `js/pro.js` | Server Pro (Cloudflare Worker con licenze Lemon Squeezy) e attivazione nel programma; guida in `docs/PRO-SETUP.md` |
 | `js/app.js`, `js/listen.js`, `js/flight.js`, `js/tracking.js`, … | Interfaccia |
 | `electron/main.js`, `electron/store.js`, `electron/server.js` | Finestra, archivio dati su file, server locale (proxy, mappe, archivio per Chrome) |
@@ -138,10 +163,11 @@ npm start            # avvia il programma
 npm run serve        # solo server: http://127.0.0.1:47800 in Chrome
 npm run build:data   # aggiorna il database mondiale
 npm run dist         # crea gli .exe (su Windows)
+npm run mobile:sync  # prepara www/ e i progetti Android/iOS (poi Android Studio / Xcode, oppure la CI)
 node scripts/eval-audio.js cartella   # precisione su audio reali (GROQ_API_KEY o --local URL)
 ```
 
-**Traduzioni**: ogni testo sta in `js/strings.js` con italiano e inglese affiancati; spagnolo e tedesco in `js/strings-es.js` e `js/strings-de.js` (chiave → testo; ciò che manca usa l'inglese). `tests/i18n.test.js` fallisce se manca una lingua, una chiave, un segnaposto o un tag.
+**Traduzioni**: ogni testo sta in `js/strings.js` con italiano e inglese affiancati; spagnolo, tedesco, francese e portoghese in `js/strings-es.js`, `-de`, `-fr` e `-pt` (chiave → testo; ciò che manca usa l'inglese). `tests/i18n.test.js` fallisce se manca una lingua, una chiave, un segnaposto o un tag.
 
 **Firma del codice**: aggiungi ai secret del repository `WIN_CSC_LINK` (certificato `.pfx` in base64) e `WIN_CSC_KEY_PASSWORD`: la CI firma gli .exe da sola.
 
@@ -154,13 +180,15 @@ node scripts/eval-audio.js cartella   # precisione su audio reali (GROQ_API_KEY 
 - Mappa di base: [Natural Earth](https://www.naturalearthdata.com/) (pubblico dominio) tramite [world-atlas](https://github.com/topojson/world-atlas) (ISC) — `data/basemap*.json`; topojson-client (ISC)
 - Previsioni TAF: [NOAA Aviation Weather Center](https://aviationweather.gov/data/api/) (dati pubblici)
 - Font Inter (SIL OFL), Leaflet (BSD-2), icone Lucide (ISC): vedi `css/fonts/` e `js/vendor/`
+- QR Code Generator di Kazuhiko Arase (MIT): `js/vendor/qrcode.js`
+- App per telefono: Capacitor e plugin ufficiali (MIT), plugin della community (MIT), ML Kit di Google per la scansione dei QR (termini di Google)
 - Mappa dettagliata (opzionale) © OpenStreetMap contributors (o © MapTiler con chiave personale)
 
 ---
 
 ## English
 
-**Your radio copilot for VATSIM.** It listens to ATC and instantly shows you, in big letters, **what to read back**, checking every number. It trains you with simulated ATC, scores the readbacks you actually say, prepares your flight with SimBrief, weather and online controllers, and includes a full phrasebook. Windows app and web page; the interface is in **English, Italian, Spanish, German, French and Portuguese** (Settings → Language, or the first-run setup).
+**Your radio copilot for VATSIM.** It listens to ATC and instantly shows you, in big letters, **what to read back**, checking every number. It trains you with simulated ATC, scores the readbacks you actually say, prepares your flight with SimBrief, weather and online controllers, and includes a full phrasebook. Windows app, iPhone/Android app and web page; the interface is in **English, Italian, Spanish, German, French and Portuguese** (Settings → Language, or the first-run setup).
 
 **Download** the latest build from **Releases** (`Setup` installer or `Portable`). If Windows says "Windows protected your PC", click **More info → Run anyway**. On first launch a **guided setup** walks you through language, callsign, speech recognition (with a key test) and a **live audio test**.
 
@@ -177,6 +205,7 @@ node scripts/eval-audio.js cartella   # precisione su audio reali (GROQ_API_KEY 
 - **Cabin announcements** (Italian and/or English) filled in with your flight, with the cabin chime, suggested by flight phase; SimBrief **fuel and weights** card.
 - **Radio replay** of the last ATC call (`Ctrl+Shift+A`, slowed down to 0.75× with `Ctrl+Shift+D`), a **Next call** card with what to say, to whom and on which frequency, and a **simulator link** (MSFS via SimConnect, X-Plane via UDP, read only) that warns you when the transponder, radio, altimeter or autopilot doesn't match the ATC instruction.
 - **New in 4.3**: the **taxi route on the map** when ATC gives you taxi instructions (OpenStreetMap ground data: route, arrows, holding point, runway crossings); **landing score** (ft/min, G, bounces) and a shareable **flight debrief image**; a **flight rehearsal** of your real flight with online frequencies, QNH, route fixes and real taxiways, with a final report; **add-on support** (FlyByWire selectors; trend checks for Fenix/PMDG) and **joystick push-to-talk**; an **emergency helper** that builds MAYDAY/PAN PAN messages in ICAO order with ATC replies.
+- **New in 4.4**: **iPhone and Android app** that works on its own and **connects to the PC over Wi-Fi** (scan a QR code: live readbacks, next call, simulator data, taxi route and listening controls on your phone; career and logbook synced); **career and goals** (ranks, badges, daily challenges, weekly progress); a product **website**; optional **anonymous statistics** (off by default).
 - **Pro** (optional): transcription and AI included, no Groq key to create — see [docs/PRO-SETUP.md](docs/PRO-SETUP.md).
 - SimBrief, pre-filled calls, cabin service simulation, A320/737 checklists, CRAFT notes, automatic logbook, training with voice ATC, ICAO phrasebook.
 - Data stays on your PC; see [PRIVACY.md](PRIVACY.md).

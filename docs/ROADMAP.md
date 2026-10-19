@@ -58,7 +58,7 @@ Serve un piccolo backend (proxy di trascrizione con autenticazione e limiti, pag
 3. **Settimane 3–4**: 5–10 creator YouTube/Twitch di flight sim (volo in diretta con l'overlay compatto: è l'immagine più forte del prodotto).
 4. **Settimane 5–6**: contatto con i training department dei vACC (Italia, Spagna, Germania): coach e allenamento come materiale per gli studenti.
 
-## 6. Metriche (da misurare con telemetria **opt-in** e anonima, da aggiungere)
+## 6. Metriche (telemetria **opt-in** e anonima: pronta in 4.4, si attiva con l'indirizzo in `package.json` → `telemetry`)
 
 | Metrica | Definizione | Obiettivo iniziale |
 |---|---|---|
@@ -91,3 +91,5 @@ Il dato sulla precisione misurata è il più importante: raccogliere un set di 1
 9. ~~Proxy di trascrizione Pro e licenze~~: il codice è pronto in 4.2 (`server/pro/`, Lemon Squeezy).
    - Da fare: pubblicazione (account Cloudflare, Lemon Squeezy, Groq a pagamento), poi compilare `pro` in `package.json`. Guida in `docs/PRO-SETUP.md`.
 10. ~~Rullaggio sulla mappa, voto dell'atterraggio e resoconto del volo, prova generale, profili add-on e PTT sul joystick, aiuto emergenze, francese e portoghese~~: fatto in 4.3.
+11. ~~App per iPhone e Android collegata al PC in Wi-Fi, carriera e obiettivi, sito di vendita, statistiche anonime opt-in~~: fatto in 4.4.
+   - Da fare: account sviluppatore e certificati (guida in `docs/MOBILE-SETUP.md`), attivare GitHub Pages, abbonamento Pro in-app per iOS/Android.

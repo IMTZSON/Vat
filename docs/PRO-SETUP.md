@@ -64,3 +64,12 @@ Al prossimo push la build per Windows include il Pro:
 - **Limite mensile** di minuti per licenza (`MONTHLY_MINUTES`, predefinito 20 ore). Oltre il limite il programma mostra "Limite mensile di minuti del Pro raggiunto".
 - Audio massimo di circa 2 minuti per richiesta. Per l'AI, richieste ripulite e risposte limitate: nessuno può usare il tuo server come Groq gratis.
 - Se Groq ritira un modello, il server ne sceglie un altro da solo.
+
+## Statistiche anonime (facoltative)
+Lo stesso Worker riceve anche le statistiche anonime, solo dagli utenti che le attivano (rotta `/v1/t`).
+1. Nel pannello Cloudflare attiva **Workers Analytics Engine**. Il dataset `readback_copilot` è già indicato in `wrangler.toml` (binding `TELEMETRY`).
+2. `npx wrangler deploy`.
+3. In `package.json` metti l'indirizzo del Worker nel campo `"telemetry"` (per esempio `"https://readback-copilot-pro.TUONOME.workers.dev"`): programma e app lo usano dalla build successiva.
+4. Consulta i dati con le query SQL di Analytics Engine (*Workers → Analytics Engine*). Per esempio, utenti attivi al giorno:
+   `SELECT blob2 AS giorno, count(DISTINCT index1) FROM readback_copilot WHERE blob1 = 'usage' GROUP BY giorno ORDER BY giorno`.
+

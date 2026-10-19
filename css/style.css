@@ -1260,3 +1260,4 @@ body.pc-tx .pc-btn#pcListen { box-shadow: 0 0 0 3px var(--red); }
   .is-native .panel-scroll { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
 }
 .is-native .modal { max-height: calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
+.em-codes { display: block; line-height: 1.7; }
