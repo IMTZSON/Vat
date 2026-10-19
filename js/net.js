@@ -7,11 +7,15 @@
   const Net = {
     proxy: false,
     pro: null,
+    telemetry: null,
     desktop: false,
 
     async init() {
       // "desktop" = dentro la finestra del programma per Windows (non in Chrome sullo stesso server).
       this.desktop = !!root.desktop;
+      // Configurazione inclusa nell'app (telefono e sito): indirizzi del Pro e delle statistiche
+      const cfg = root.RC_CONFIG || {};
+      if (cfg.telemetry) this.telemetry = cfg.telemetry;
       if (!/^https?:$/.test(location.protocol)) return;
       try {
         const r = await fetch('api/ping', { cache: 'no-store' });
@@ -19,6 +23,7 @@
           const info = await r.json();
           this.proxy = !!info.ok;
           this.pro = info.pro || null;
+          this.telemetry = info.telemetry || this.telemetry;
         }
       } catch (e) { /* nessun server locale */ }
     },

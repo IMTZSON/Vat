@@ -823,6 +823,12 @@
     'career.bd.emergency': 'Übe einen Notfall',
     'career.b.challenges10': 'Herausforderer',
     'career.bd.challenges10': 'Schaffe 10 Tages-Challenges',
+    'tel.group': 'Datenschutz',
+    'tel.usage': 'Anonyme Nutzungsstatistiken',
+    'tel.usageSub': 'Welche Funktionen du nutzt, einmal am Tag gezählt, um die App zu verbessern. Nie Audio, Funksprüche, Rufzeichen oder Position.',
+    'tel.errors': 'Fehlerberichte',
+    'tel.errorsSub': 'Wenn etwas kaputtgeht, wird die Fehlermeldung ohne persönliche Daten gesendet.',
+    'tel.obSub': 'Optional. Hilft uns zu verstehen, was wir verbessern sollen; jederzeit änderbar unter Einstellungen → Datenschutz.',
   };
 
   const api = { STRINGS };

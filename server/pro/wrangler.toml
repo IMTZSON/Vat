@@ -20,3 +20,9 @@ binding = "PRO_KV"
 id = ""
 
 # Segreto (non va mai nel repository): npx wrangler secret put GROQ_API_KEY
+
+# Statistiche anonime opt-in (facoltativo): crea il dataset in Workers Analytics Engine
+# e lascia queste righe. Poi metti l'indirizzo del Worker in package.json, campo "telemetry".
+[[analytics_engine_datasets]]
+binding = "TELEMETRY"
+dataset = "readback_copilot"

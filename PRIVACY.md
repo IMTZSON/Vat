@@ -24,7 +24,14 @@ Impostazioni (compresa la chiave Groq), storico delle chiamate, statistiche di a
 | **OpenStreetMap / Overpass API** (overpass-api.de, overpass.kumi.systems) | Nessun dato personale: il codice e le coordinate dell'aeroporto di cui serve lo schema (piste, taxiway, punti attesa, stand). | Quando l'ATC ti dà un'istruzione di rullaggio o parte la prova generale; lo schema resta in cache sul PC per 30 giorni. |
 | **GitHub** (api.github.com) | Nessun dato personale: si legge l'elenco delle versioni. | Al massimo ogni 6 ore; disattivabile in Impostazioni. |
 
-Nient'altro. Non ci sono analytics, crash report o pubblicità.
+Nient'altro. Non ci sono pubblicità né analytics di terze parti.
+
+## Statistiche anonime e segnalazione errori (facoltative, spente di default)
+Solo se le attivi tu (configurazione guidata o *Impostazioni → Privacy*), una volta al giorno il programma invia al server di Readback Copilot:
+- **statistiche d'uso**: quante volte hai usato ogni funzione quel giorno (es. ascolto, allenamento, prova generale, rullaggio, resoconto), più versione, piattaforma (Windows, Android, iOS, web) e lingua dell'interfaccia;
+- **errori**: il messaggio tecnico dell'errore, ripulito da percorsi dei file, nominativi, email e chiavi.
+
+Tutto è legato solo a un **codice casuale** generato sul tuo dispositivo, non al tuo nome o al tuo account. **Mai** audio, frasi dell'ATC o tue, nominativo, posizione, piani di volo o chiavi. Se togli il consenso, i dati non ancora inviati vengono cancellati subito.
 
 ## Tasto PTT
 Se imposti il tasto PTT di vPilot (coach readback), il programma osserva tastiera e pulsanti del mouse a livello di sistema (o i pulsanti del joystick, se scegli un pulsante del joystick) **solo per riconoscere quel tasto**: non registra, non salva e non invia nessun altro tasto. Senza tasto impostato l'osservazione è spenta. Il tasto non viene bloccato: vPilot lo riceve normalmente.
@@ -57,6 +64,8 @@ Readback Copilot has no accounts, no servers of its own and no usage analytics. 
 - **OpenStreetMap / MapTiler**: map tile coordinates (and your MapTiler key, if used) — only with the **detailed** map; the base map is built in and downloads nothing.
 - **OpenStreetMap / Overpass API**: the code and coordinates of the airport whose ground layout (runways, taxiways, holding points, stands) is needed — when ATC gives you taxi instructions or a rehearsal starts; cached on your PC for 30 days.
 - **GitHub**: the list of releases and, for the installed app, the update itself — at most every 6 hours (can be turned off). Updates install only when you press "Restart and update" or quit.
+
+**Anonymous statistics and error reports** (optional, off by default): only if you turn them on, once a day the app sends how many times each feature was used that day, plus version, platform and interface language, and/or technical error messages stripped of file paths, callsigns, emails and keys — tied only to a random code generated on your device. Never audio, transmissions, callsign, position, flight plans or keys. Turning consent off deletes anything not yet sent.
 
 **PTT key**: if you set your vPilot PTT key (readback coach), the app observes the keyboard and mouse buttons system-wide (or joystick buttons, if you pick one) **only to recognise that key**; no other key is recorded, stored or sent, and the key still reaches vPilot. With no key set, nothing is observed.
 

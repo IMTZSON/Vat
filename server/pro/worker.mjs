@@ -103,8 +103,39 @@ export async function handle(request, env, deps) {
   return res;
 }
 
+// Statistiche anonime (solo da chi ha dato il consenso nell'app): contatori giornalieri ed errori ripuliti.
+// Si salvano in Workers Analytics Engine (binding TELEMETRY); senza binding si accettano e si scartano.
+const TEL_COUNTERS = ['start', 'listen', 'readback', 'verified', 'train', 'rehearsal', 'taxi', 'landing', 'flight', 'debrief', 'emergency', 'career', 'link', 'simbrief', 'view'];
+export function telemetryPoints(body) {
+  const b = body && typeof body === 'object' ? body : {};
+  const id = String(b.id || '');
+  if (!/^[0-9a-f]{16,32}$/.test(id) || !Array.isArray(b.days)) return null;
+  const meta = [String(b.v || '').slice(0, 20), String(b.p || '').slice(0, 12), String(b.l || '').slice(0, 5)];
+  const points = [];
+  for (const d of b.days.slice(0, 7)) {
+    if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(String(d.d || ''))) continue;
+    const c = d.c && typeof d.c === 'object' ? d.c : {};
+    points.push({ indexes: [id], blobs: ['usage', d.d, ...meta], doubles: TEL_COUNTERS.map((k) => Math.max(0, Math.min(100000, Number(c[k]) || 0))) });
+    for (const e of (Array.isArray(d.e) ? d.e : []).slice(0, 20)) {
+      points.push({ indexes: [id], blobs: ['error', d.d, ...meta, String(e.m || '').slice(0, 200), String(e.s || '').slice(0, 600)], doubles: [Math.max(1, Math.min(1000, Number(e.n) || 1))] });
+    }
+  }
+  return points;
+}
+
 async function route(request, env, deps, url) {
   const p = url.pathname;
+
+  if (p === '/v1/t' && request.method === 'POST') {
+    const text = await request.text().catch(() => '');
+    if (text.length > 64000) return fail(413, 'Troppo grande');
+    let body = null;
+    try { body = JSON.parse(text); } catch (e) { /* non valido */ }
+    const points = telemetryPoints(body);
+    if (!points) return fail(400, 'Dati non validi');
+    if (env.TELEMETRY) for (const pt of points) env.TELEMETRY.writeDataPoint(pt);
+    return new Response(null, { status: 204 });
+  }
 
   if (p === '/v1/license/activate' && request.method === 'POST') {
     const body = await request.json().catch(() => ({}));

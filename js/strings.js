@@ -874,6 +874,12 @@
     'career.bd.emergency': ['Esercitati con un\'emergenza', 'Practise an emergency'],
     'career.b.challenges10': ['Sfidante', 'Challenger'],
     'career.bd.challenges10': ['Completa 10 sfide del giorno', 'Complete 10 daily challenges'],
+    'tel.group': ['Privacy', 'Privacy'],
+    'tel.usage': ['Statistiche d\'uso anonime', 'Anonymous usage statistics'],
+    'tel.usageSub': ['Quali funzioni usi, contate una volta al giorno: aiutano a migliorare l\'app. Mai audio, frasi, nominativi o posizione.', 'Which features you use, counted once a day, to help improve the app. Never audio, transmissions, callsigns or position.'],
+    'tel.errors': ['Segnalazione errori', 'Error reports'],
+    'tel.errorsSub': ['Se qualcosa si rompe, invia il messaggio di errore ripulito da dati personali.', 'If something breaks, sends the error message stripped of personal data.'],
+    'tel.obSub': ['Facoltativo. Ci aiuta a capire cosa migliorare; lo puoi cambiare quando vuoi in Impostazioni → Privacy.', 'Optional. Helps us understand what to improve; change it any time in Settings → Privacy.'],
   };
 
   const api = { STRINGS };

@@ -1223,3 +1223,5 @@ body:not(.stt-pro) .pro-only { display: none !important; }
 .career-badges b { font-size: 13px; font-weight: 720; }
 .career-badges li > span:last-child { font-size: 11.5px; color: var(--text-2); line-height: 1.3; }
 @media (max-width: 520px) { .career-weeks { grid-template-columns: 1fr; } }
+.ob-consent { margin-top: 14px; border-radius: 16px; background: var(--fill); padding: 2px 12px; }
+.ob-consent .row { background: transparent; }

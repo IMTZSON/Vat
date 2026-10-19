@@ -823,6 +823,12 @@
     'career.bd.emergency': 'Practica una emergencia',
     'career.b.challenges10': 'Retador',
     'career.bd.challenges10': 'Completa 10 retos diarios',
+    'tel.group': 'Privacidad',
+    'tel.usage': 'Estadísticas de uso anónimas',
+    'tel.usageSub': 'Qué funciones usas, contadas una vez al día, para mejorar la app. Nunca audio, frases, indicativos ni posición.',
+    'tel.errors': 'Informes de errores',
+    'tel.errorsSub': 'Si algo falla, envía el mensaje de error sin datos personales.',
+    'tel.obSub': 'Opcional. Nos ayuda a saber qué mejorar; cámbialo cuando quieras en Ajustes → Privacidad.',
   };
 
   const api = { STRINGS };

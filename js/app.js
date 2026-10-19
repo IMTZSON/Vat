@@ -47,6 +47,9 @@
     checkUpdates: true,
     onboarded: false,
     pttKey: null,
+    telemetry: false,
+    crashReports: false,
+    telemetryId: '',
   };
 
   /* Archivio dati. Backend scelto all'avvio (storage.init):

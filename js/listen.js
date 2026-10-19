@@ -590,6 +590,7 @@
         else startFree();
         App.setStatus(t('status.listening'), 'listening');
         $('toggle').classList.add('on');
+        App.emit('listening', true);
         $('toggle').setAttribute('aria-label', t('listen.stop'));
         $('toggleLabel').textContent = t('listen.on');
         activity.classList.add('listening');
@@ -603,6 +604,7 @@
 
     function stop() {
       running = false;
+      App.emit('listening', false);
       coachCancel();
       if (recognition) { recognition.onend = null; try { recognition.stop(); } catch (e) { /* ignora */ } recognition = null; }
       if (recorder) { recorder.stop(); recorder = null; }

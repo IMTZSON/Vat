@@ -20,6 +20,12 @@ const MIME = {
 };
 
 // Servizio Pro (package.json "pro": { endpoint, checkout }): vuoto finché il server non è pubblicato
+// Indirizzo delle statistiche anonime (package.json "telemetry", solo https): vuoto = spente
+function telemetryConfig(t) {
+  const v = t !== undefined ? t : (() => { try { return require('../package.json').telemetry || ''; } catch (e) { return ''; } })();
+  try { return new URL(v).protocol === 'https:' ? String(v).replace(/\/+$/, '') : null; } catch (e) { return null; }
+}
+
 function proConfig(p) {
   const cfg = p || (() => { try { return require('../package.json').pro || {}; } catch (e) { return {}; } })();
   const ok = (u) => { try { return new URL(u).protocol === 'https:' ? String(u).replace(/\/+$/, '') : ''; } catch (e) { return ''; } };
@@ -201,7 +207,8 @@ function createHandler(root, opts) {
     const url = new URL(req.url, `http://127.0.0.1:${port}`);
 
     const pro = proConfig(opts.pro);
-    if (url.pathname === '/api/ping') return send(res, 200, { ok: true, desktop: !!opts.desktop, version: opts.version || '', store: !!opts.store, pro });
+    const telemetry = telemetryConfig(opts.telemetry);
+    if (url.pathname === '/api/ping') return send(res, 200, { ok: true, desktop: !!opts.desktop, version: opts.version || '', store: !!opts.store, pro, telemetry });
 
     // Dati dell'app condivisi con Chrome ("Apri in Chrome" ritrova nominativo e impostazioni).
     // Scrittura solo con l'intestazione X-Readback-Copilot: una pagina di un altro sito non può
@@ -257,7 +264,7 @@ function createHandler(root, opts) {
       }
       let target;
       try { target = new URL(url.searchParams.get('url') || ''); } catch (e) { return send(res, 400, { error: { message: 'URL non valido' } }); }
-      const publicOk = target.protocol === 'https:' && (ALLOWED_HOSTS.has(target.hostname) || (pro && target.origin === new URL(pro.endpoint).origin));
+      const publicOk = target.protocol === 'https:' && (ALLOWED_HOSTS.has(target.hostname) || (pro && target.origin === new URL(pro.endpoint).origin) || (telemetry && target.origin === new URL(telemetry).origin));
       const privateOk = /^https?:$/.test(target.protocol) && isPrivateHost(target.hostname);
       if (!publicOk && !privateOk) return send(res, 403, { error: { message: 'Destinazione non consentita' } });
       try {

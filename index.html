@@ -539,6 +539,12 @@
         </div>
         <p class="footnote" id="desktopInfo" data-i18n="settings.hkFoot">Le scorciatoie funzionano col simulatore in primo piano solo nel programma per Windows.</p>
 
+        <div class="group-title" data-i18n="tel.group">Privacy</div>
+        <div class="group">
+          <label class="row"><span class="row-label"><span data-i18n="tel.usage">Statistiche d'uso anonime</span><small class="row-sub" data-i18n="tel.usageSub">Quali funzioni usi, contate una volta al giorno: aiutano a migliorare l'app. Mai audio, frasi, nominativi o posizione.</small></span><input id="telemetry" data-setting="telemetry" type="checkbox" class="switch"></label>
+          <label class="row"><span class="row-label"><span data-i18n="tel.errors">Segnalazione errori</span><small class="row-sub" data-i18n="tel.errorsSub">Se qualcosa si rompe, invia il messaggio di errore ripulito da dati personali.</small></span><input id="crashReports" data-setting="crashReports" type="checkbox" class="switch"></label>
+        </div>
+
         <div class="group-title" data-i18n="settings.vpilot">Collegare vPilot</div>
         <div class="card soft guide-card">
           <ol class="guide">
@@ -730,6 +736,10 @@
       <div class="ob-hero done"><i data-icon="check"></i></div>
       <h2 data-i18n="ob.doneTitle">Pronto al decollo</h2>
       <ul class="ob-summary" id="obSummary"></ul>
+      <div class="ob-consent">
+        <label class="row"><span class="row-label"><span data-i18n="tel.usage">Statistiche d'uso anonime</span><small class="row-sub" data-i18n="tel.obSub">Facoltativo. Ci aiuta a capire cosa migliorare; lo puoi cambiare quando vuoi in Impostazioni → Privacy.</small></span><input id="obTelemetry" data-setting="telemetry" type="checkbox" class="switch"></label>
+        <label class="row"><span class="row-label" data-i18n="tel.errors">Segnalazione errori</span><input id="obCrash" data-setting="crashReports" type="checkbox" class="switch"></label>
+      </div>
       <p class="ob-lead" data-i18n="ob.doneLead">Premi il microfono (o Ctrl+Shift+L) quando sei connesso a VATSIM. Prima vuoi fare pratica? C'è l'allenamento con ATC simulato.</p>
     </section>
 
@@ -796,6 +806,7 @@
   <script src="js/debrief.js"></script>
   <script src="js/emergency-ui.js"></script>
   <script src="js/career-ui.js"></script>
+  <script src="js/telemetry.js"></script>
   <script src="js/pro.js"></script>
   <script src="js/phrasebook.js"></script>
   <script src="js/onboarding.js"></script>

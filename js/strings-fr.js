@@ -877,6 +877,12 @@
     'career.bd.emergency': 'Entraîne-toi à une urgence',
     'career.b.challenges10': 'Challenger',
     'career.bd.challenges10': 'Réussis 10 défis du jour',
+    'tel.group': 'Confidentialité',
+    'tel.usage': 'Statistiques d\'utilisation anonymes',
+    'tel.usageSub': 'Les fonctions que tu utilises, comptées une fois par jour, pour améliorer l\'app. Jamais d\'audio, de messages, d\'indicatifs ni de position.',
+    'tel.errors': 'Rapports d\'erreur',
+    'tel.errorsSub': 'Si quelque chose casse, envoie le message d\'erreur nettoyé de toute donnée personnelle.',
+    'tel.obSub': 'Facultatif. Nous aide à savoir quoi améliorer ; modifiable à tout moment dans Réglages → Confidentialité.',
   };
 
   const api = { STRINGS };

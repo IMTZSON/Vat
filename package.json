@@ -77,5 +77,6 @@
   "pro": {
     "endpoint": "",
     "checkout": ""
-  }
+  },
+  "telemetry": ""
 }
