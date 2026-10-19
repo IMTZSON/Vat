@@ -524,7 +524,7 @@
         <div class="group-title" data-i18n="settings.audio">Audio</div>
         <div class="group">
           <div class="row"><span class="row-label" data-i18n="settings.listenFrom">Ascolta l'ATC da</span>
-            <select id="audioSource" data-setting="audioSource" class="seg"><option value="device" data-i18n="settings.device">Dispositivo</option><option value="system" data-i18n="settings.pcAudio">Audio del PC</option></select>
+            <select id="audioSource" data-setting="audioSource" class="seg"><option value="device" data-i18n="settings.device">Dispositivo</option><option value="system" data-i18n="settings.pcAudio" class="native-hide">Audio del PC</option></select>
           </div>
           <div class="row"><span class="row-label" data-i18n="settings.radioDevice">Dispositivo radio</span><select id="device" data-setting="device" class="row-select"><option value="" data-i18n="settings.default">Predefinito</option></select><button class="icon-btn refreshDevices" type="button" data-i18n-title="common.refresh" title="Aggiorna"><i data-icon="refresh-cw"></i></button></div>
           <div class="row"><span class="row-label" data-i18n="settings.mic">Il tuo microfono</span><select id="micDevice" data-setting="micDevice" class="row-select"><option value="" data-i18n="settings.default">Predefinito</option></select><button class="icon-btn refreshDevices" type="button" data-i18n-title="common.refresh" title="Aggiorna"><i data-icon="refresh-cw"></i></button></div>
@@ -554,12 +554,12 @@
           <div class="row"><button id="ttsTest" class="link-btn"><i data-icon="volume-2"></i> <span data-i18n="settings.testVoice">Prova voce</span></button></div>
         </div>
 
-        <div class="group-title" data-i18n="sim.group">Simulatore</div>
-        <div class="group">
+        <div class="native-hide group-title" data-i18n="sim.group">Simulatore</div>
+        <div class="group native-hide">
           <label class="row"><span class="row-label" data-i18n="sim.setting">Collega al simulatore (MSFS / X-Plane)</span><input id="simLink" data-setting="simLink" type="checkbox" class="switch"></label>
           <div class="row"><span class="row-label" data-i18n="sim.statusLabel">Stato</span><span id="simStatusText" class="row-value">—</span></div>
         </div>
-        <p class="footnote" data-i18n="sim.hint">Legge radio, transponder, altimetro e autopilota (solo lettura) e ti avvisa se un'istruzione ATC non è stata eseguita.</p>
+        <p class="footnote native-hide" data-i18n="sim.hint">Legge radio, transponder, altimetro e autopilota (solo lettura) e ti avvisa se un'istruzione ATC non è stata eseguita.</p>
 
         <div class="group-title link-host-only" data-i18n="link.group">Telefono</div>
         <div class="group link-host-only">
@@ -580,16 +580,16 @@
 
         <div class="group-title" data-i18n="settings.program">Programma</div>
         <div class="group">
-          <label class="row"><span class="row-label" data-i18n="settings.onTop">Sempre in primo piano</span><input id="onTop" data-setting="onTop" type="checkbox" class="switch"></label>
-          <label class="row"><span class="row-label" data-i18n="settings.checkUpdates">Avvisami degli aggiornamenti</span><input id="checkUpdates" data-setting="checkUpdates" type="checkbox" class="switch"></label>
-          <div class="row"><span class="row-label"><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>L</kbd></span><span class="row-value" data-i18n="settings.hkListen">Avvia / ferma ascolto</span></div>
-          <div class="row"><span class="row-label"><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>R</kbd></span><span class="row-value" data-i18n="settings.hkRepeat">Ripeti il readback</span></div>
-          <div class="row"><span class="row-label"><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>O</kbd></span><span class="row-value" data-i18n="settings.hkCompact">Modalità compatta</span></div>
-          <div class="row"><span class="row-label"><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>A</kbd></span><span class="row-value" data-i18n="settings.hkReplay">Riascolta l'ultima chiamata ATC</span></div>
-          <div class="row"><span class="row-label"><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>D</kbd></span><span class="row-value" data-i18n="settings.hkReplaySlow">Riascolta rallentato</span></div>
+          <label class="native-hide row"><span class="row-label" data-i18n="settings.onTop">Sempre in primo piano</span><input id="onTop" data-setting="onTop" type="checkbox" class="switch"></label>
+          <label class="native-hide row"><span class="row-label" data-i18n="settings.checkUpdates">Avvisami degli aggiornamenti</span><input id="checkUpdates" data-setting="checkUpdates" type="checkbox" class="switch"></label>
+          <div class="row native-hide"><span class="row-label"><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>L</kbd></span><span class="row-value" data-i18n="settings.hkListen">Avvia / ferma ascolto</span></div>
+          <div class="row native-hide"><span class="row-label"><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>R</kbd></span><span class="row-value" data-i18n="settings.hkRepeat">Ripeti il readback</span></div>
+          <div class="row native-hide"><span class="row-label"><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>O</kbd></span><span class="row-value" data-i18n="settings.hkCompact">Modalità compatta</span></div>
+          <div class="row native-hide"><span class="row-label"><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>A</kbd></span><span class="row-value" data-i18n="settings.hkReplay">Riascolta l'ultima chiamata ATC</span></div>
+          <div class="row native-hide"><span class="row-label"><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>D</kbd></span><span class="row-value" data-i18n="settings.hkReplaySlow">Riascolta rallentato</span></div>
           <div class="row"><button id="resetAll" class="link-btn danger" data-i18n="settings.reset">Ripristina impostazioni</button></div>
         </div>
-        <p class="footnote" id="desktopInfo" data-i18n="settings.hkFoot">Le scorciatoie funzionano col simulatore in primo piano solo nel programma per Windows.</p>
+        <p class="footnote native-hide" id="desktopInfo" data-i18n="settings.hkFoot">Le scorciatoie funzionano col simulatore in primo piano solo nel programma per Windows.</p>
 
         <div class="group-title" data-i18n="tel.group">Privacy</div>
         <div class="group">
@@ -597,8 +597,8 @@
           <label class="row"><span class="row-label"><span data-i18n="tel.errors">Segnalazione errori</span><small class="row-sub" data-i18n="tel.errorsSub">Se qualcosa si rompe, invia il messaggio di errore ripulito da dati personali.</small></span><input id="crashReports" data-setting="crashReports" type="checkbox" class="switch"></label>
         </div>
 
-        <div class="group-title" data-i18n="settings.vpilot">Collegare vPilot</div>
-        <div class="card soft guide-card">
+        <div class="native-hide group-title" data-i18n="settings.vpilot">Collegare vPilot</div>
+        <div class="card soft guide-card native-hide">
           <ol class="guide">
             <li data-i18n-html="settings.vp1"><b>Senza installare nulla:</b> "Ascolta l'ATC da" → <b>Audio del PC</b> (sente anche il simulatore).</li>
             <li data-i18n-html="settings.vp2"><b>Più preciso:</b> installa <b>VB-Cable</b> (gratuito, vb-audio.com) e riavvia.</li>
@@ -843,6 +843,7 @@
   <script src="js/career.js"></script>
   <script src="js/compliance.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/native.js"></script>
   <script src="js/sheet.js"></script>
   <script src="js/listen.js"></script>
   <script src="js/trainer.js"></script>

@@ -1249,3 +1249,14 @@ body.has-link-host .link-phone-only { display: none !important; }
 .pc-btn.on .icon { color: #fff; }
 body.pc-tx .pc-btn#pcListen { box-shadow: 0 0 0 3px var(--red); }
 @media (max-width: 520px) { .link-box { grid-template-columns: 1fr; } .link-qr { max-width: 220px; margin: 0 auto; } }
+/* App per telefono (Capacitor): aree sicure (notch, isola, barra dei gesti) e niente funzioni solo-PC */
+.is-native .native-hide, .is-native .ptt-only, .is-native #overlayBtn, .is-native .compact-exit, .is-native #proBuy { display: none !important; }
+.is-native .activity { top: calc(var(--gap) + env(safe-area-inset-top)); }
+.is-native .tabbar { bottom: calc(12px + env(safe-area-inset-bottom)); }
+@media (max-width: 899px) {
+  .is-native .hud { top: calc(112px + env(safe-area-inset-top)); }
+  .is-native .map-controls { top: calc(230px + env(safe-area-inset-top)); }
+  .is-native .panel { height: calc(100dvh - 64px - env(safe-area-inset-top)); }
+  .is-native .panel-scroll { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
+}
+.is-native .modal { max-height: calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }

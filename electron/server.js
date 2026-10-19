@@ -81,7 +81,7 @@ async function mapData(name, rootDir, opts) {
 /* Suolo dell'aeroporto (taxiway, piste, punti attesa, stand) da OpenStreetMap, per disegnare il percorso
    di rullaggio. Una richiesta a Overpass per aeroporto, poi cache su disco per 30 giorni. */
 const GROUND_MAX_AGE = 30 * 24 * 3600 * 1000;
-const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
+const OVERPASS = Taxi.OVERPASS;
 const groundPending = {};
 
 async function groundData(icao, lat, lon, opts) {
@@ -90,8 +90,7 @@ async function groundData(icao, lat, lon, opts) {
   let stat = null;
   try { stat = fs.statSync(cached); } catch (e) { stat = null; }
   if (stat && Date.now() - stat.mtimeMs < GROUND_MAX_AGE) return { body: fs.readFileSync(cached), source: 'cache' };
-  const q = `[out:json][timeout:25];(way["aeroway"~"^(taxiway|taxilane|runway)$"](around:4500,${lat},${lon});`
-    + `node["aeroway"~"^(holding_position|parking_position|gate)$"](around:4500,${lat},${lon}););out body;>;out skel qt;`;
+  const q = Taxi.overpassQuery(lat, lon);
   if (!groundPending[icao]) {
     groundPending[icao] = (async () => {
       let last = null;

@@ -78,6 +78,7 @@
   };
   let cache = null;
   const copy = (v) => (v === undefined ? v : JSON.parse(JSON.stringify(v)));
+  const nativePrefs = () => (root.Capacitor && root.Capacitor.isNativePlatform && root.Capacitor.isNativePlatform() && root.capacitorPreferences ? root.capacitorPreferences.Preferences : null);
 
   const storage = {
     backend: 'local',
@@ -93,6 +94,18 @@
             if (Object.keys(old).length) { await br.merge(old); cache = { ...old, ...cache }; }
           }
           this.backend = 'file';
+        } else if (nativePrefs()) {
+          // App per telefono: archivio nativo (Preferences), che il sistema non cancella come la cache del browser
+          const prefs = nativePrefs();
+          const { keys } = await prefs.keys();
+          cache = {};
+          for (const k of keys.filter((x) => x.startsWith('readback-copilot'))) {
+            const { value } = await prefs.get({ key: k });
+            try { cache[k] = JSON.parse(value); } catch (e) { /* valore illeggibile */ }
+          }
+          const old = local.all();
+          for (const [k, v] of Object.entries(old)) if (!(k in cache)) { cache[k] = v; prefs.set({ key: k, value: JSON.stringify(v) }); }
+          this.backend = 'native';
         } else if (root.location && /^https?:$/.test(root.location.protocol)) {
           const r = await fetch('api/store', { cache: 'no-store' });
           const data = r.ok ? (await r.json()).data : null;
@@ -112,6 +125,10 @@
       if (!cache) return Promise.resolve();
       cache[key] = copy(value);
       if (this.backend === 'file') { root.desktop.store.set(key, cache[key]); return Promise.resolve(); }
+      if (this.backend === 'native') {
+        const prefs = nativePrefs();
+        return (value === undefined || value === null ? prefs.remove({ key }) : prefs.set({ key, value: JSON.stringify(value) })).catch(() => {});
+      }
       return fetch('api/store', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Readback-Copilot': '1' }, body: JSON.stringify({ key, value }) })
         .then(() => {}, () => {});
     },

@@ -24,13 +24,34 @@
     }
     const add = (l) => { l.addTo(map); layers.push(l); return l; };
 
+    // App per telefono: Overpass direttamente, schema salvato per 30 giorni
+    async function direct(icao, ap) {
+      const KEY = `readback-copilot-ground-${icao}`;
+      const saved = App.storage.get(KEY, null);
+      if (saved && Date.now() - saved.at < 30 * 86400000) return saved.g;
+      for (const url of T.OVERPASS) {
+        try {
+          const r = await fetch(url, { method: 'POST', body: `data=${encodeURIComponent(T.overpassQuery(ap.lat, ap.lon))}`, headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+          if (!r.ok) continue;
+          const g = { icao, ...T.compactOverpass(await r.json()) };
+          App.storage.set(KEY, { at: Date.now(), g });
+          return g;
+        } catch (e) { /* prossimo server */ }
+      }
+      return saved ? saved.g : null;
+    }
+
     async function ground(icao) {
       if (cache[icao]) return cache[icao];
       const ap = root.World.airport(icao);
-      if (!ap || typeof ap.lat !== 'number' || !root.Net.proxy) return null;
-      cache[icao] = fetch(`api/ground?icao=${encodeURIComponent(icao)}&lat=${ap.lat}&lon=${ap.lon}`)
-        .then((r) => (r.ok ? r.json() : null))
-        .catch(() => null);
+      if (!ap || typeof ap.lat !== 'number') return null;
+      if (root.Net.proxy) {
+        cache[icao] = fetch(`api/ground?icao=${encodeURIComponent(icao)}&lat=${ap.lat}&lon=${ap.lon}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null);
+      } else if (App.native) {
+        cache[icao] = direct(icao, ap);
+      } else return null;
       const g = await cache[icao];
       if (!g) delete cache[icao];
       return g;

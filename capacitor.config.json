@@ -1,0 +1,21 @@
+{
+  "appId": "app.readbackcopilot.mobile",
+  "appName": "Readback Copilot",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true
+  },
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#0b1220"
+  },
+  "plugins": {
+    "CapacitorHttp": { "enabled": true },
+    "SplashScreen": { "launchShowDuration": 900, "launchAutoHide": true, "backgroundColor": "#0b1220", "showSpinner": false },
+    "StatusBar": { "overlaysWebView": true }
+  }
+}

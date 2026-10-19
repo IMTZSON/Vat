@@ -229,7 +229,14 @@
     return ground.ways.filter((w) => w.kind !== 'runway' && refs.has(w.ref)).map((w) => w.nodes.map((id) => ground.nodes[id]));
   }
 
-  const api = { refOf, parseClearance, compactOverpass, buildGraph, route, namedWays, runwayIds };
+  // Richiesta Overpass per lo schema di un aeroporto (piste, taxiway, punti attesa, stand nel raggio di 4,5 km)
+  const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
+  function overpassQuery(lat, lon) {
+    return `[out:json][timeout:25];(way["aeroway"~"^(taxiway|taxilane|runway)$"](around:4500,${lat},${lon});`
+      + `node["aeroway"~"^(holding_position|parking_position|gate)$"](around:4500,${lat},${lon}););out body;>;out skel qt;`;
+  }
+
+  const api = { refOf, parseClearance, compactOverpass, buildGraph, route, namedWays, runwayIds, overpassQuery, OVERPASS };
   if (isNode && module.exports) module.exports = api;
   else root.Taxi = api;
 })(this);
