@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Readback Copilot — il copilota radio per VATSIM</title>
+  <meta name="description" content="Ascolta l'ATC su VATSIM e ti mostra subito cosa ripetere, verificando ogni numero. Allenamento a voce, prova generale del volo, rullaggio sulla mappa, carriera. Per Windows, iPhone e Android.">
+  <meta property="og:title" content="Readback Copilot — il copilota radio per VATSIM">
+  <meta property="og:description" content="Readback corretti in tempo reale, allenamento con ATC simulato, app per telefono collegata al PC.">
+  <meta property="og:image" content="img/en-desktop-map.jpg">
+  <meta name="theme-color" content="#0b1220">
+  <link rel="icon" href="img/app-icon-512.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="nav">
+    <a class="brand" href="#top"><img src="img/app-icon-512.png" alt="" width="34" height="34"> Readback Copilot</a>
+    <nav>
+      <a href="#features" data-t="nav.features">Funzioni</a>
+      <a href="#phone" data-t="nav.phone">Telefono</a>
+      <a href="#pricing" data-t="nav.pricing">Prezzi</a>
+      <a href="#faq" data-t="nav.faq">Domande</a>
+    </nav>
+    <div class="nav-right">
+      <select id="lang" aria-label="Lingua / Language"><option value="it">IT</option><option value="en">EN</option></select>
+      <a class="btn small" href="#download" data-t="nav.download">Scarica</a>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="hero-text">
+        <span class="pill" data-t="hero.pill">Per piloti virtuali su VATSIM</span>
+        <h1 data-t="hero.title">Il tuo copilota radio.<br>Sai sempre cosa rispondere.</h1>
+        <p class="lead" data-t="hero.lead">Readback Copilot ascolta l'ATC e ti mostra subito, in grande, cosa ripetere, con la pronuncia ICAO, controllando ogni numero. Ti allena con un ATC simulato e ti accompagna dal rullaggio all'atterraggio, sul PC e sul telefono.</p>
+        <div class="cta" id="download">
+          <a class="btn primary" id="dlWin" href="https://github.com/IMTZSON/Vat/releases"><span data-t="cta.windows">Scarica per Windows</span><small id="dlVer"></small></a>
+          <a class="btn ghost" id="dlApple" hidden>App Store</a>
+          <a class="btn ghost" id="dlGoogle" hidden>▶ Google Play</a>
+          <a class="btn ghost" id="dlApk" href="https://github.com/IMTZSON/Vat/releases" data-t="cta.apk">Android (APK)</a>
+        </div>
+        <p class="fine" data-t="hero.fine">Gratis · Italiano, English, Español, Deutsch, Français, Português · Nessun account</p>
+      </div>
+      <div class="hero-art">
+        <img class="shot desktop" data-src="desktop-map" alt="">
+        <img class="shot phone" data-src="phone-atc" alt="">
+      </div>
+    </section>
+
+    <section class="logos" aria-label="Compatibile">
+      <span>VATSIM</span><span>IVAO</span><span>vPilot</span><span>MSFS 2020/2024</span><span>X-Plane</span><span>SimBrief</span><span>FlyByWire · Fenix · PMDG</span>
+    </section>
+
+    <section id="features" class="section">
+      <h2 data-t="feat.title">Tutto quello che serve in radio, e oltre</h2>
+      <div class="grid">
+        <article><span class="ico">🎧</span><h3 data-t="f1.t">Readback in tempo reale</h3><p data-t="f1.d">L'ATC parla, tu leggi la risposta corretta con la pronuncia ICAO. Ogni numero è verificato contro controllori online, piste e METAR.</p></article>
+        <article><span class="ico">🎯</span><h3 data-t="f2.t">Coach dei readback</h3><p data-t="f2.d">Ascolta quello che dici davvero in radio (anche col tasto PTT o il joystick) e ti dice cosa hai dimenticato.</p></article>
+        <article><span class="ico">🎙️</span><h3 data-t="f3.t">Prova generale del volo</h3><p data-t="f3.d">Tutte le chiamate del tuo volo vero, con frequenze, QNH, fix e taxiway reali, prima di andare online. Con il voto finale.</p></article>
+        <article><span class="ico">🛬</span><h3 data-t="f4.t">Rullaggio e atterraggio</h3><p data-t="f4.d">Il percorso di rullaggio disegnato sulla mappa dell'aeroporto e il voto dell'atterraggio in ft/min dal simulatore.</p></article>
+        <article><span class="ico">✈️</span><h3 data-t="f5.t">Simulatore collegato</h3><p data-t="f5.d">Legge transponder, radio, altimetro e autopilota da MSFS e X-Plane e ti avvisa se un'istruzione non è stata eseguita.</p></article>
+        <article><span class="ico">🗺️</span><h3 data-t="f6.t">Mappa radar dal vivo</h3><p data-t="f6.d">Traffico VATSIM e IVAO, controllori sui settori veri, meteo con previsione, il tuo volo tracciato con Top of Descent.</p></article>
+        <article><span class="ico">🏆</span><h3 data-t="f7.t">Carriera e obiettivi</h3><p data-t="f7.d">Da Allievo a Training Captain: XP, badge, sfide del giorno e progressi settimanali.</p></article>
+        <article><span class="ico">🚨</span><h3 data-t="f8.t">Aiuto emergenze</h3><p data-t="f8.d">MAYDAY e PAN PAN già compilati nell'ordine ICAO con posizione, livello e autonomia, con le risposte dell'ATC.</p></article>
+      </div>
+    </section>
+
+    <section class="section how">
+      <h2 data-t="how.title">Pronto in due minuti</h2>
+      <ol class="steps">
+        <li><b>1</b><h3 data-t="s1.t">Installa e scrivi il nominativo</h3><p data-t="s1.d">La configurazione guidata ti accompagna passo passo.</p></li>
+        <li><b>2</b><h3 data-t="s2.t">Fagli sentire vPilot</h3><p data-t="s2.d">Audio del PC o VB-Cable: c'è la prova dell'audio dal vivo.</p></li>
+        <li><b>3</b><h3 data-t="s3.t">Vola</h3><p data-t="s3.d">Carica il piano da SimBrief e premi il microfono quando sei online.</p></li>
+      </ol>
+    </section>
+
+    <section id="phone" class="section split">
+      <div>
+        <h2 data-t="phone.title">Il telefono diventa il tuo secondo schermo</h2>
+        <p class="lead" data-t="phone.lead">Inquadra il QR del programma sul PC: sul telefono vedi i readback in diretta, la prossima chiamata e i dati del simulatore, e comandi l'ascolto senza togliere le mani dai comandi. Solo nella rete di casa, nessun server esterno.</p>
+        <ul class="ticks">
+          <li data-t="phone.l1">Funziona anche da solo: piano di volo, meteo, mappa, allenamento a voce, checklist, carriera</li>
+          <li data-t="phone.l2">Carriera e logbook sincronizzati tra PC e telefono</li>
+          <li data-t="phone.l3">Il percorso di rullaggio sulla mappa del telefono</li>
+        </ul>
+      </div>
+      <div class="phones">
+        <img class="shot phone" data-src="phone-pc" alt="">
+        <img class="shot phone" data-src="phone-career" alt="">
+      </div>
+    </section>
+
+    <section id="pricing" class="section">
+      <h2 data-t="price.title">Prezzi semplici</h2>
+      <div class="plans">
+        <article class="plan">
+          <h3 data-t="free.t">Gratis</h3>
+          <p class="price">0 €</p>
+          <ul class="ticks">
+            <li data-t="free.l1">Readback verificati, mappa, meteo, checklist</li>
+            <li data-t="free.l2">Allenamento, prova generale, coach, carriera</li>
+            <li data-t="free.l3">App per telefono e collegamento al PC</li>
+            <li data-t="free.l4">Con la tua chiave Groq gratuita o Whisper sul PC</li>
+          </ul>
+          <a class="btn ghost" href="#download" data-t="free.cta">Scarica</a>
+        </article>
+        <article class="plan pro">
+          <h3>Pro</h3>
+          <p class="price"><span id="priceMonth">3,99 €</span><small data-t="pro.month">/mese</small></p>
+          <p class="fine"><span data-t="pro.or">oppure</span> <span id="priceYear">29 €</span> <span data-t="pro.year">all'anno</span></p>
+          <ul class="ticks">
+            <li data-t="pro.l1">Trascrizione inclusa: niente chiave da creare</li>
+            <li data-t="pro.l2">20 ore di audio ATC al mese</li>
+            <li data-t="pro.l3">Tutto quello che c'è nella versione gratuita</li>
+          </ul>
+          <a class="btn primary" id="buyPro" href="#download" data-t="pro.cta">Passa al Pro</a>
+        </article>
+      </div>
+    </section>
+
+    <section id="faq" class="section faq">
+      <h2 data-t="faq.title">Domande frequenti</h2>
+      <details><summary data-t="q1">Parla al posto mio in radio?</summary><p data-t="a1">No. Ti suggerisce cosa dire e verifica i numeri: in radio parli sempre tu. È uno strumento di allenamento per la simulazione, non per il volo reale.</p></details>
+      <details><summary data-t="q2">Funziona con vPilot e MSFS/X-Plane?</summary><p data-t="a2">Sì: ascolta l'audio di vPilot (o di qualunque client) e, se vuoi, legge i dati del simulatore in sola lettura.</p></details>
+      <details><summary data-t="q3">Serve un abbonamento?</summary><p data-t="a3">No. La versione gratuita è completa: serve solo una chiave gratuita di Groq per la trascrizione, oppure un server Whisper sul tuo PC. Il Pro include la trascrizione e ti evita questo passaggio.</p></details>
+      <details><summary data-t="q4">Che dati raccoglie?</summary><p data-t="a4">Nessun account. L'audio va solo al servizio di trascrizione che scegli. Le statistiche anonime sono facoltative e spente di default.</p></details>
+      <details><summary data-t="q5">Windows dice "ha protetto il PC"</summary><p data-t="a5">Succede con i programmi nuovi non ancora firmati: clicca "Ulteriori informazioni" e poi "Esegui comunque".</p></details>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p><a href="privacy.html" data-t="foot.privacy">Privacy</a> · <a href="https://github.com/IMTZSON/Vat">GitHub</a></p>
+    <p class="fine" data-t="foot.note">Strumento di allenamento per la simulazione di volo. Non affiliato a VATSIM, IVAO o ai produttori dei simulatori.</p>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>

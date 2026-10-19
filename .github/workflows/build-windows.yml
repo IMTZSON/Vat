@@ -178,6 +178,7 @@ jobs:
       - name: Compila (senza firma, per verificare)
         if: env.HAS_SIGNING != 'true'
         run: |
+          set -o pipefail
           xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Release \
             -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
             MARKETING_VERSION=1.0.${{ github.run_number }} CURRENT_PROJECT_VERSION=${{ github.run_number }} \
@@ -209,6 +210,7 @@ jobs:
       - name: Archivio firmato e invio a TestFlight
         if: env.HAS_SIGNING == 'true'
         run: |
+          set -o pipefail
           xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Release \
             -archivePath "$RUNNER_TEMP/App.xcarchive" -destination 'generic/platform=iOS' \
             MARKETING_VERSION=1.0.${{ github.run_number }} CURRENT_PROJECT_VERSION=${{ github.run_number }} \
@@ -238,7 +240,7 @@ jobs:
   # ---------------------------------------------------------------- Release: Windows sempre, Android e iOS se compilati
   publish:
     needs: [build, android, ios]
-    if: always() && github.event_name != 'pull_request' && needs.build.result == 'success'
+    if: ${{ !cancelled() && github.event_name != 'pull_request' && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
